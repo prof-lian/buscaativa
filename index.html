@@ -1,1 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel Busca Ativa · Projeto Escola e Família</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --paper:#FAF8F4;--ink:#16232E;--indigo:#1F4E6B;--stamp:#A8322D;--verde:#2C6E49;
+  --graf:#6E7A83;--rule:#D8D2C6;--ouro:#C08A2E;--roxo:#6E4E7A;--wash:#F1EDE5;--card:#fff;
+}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Zilla Slab',Georgia,serif;line-height:1.15;letter-spacing:-.01em}
+.mono{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 90px}
 
+/* topo */
+header.top{position:sticky;top:0;z-index:30;background:rgba(250,248,244,.94);backdrop-filter:blur(8px);border-bottom:2px solid var(--ink);padding:14px 0 12px;margin-bottom:26px}
+.top .row{max-width:1180px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{flex:1;min-width:230px}
+.brand .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--graf)}
+.brand h1{font-size:22px;font-weight:700}
+.status{display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--graf)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--graf);display:inline-block}
+.dot.ok{background:var(--verde)} .dot.load{background:var(--ouro);animation:pulse 1s infinite} .dot.err{background:var(--stamp)}
+@keyframes pulse{50%{opacity:.3}}
+button.btn{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:8px 15px;cursor:pointer;border-radius:2px}
+button.btn:hover{background:var(--indigo);border-color:var(--indigo)}
+button.btn.ghost{background:transparent;color:var(--ink)} button.btn.ghost:hover{background:var(--wash);color:var(--ink)}
+button.btn:disabled{opacity:.5;cursor:default}
+
+/* estados */
+.panel-msg{border:1px solid var(--rule);background:var(--card);padding:40px 34px;margin:30px 0;max-width:720px}
+.panel-msg h2{font-size:22px;margin-bottom:10px}
+.panel-msg p{color:var(--graf);margin-bottom:12px;max-width:60ch}
+.panel-msg code{font-family:'IBM Plex Mono',monospace;background:var(--wash);padding:2px 6px;font-size:12.5px;word-break:break-all}
+.panel-msg ol{margin:14px 0 4px 20px} .panel-msg li{margin-bottom:8px}
+.field{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.field input{flex:1;min-width:260px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:9px 11px;border:1px solid var(--rule);border-radius:2px}
+.hidden{display:none!important}
+
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:2px;background:var(--rule);border:1px solid var(--rule);margin-bottom:14px}
+.kpi{background:var(--card);padding:16px 15px}
+.kpi .v{font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;line-height:1;letter-spacing:-.03em}
+.kpi .l{font-size:11.5px;color:var(--graf);margin-top:7px;line-height:1.35}
+.kpi.down .v{color:var(--verde)} .kpi.up .v{color:var(--stamp)} .kpi.blue .v{color:var(--indigo)}
+
+/* layout de seções */
+section{margin:34px 0}
+.shead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid var(--rule);padding-bottom:7px;margin-bottom:16px;flex-wrap:wrap}
+.shead h2{font-size:24px;font-weight:700}
+.shead .snum{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;color:var(--stamp);text-transform:uppercase}
+.lede{color:var(--graf);font-size:14.5px;max-width:74ch;margin:-8px 0 16px}
+
+/* grid 2 col */
+.cols{display:grid;grid-template-columns:1.15fr .85fr;gap:26px}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+
+/* tabelas */
+.tw{overflow-x:auto;border:1px solid var(--rule);background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{background:var(--ink);color:var(--paper);font-weight:500;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:8px 9px;text-align:left;white-space:nowrap;position:sticky;top:0}
+td{padding:7px 9px;border-bottom:1px solid var(--rule)}
+tbody tr:nth-child(even){background:#F6F3EE}
+td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.tot{background:var(--wash)!important;font-weight:600} tr.tot td{border-top:2px solid var(--ink)}
+.neg{color:var(--verde);font-weight:600} .pos{color:var(--stamp);font-weight:600}
+.chip{display:inline-block;font-size:10px;padding:1px 6px;border-radius:9px;background:var(--wash);color:var(--graf);margin-right:3px;white-space:nowrap}
+.chip.b{background:#E7EDF1;color:var(--indigo)} .chip.g{background:#E5EFE9;color:var(--verde)} .chip.r{background:#F3E5E4;color:var(--stamp)} .chip.o{background:#F5EDDD;color:var(--ouro)}
+
+/* comentários */
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.filtros input,.filtros select{font-family:'IBM Plex Sans',sans-serif;font-size:13px;padding:7px 10px;border:1px solid var(--rule);border-radius:2px;background:var(--card)}
+.filtros input.search{flex:1;min-width:200px}
+.motivos{display:flex;flex-wrap:wrap;gap:2px;background:var(--rule);border:1px solid var(--rule);margin-bottom:16px}
+.motivos .m{background:var(--card);padding:10px 12px;cursor:pointer;flex:1;min-width:130px}
+.motivos .m:hover{background:var(--wash)} .motivos .m.on{background:var(--ink)} .motivos .m.on *{color:var(--paper)!important}
+.motivos .m .mn{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;line-height:1}
+.motivos .m .ml{font-size:11px;color:var(--graf);margin-top:4px;line-height:1.3}
+.clist{display:flex;flex-direction:column;gap:2px;background:var(--rule);border:1px solid var(--rule);max-height:640px;overflow-y:auto}
+.citem{background:var(--card);padding:13px 15px}
+.citem .ch{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:5px;flex-wrap:wrap}
+.citem .who{font-weight:600;font-size:13.5px}
+.citem .meta{font-size:11px;color:var(--graf)}
+.citem .txt{font-size:13.5px;line-height:1.5}
+.citem .foot{margin-top:7px;font-size:11px;color:var(--graf);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:2px;background:var(--wash);color:var(--graf)}
+.badge.nota{background:#E5EFE9;color:var(--verde)} .badge.rev{background:#F3E5E4;color:var(--stamp)}
+.count{font-size:12px;color:var(--graf)}
+
+/* barras simples */
+.bars{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.bar{display:grid;grid-template-columns:120px 1fr 44px;align-items:center;gap:10px;font-size:12.5px}
+.bar .lab{text-align:right;color:var(--graf)}
+.bar .track{background:var(--wash);height:16px;position:relative}
+.bar .fill{height:100%;background:var(--indigo)}
+.bar .val{font-family:'IBM Plex Mono',monospace;font-size:12px}
+
+footer{border-top:2px solid var(--ink);margin-top:50px;padding-top:16px;font-size:12px;color:var(--graf)}
+.notewarn{background:var(--wash);border-left:4px solid var(--ouro);padding:12px 16px;font-size:13px;margin:14px 0}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="row">
+    <div class="brand">
+      <div class="eyebrow">Projeto Escola e Família · E.M.C.M. Prof. José Geraldo Guimarães</div>
+      <h1>Painel de Busca Ativa</h1>
+    </div>
+    <div class="status">
+      <span><span class="dot" id="dot"></span> <span id="statusTxt">iniciando…</span></span>
+      <button class="btn ghost" id="btnConfig" title="Trocar URL da API">⚙</button>
+      <button class="btn" id="btnReload">Atualizar</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- estado: sem configuração -->
+  <div class="panel-msg" id="setup">
+    <h2>Conectar à fonte de dados</h2>
+    <p>O painel lê os dados que o Apps Script publica no <strong>Firebase Realtime Database</strong>. Cole a URL do seu banco (termina em <code>firebaseio.com</code>).</p>
+    <details style="margin:8px 0 4px">
+      <summary style="cursor:pointer;font-weight:500">Onde encontro essa URL?</summary>
+      <ol>
+        <li>No <strong>Firebase Console</strong> › <strong>Realtime Database</strong>.</li>
+        <li>No topo da aba <em>Dados</em> aparece a URL, tipo <code>https://seu-projeto-default-rtdb.firebaseio.com</code>.</li>
+        <li>Confira nas <em>Regras</em> que <code>busca_ativa</code> tem <code>".read": true</code>.</li>
+        <li>No Apps Script, rode <code>sincronizar</code> ao menos uma vez para popular o banco.</li>
+      </ol>
+    </details>
+    <div class="field">
+      <input id="urlInput" placeholder="https://seu-projeto-default-rtdb.firebaseio.com" spellcheck="false">
+      <button class="btn" id="btnSave">Conectar</button>
+    </div>
+    <p style="font-size:12px;margin-top:12px">A URL fica salva só neste navegador. Para publicar fixo no GitHub Pages, cole a URL em <code>CONFIG.FIREBASE_URL</code> no topo do <code>index.html</code>.</p>
+  </div>
+
+  <!-- estado: erro -->
+  <div class="panel-msg hidden" id="errbox">
+    <h2>Não consegui carregar</h2>
+    <p id="errmsg"></p>
+    <div class="field"><button class="btn" id="btnRetry">Tentar de novo</button><button class="btn ghost" id="btnReconfig">Trocar URL</button></div>
+  </div>
+
+  <!-- dashboard -->
+  <main id="dash" class="hidden">
+
+    <div id="notewarn" class="notewarn hidden"></div>
+
+    <div class="kpis" id="kpis"></div>
+    <p class="lede" id="subhead"></p>
+
+    <section>
+      <div class="shead"><h2>O que as famílias relataram</h2><span class="snum">Comentários ao vivo</span></div>
+      <p class="lede">Cada comentário e nota de célula da planilha, lido diretamente do Google. Clique num motivo para filtrar. Os itens marcados <span class="badge rev">revisar</span> são comentários que não vincularam a um aluno específico — o texto continua valendo.</p>
+      <div class="motivos" id="motivos"></div>
+      <div class="filtros">
+        <input class="search" id="cSearch" placeholder="Buscar no texto dos relatos…">
+        <select id="cTurma"><option value="">Todas as turmas</option></select>
+        <select id="cFonte"><option value="">Notas + comentários</option><option value="nota">Só notas</option><option value="comentário">Só comentários</option></select>
+        <span class="count" id="cCount"></span>
+      </div>
+      <div class="clist" id="clist"></div>
+    </section>
+
+    <div class="cols">
+      <section>
+        <div class="shead"><h2>Evolução por ano</h2><span class="snum">Faltas injustificadas</span></div>
+        <div class="tw"><table id="tAno"></table></div>
+      </section>
+      <section>
+        <div class="shead"><h2>Motivos declarados</h2><span class="snum">Ranking</span></div>
+        <div class="bars" id="barsMotivo"></div>
+      </section>
+    </div>
+
+    <section>
+      <div class="shead"><h2>Turmas</h2><span class="snum" id="turmaCount"></span></div>
+      <div class="filtros">
+        <input class="search" id="aSearch" placeholder="Buscar aluno ou turma…">
+        <select id="aFiltro"><option value="">Todos</option><option value="alcancado">Só alcançados</option><option value="graves">Faltas altas (10+)</option><option value="com">Com relato registrado</option></select>
+        <span class="count" id="aCount"></span>
+      </div>
+      <div class="tw"><table id="tAlunos"></table></div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p><strong>Painel de Busca Ativa</strong> — lê ao vivo a planilha FALTOSOS 2026. As faltas do 6º ao 9º ano são corrigidas automaticamente (a coluna original mistura o acumulado do ano com o bimestre). Uso interno; contém dados de estudantes protegidos pela LGPD.</p>
+    <p id="footTime" style="margin-top:6px"></p>
+  </footer>
+
+</div>
+
+<script src="logic.js"></script>
+<script>
+/* ===== CONFIG =========================================================
+   FONTE DOS DADOS: a URL do seu Realtime Database.
+     Ex.: 'https://seu-projeto-default-rtdb.firebaseio.com'
+     O site lê de FIREBASE_URL + '/busca_ativa.json'.
+
+   Trocar a PLANILHA não se faz aqui — é no Apps Script (menu da planilha
+   "Busca Ativa › Trocar planilha", ou o SPREADSHEET_ID no Config.gs).
+   O site sempre lê o que estiver no Firebase, seja qual for a planilha.
+
+   Deixe vazio para escolher pela tela (engrenagem ⚙).                 */
+var CONFIG = { FIREBASE_URL: '', API_URL: '' };
+/* ==================================================================== */
+
+(function(){
+  'use strict';
+  var LS='buscaAtivaFonte';
+  var el=function(id){return document.getElementById(id);};
+  var state={A:null, motivoSel:null};
+
+  // fonte salva: {tipo:'firebase'|'apps', url:'...'}
+  function fonte(){
+    if(CONFIG.FIREBASE_URL) return {tipo:'firebase', url:CONFIG.FIREBASE_URL};
+    if(CONFIG.API_URL) return {tipo:'apps', url:CONFIG.API_URL};
+    try{ var s=JSON.parse(localStorage.getItem(LS)||'null'); if(s&&s.url) return s; }catch(e){}
+    return null;
+  }
+  function setStatus(cls,txt){ el('dot').className='dot '+(cls||''); el('statusTxt').textContent=txt; }
+  function show(id){ ['setup','errbox','dash'].forEach(function(x){el(x).classList.toggle('hidden', x!==id);}); }
+
+  // ---- JSONP (para o Apps Script; evita CORS)
+  function jsonp(url, cb, onErr){
+    var name='__ba_cb_'+Date.now();
+    var s=document.createElement('script');
+    var timer=setTimeout(function(){ cleanup(); onErr(new Error('Tempo esgotado.')); }, 20000);
+    function cleanup(){ clearTimeout(timer); delete window[name]; if(s.parentNode) s.parentNode.removeChild(s); }
+    window[name]=function(data){ cleanup(); cb(data); };
+    s.onerror=function(){ cleanup(); onErr(new Error('Não foi possível acessar a URL do Apps Script.')); };
+    s.src=url+(url.indexOf('?')>=0?'&':'?')+'callback='+name+'&t='+Date.now();
+    document.body.appendChild(s);
+  }
+
+  // ---- Firebase RTDB (fetch simples de JSON limpo)
+  function fetchFirebase(base, cb, onErr){
+    var url=base.replace(/\/+$/,'')+'/busca_ativa.json?t='+Date.now();
+    fetch(url,{cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status+'. Confira a URL e as Regras (leitura pública) do Realtime Database.'); return r.json(); })
+      .then(function(data){ if(data==null) throw new Error('O banco respondeu vazio. Rode "sincronizar" no Apps Script pelo menos uma vez.'); cb(data); })
+      .catch(function(e){ onErr(e); });
+  }
+
+  function load(){
+    var f=fonte();
+    if(!f){ show('setup'); setStatus('','não conectado'); return; }
+    show('dash'); setStatus('load','carregando…'); el('btnReload').disabled=true;
+    var ok=function(payload){
+      el('btnReload').disabled=false;
+      if(!payload || payload.erro){ return fail(payload && payload.erro ? payload.erro : 'Resposta vazia.'); }
+      try{
+        var A=window.BuscaAtiva.analyze(payload);
+        state.A=A; render(A);
+        setStatus('ok','atualizado '+horaCurta(A.geradoEm));
+        show('dash');
+      }catch(err){ fail('Erro ao processar os dados: '+err.message); }
+    };
+    var no=function(err){ el('btnReload').disabled=false; fail(err.message); };
+    if(f.tipo==='firebase') fetchFirebase(f.url, ok, no);
+    else jsonp(f.url, ok, no);
+  }
+  function fail(msg){ setStatus('err','erro'); if(!state.A){ show('errbox'); el('errmsg').textContent=msg; } else { setStatus('err','erro ao atualizar — mostrando dados anteriores'); } }
+
+  // ---- formatação
+  function n(x,d){ if(x==null||isNaN(x)) return '—'; return Number(x).toLocaleString('pt-BR',{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); }
+  function pc(x){ if(x==null||isNaN(x)) return '—'; return (x<0?'−':'+')+n(Math.abs(x),1)+'%'; }
+  function cl(x){ return x<0?'neg':(x>0?'pos':''); }
+  function horaCurta(iso){ if(!iso) return ''; var d=new Date(iso); return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+  function dataCurta(iso){ if(!iso) return ''; var d=new Date(iso); if(isNaN(d)) return ''; return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  // ---- render
+  function render(A){
+    // aviso de correção
+    var nw=el('notewarn');
+    nw.classList.remove('hidden');
+    nw.innerHTML='<strong>Leitura corrigida.</strong> Nas abas do 6º ao 9º ano a coluna do 2º bimestre guarda o acumulado do ano; o painel usa a coluna do próprio bimestre para não contar faltas em dobro.';
+
+    // KPIs
+    var acoes=A.acoesTotais;
+    el('kpis').innerHTML=[
+      kpi('blue', n(acoes), 'ações registradas (buscas, bilhetes, encaminhamentos, retornos)'),
+      kpi('blue', n(A.alcancados), 'alunos alcançados — '+n(pct(A.alcancados,A.n),1)+'% dos monitorados'),
+      kpi(A.varInj<0?'down':'up', pc(A.varInj), 'faltas injustificadas no semestre'),
+      kpi('down', n(A.melhorou), 'alunos melhoraram ('+n(A.pMel,1)+'%)'),
+      kpi('blue', n(A.totalComentarios), 'relatos lidos da planilha (notas + comentários)')
+    ].join('');
+    el('subhead').textContent=n(A.n)+' alunos monitorados em '+n(A.turmas)+' turmas · '+n(A.bilhetes)+' bilhetes · '+n(A.alunosSae)+' encaminhamentos à SAE · '+n(A.termos)+' termos assinados.';
+
+    renderMotivos(A);
+    renderComentarios();
+    renderAno(A);
+    renderBarsMotivo(A);
+    fillTurmaSelect(A);
+    renderAlunos();
+
+    el('footTime').textContent='Dados gerados pelo servidor às '+horaCurta(A.geradoEm)+' de '+(new Date(A.geradoEm).toLocaleDateString('pt-BR'))+'.';
+  }
+  function pct(a,b){ return b?100*a/b:0; }
+  function kpi(cls,v,l){ return '<div class="kpi '+cls+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>'; }
+
+  function renderMotivos(A){
+    var box=el('motivos');
+    var top=A.motivos.slice(0,7);
+    box.innerHTML=top.map(function(m){
+      return '<div class="m" data-m="'+esc(m.motivo)+'"><div class="mn">'+n(m.n)+'</div><div class="ml">'+esc(m.motivo)+'</div></div>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.m'), function(node){
+      node.addEventListener('click', function(){
+        var m=node.getAttribute('data-m');
+        state.motivoSel = (state.motivoSel===m? null : m);
+        Array.prototype.forEach.call(box.querySelectorAll('.m'), function(x){ x.classList.toggle('on', x.getAttribute('data-m')===state.motivoSel); });
+        renderComentarios();
+      });
+    });
+  }
+
+  function allComments(){
+    var A=state.A; if(!A) return [];
+    var vin=A.comentarios.map(function(c){c._rev=false;return c;});
+    var rev=A.comentariosNaoVinc.map(function(c){c._rev=true;return c;});
+    return vin.concat(rev);
+  }
+  function renderComentarios(){
+    var A=state.A; if(!A) return;
+    var q=(el('cSearch').value||'').toLowerCase().trim();
+    var turma=el('cTurma').value, fonte=el('cFonte').value, mot=state.motivoSel;
+    var list=allComments().filter(function(c){
+      if(mot && c.motivo!==mot) return false;
+      if(turma && c.turma!==turma) return false;
+      if(fonte && c.fonte!==fonte) return false;
+      if(q && (c.texto||'').toLowerCase().indexOf(q)<0 && (c.aluno||'').toLowerCase().indexOf(q)<0) return false;
+      return true;
+    });
+    // notas e vinculados primeiro; revisar por último
+    list.sort(function(a,b){ return (a._rev?1:0)-(b._rev?1:0); });
+    el('cCount').textContent=list.length+' de '+A.totalComentarios+' relatos';
+    el('clist').innerHTML = list.length? list.map(citem).join('') :
+      '<div class="citem"><div class="txt" style="color:var(--graf)">Nenhum relato com esses filtros.</div></div>';
+  }
+  function citem(c){
+    var who = c._rev? '<span class="who">Comentário sem aluno vinculado</span>'
+                    : '<span class="who">'+esc(c.aluno||'—')+'</span> <span class="meta">'+esc(c.turma||'')+'</span>';
+    var badge = c.fonte==='nota'? '<span class="badge nota">nota de célula</span>'
+              : (c._rev? '<span class="badge rev">revisar</span>' : '<span class="badge">comentário</span>');
+    var foot=[];
+    foot.push('<span class="chip">'+esc(c.motivo)+'</span>');
+    if(c.autor && c.autor!=='nota' && c.autor!=='—') foot.push('por '+esc(c.autor));
+    if(c.data) foot.push(dataCurta(c.data));
+    if(c.resolvido) foot.push('<span class="chip g">resolvido</span>');
+    if(c.celula && c._rev) foot.push('<span class="meta">célula: “'+esc(c.celula)+'”</span>');
+    return '<div class="citem"><div class="ch">'+who+' '+badge+'</div>'+
+           '<div class="txt">'+esc(c.texto||'')+'</div>'+
+           '<div class="foot">'+foot.join('<span>·</span>')+'</div></div>';
+  }
+
+  function renderAno(A){
+    var rows=A.anos.map(function(r){
+      return '<tr><td><strong>'+esc(r.ano)+'</strong> <span class="meta">'+r.turmas+' t.</span></td>'+
+        '<td class="num">'+n(r.n)+'</td><td class="num">'+n(r.i1)+'</td><td class="num">'+n(r.i2)+'</td>'+
+        '<td class="num '+cl(r.varInj)+'">'+pc(r.varInj)+'</td>'+
+        '<td class="num">'+r.buscas+'</td><td class="num">'+(r.bilhetes||'—')+'</td><td class="num">'+(r.sae||'—')+'</td></tr>';
+    }).join('');
+    el('tAno').innerHTML='<thead><tr><th>Ano</th><th class="num">Alun.</th><th class="num">1º bim</th><th class="num">2º bim</th><th class="num">Var.</th><th class="num">Busc.</th><th class="num">Bilh.</th><th class="num">SAE</th></tr></thead><tbody>'+rows+
+      '<tr class="tot"><td>Escola</td><td class="num">'+n(A.n)+'</td><td class="num">'+n(A.i1)+'</td><td class="num">'+n(A.i2)+'</td><td class="num '+cl(A.varInj)+'">'+pc(A.varInj)+'</td><td class="num">'+A.alunosBusca+'</td><td class="num">'+A.bilhetes+'</td><td class="num">'+A.alunosSae+'</td></tr></tbody>';
+  }
+
+  function renderBarsMotivo(A){
+    var top=A.motivos.slice(0,8);
+    var mx=top.length? top[0].n:1;
+    el('barsMotivo').innerHTML=top.map(function(m){
+      return '<div class="bar"><span class="lab">'+esc(m.motivo)+'</span>'+
+        '<span class="track"><span class="fill" style="width:'+(100*m.n/mx)+'%"></span></span>'+
+        '<span class="val">'+n(m.n)+'</span></div>';
+    }).join('') || '<p class="lede">Sem relatos categorizados ainda.</p>';
+  }
+
+  function fillTurmaSelect(A){
+    var turmas={}; A.alunos.forEach(function(a){turmas[a.turma]=1;});
+    var opts='<option value="">Todas as turmas</option>'+Object.keys(turmas).sort().map(function(t){return '<option>'+esc(t)+'</option>';}).join('');
+    el('cTurma').innerHTML=opts;
+  }
+
+  function renderAlunos(){
+    var A=state.A; if(!A) return;
+    var q=(el('aSearch').value||'').toLowerCase().trim();
+    var f=el('aFiltro').value;
+    var list=A.alunos.filter(function(a){
+      if(f==='alcancado' && !(a.busca||a.bilhete||a.sae)) return false;
+      if(f==='graves' && !((a.i1||0)+(a.i2||0)>=10)) return false;
+      if(f==='com' && !a.qtdComentarios) return false;
+      if(q && a.nome.toLowerCase().indexOf(q)<0 && a.turma.toLowerCase().indexOf(q)<0) return false;
+      return true;
+    });
+    list.sort(function(a,b){ return ((b.i1||0)+(b.i2||0))-((a.i1||0)+(a.i2||0)); });
+    el('aCount').textContent=list.length+' alunos';
+    el('turmaCount').textContent=A.turmas+' turmas · '+A.n+' alunos';
+    var rows=list.slice(0,400).map(function(a){
+      var acoes=[];
+      if(a.busca) acoes.push('<span class="chip b">busca</span>');
+      if(a.bilhete) acoes.push('<span class="chip r">bilhete</span>');
+      if(a.sae) acoes.push('<span class="chip o">SAE</span>');
+      if(a.termo) acoes.push('<span class="chip g">termo</span>');
+      if(a.transf) acoes.push('<span class="chip">transf.</span>');
+      if(a.laudo) acoes.push('<span class="chip">laudo</span>');
+      var rel = a.qtdComentarios? '<span class="chip g">'+a.qtdComentarios+' relato'+(a.qtdComentarios>1?'s':'')+'</span>' : '';
+      return '<tr><td>'+esc(a.nome)+'</td><td class="mono">'+esc(a.turma)+'</td>'+
+        '<td class="num">'+n(a.i1)+'</td><td class="num">'+n(a.i2)+'</td>'+
+        '<td>'+acoes.join(' ')+' '+rel+'</td></tr>';
+    }).join('');
+    el('tAlunos').innerHTML='<thead><tr><th>Aluno</th><th>Turma</th><th class="num">Injust. 1º</th><th class="num">Injust. 2º</th><th>Ações e relatos</th></tr></thead><tbody>'+rows+'</tbody>'+
+      (list.length>400?'<tbody><tr><td colspan="5" style="color:var(--graf)">Mostrando os 400 primeiros. Refine a busca para ver mais.</td></tr></tbody>':'');
+  }
+
+  // ---- eventos
+  function urlAtual(){ var f=fonte(); return f?f.url:''; }
+  el('btnReload').addEventListener('click', load);
+  el('btnRetry').addEventListener('click', load);
+  el('btnSave').addEventListener('click', function(){
+    var v=el('urlInput').value.trim(); if(!v) return;
+    var tipo = /firebaseio\.com|firebasedatabase\.app/.test(v) ? 'firebase' : (/\/exec/.test(v)?'apps':'firebase');
+    localStorage.setItem(LS, JSON.stringify({tipo:tipo, url:v})); load();
+  });
+  el('urlInput').addEventListener('keydown', function(e){ if(e.key==='Enter') el('btnSave').click(); });
+  el('btnConfig').addEventListener('click', function(){ el('urlInput').value=urlAtual(); show('setup'); });
+  el('btnReconfig').addEventListener('click', function(){ el('urlInput').value=urlAtual(); show('setup'); });
+  ['cSearch','cTurma','cFonte'].forEach(function(id){ el(id).addEventListener('input', renderComentarios); });
+  ['aSearch','aFiltro'].forEach(function(id){ el(id).addEventListener('input', renderAlunos); });
+
+  // auto-refresh a cada 3 min
+  setInterval(function(){ if(fonte() && !document.hidden) load(); }, 180000);
+
+  // start
+  if(CONFIG.FIREBASE_URL || CONFIG.API_URL) el('btnConfig').style.display='none';
+  load();
+})();
+</script>
+</body>
+</html>
