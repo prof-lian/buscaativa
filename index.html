@@ -100,11 +100,34 @@ tbody tr:nth-child(even){background:#F6F9FC}
 tbody tr:hover td{background:var(--paper-2)}
 .pill{display:inline-flex;align-items:center;gap:4px;font-size:11px}
 .pill.g{color:var(--green)} .pill.r{color:var(--alert)}
+tr.filtros-col td{position:sticky;top:34px;background:#F1F5FA;padding:4px 6px;border-bottom:1px solid var(--line-2)}
+.colf{width:100%;min-width:52px;border:1px solid var(--line);border-radius:4px;padding:3px 6px;font-size:11px;font-family:'IBM Plex Sans';background:#fff;color:var(--navy)}
+.colf.num{text-align:right}
+select.colf{cursor:pointer}
 
 .loadscreen,.errscreen{max-width:560px;margin:80px auto;text-align:center;color:var(--soft)}
 .errscreen h2{color:var(--navy);font-size:22px;margin-bottom:8px}
 .hidden{display:none!important}
 .foot{border-top:1px solid var(--line);margin-top:30px;padding-top:16px;font-size:11.5px;color:var(--soft)}
+
+/* edição inline */
+.chk{width:16px;height:16px;cursor:pointer;accent-color:var(--green)}
+.chk:disabled{cursor:not-allowed;opacity:.5}
+.noteinp{width:100%;min-width:120px;border:1px solid var(--line);border-radius:5px;padding:4px 7px;font-size:12px;font-family:'IBM Plex Sans';background:#fff;color:var(--navy)}
+.noteinp:disabled{background:var(--paper);color:var(--soft);cursor:not-allowed}
+.saved{color:var(--green);font-size:10px;font-family:'IBM Plex Mono'}
+.editcol.locked{opacity:.6}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(11,37,69,.55);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px}
+.modal .card{background:#fff;border-radius:10px;padding:26px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal h3{font-size:20px;margin-bottom:6px}
+.modal p{font-size:13px;color:var(--soft);margin-bottom:16px}
+.modal input{width:100%;border:1px solid var(--line);border-radius:6px;padding:9px 11px;font-size:14px;margin-bottom:10px;font-family:'IBM Plex Sans'}
+.modal .row{display:flex;gap:8px;margin-top:6px}
+.modal .b1{flex:1;background:var(--navy);color:#fff;border:none;border-radius:6px;padding:10px;font-size:14px;font-weight:500;cursor:pointer}
+.modal .b2{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 14px;cursor:pointer;color:var(--soft)}
+.modal .err{color:var(--alert);font-size:12.5px;margin-top:8px;min-height:16px}
 
 @media print{
   body{background:#fff}
@@ -131,7 +154,7 @@ tbody tr:hover td{background:var(--paper-2)}
       <div class="top-meta">
         <div class="live"><span class="ldot" id="dot"></span> <span id="statusTxt">iniciando…</span></div>
         <div id="genTime"></div>
-        <div style="margin-top:6px"><button class="btn" id="btnPrint">Imprimir / PDF</button> <button class="btn" id="btnReload">Atualizar</button></div>
+        <div style="margin-top:6px"><button class="btn" id="btnLogin">Entrar para editar</button> <button class="btn" id="btnPrint">Imprimir / PDF</button> <button class="btn" id="btnReload">Atualizar</button></div>
       </div>
     </div>
   </div>
@@ -140,6 +163,9 @@ tbody tr:hover td{background:var(--paper-2)}
       <label>Turma</label>
       <div class="anos" id="anoChips"></div>
       <select class="turma" id="selTurma"></select>
+      <span style="width:1px;height:22px;background:#33507A;margin:0 4px"></span>
+      <label>Bimestre</label>
+      <div class="anos" id="bimChips"></div>
     </div>
   </div>
 </div>
@@ -211,13 +237,17 @@ tbody tr:hover td{background:var(--paper-2)}
 
     <div class="panel wide">
       <h2>Lista de alunos</h2>
-      <p class="note">Ordenada pelas faltas injustificadas. <span id="lblLista"></span></p>
+      <p class="note"><span id="lblLista"></span> — clique nos títulos das colunas para ordenar; use a linha de filtros abaixo do cabeçalho para refinar.</p>
       <div class="controls">
         <div class="search">🔎<input id="alSearch" placeholder="Buscar aluno…"></div>
+        <select class="turma" id="selTurma2" style="background:#fff;color:var(--navy);border-color:var(--line)"></select>
         <button class="fbtn on" data-af="todos">Todos</button>
         <button class="fbtn" data-af="com">Com acompanhamento</button>
         <button class="fbtn" data-af="sem">Sem contato</button>
         <button class="fbtn" data-af="graves">10+ faltas</button>
+        <button class="fbtn" data-af="bilhete">Com bilhete</button>
+        <button class="btn" id="btnBilhetes" style="margin-left:auto">📄 Bilhetes enviados</button>
+        <span class="mono" id="tabCount" style="font-size:12px;color:var(--soft)"></span>
       </div>
       <div class="twrap"><table id="tabela"></table></div>
     </div>
@@ -226,10 +256,46 @@ tbody tr:hover td{background:var(--paper-2)}
   </div>
 </div>
 
+<div class="modal hidden" id="bilhModal">
+  <div class="card" style="max-width:560px">
+    <h3>Bilhetes enviados</h3>
+    <p id="bilhSub"></p>
+    <div class="controls"><div class="search">🔎<input id="bilhSearch" placeholder="Buscar aluno ou turma…"></div>
+      <button class="btn" id="bilhPrint">Imprimir</button><button class="b2" id="bilhClose">Fechar</button></div>
+    <div class="log" id="bilhList" style="max-height:52vh"></div>
+  </div>
+</div>
+
+<!-- Firebase (só para LOGIN de quem vai editar; ver/consultar não precisa) -->
+<div class="modal hidden" id="loginModal">
+  <div class="card">
+    <h3>Entrar para editar</h3>
+    <p>Só para marcar "resolvido" e escrever anotações. Consultar o painel não precisa de login.</p>
+    <input id="loginEmail" type="email" placeholder="e-mail" autocomplete="username">
+    <input id="loginPw" type="password" placeholder="senha" autocomplete="current-password">
+    <div class="err" id="loginErr"></div>
+    <div class="row"><button class="b1" id="loginGo">Entrar</button><button class="b2" id="loginCancel">Cancelar</button></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="logic.js"></script>
 <script>
 /* ===== CONFIG ===== */
 var FIREBASE_URL = 'https://buscaativa-jgg-default-rtdb.firebaseio.com';
+
+/* Para LIGAR a edição (checkbox "resolvido" + anotações), cole aqui a
+   config do seu app web do Firebase:
+   Firebase Console › ⚙ Configurações do projeto › Seus apps › Web › Config.
+   Enquanto apiKey estiver como 'COLE_...', o painel funciona só em leitura
+   (ninguém edita) — e nada quebra. */
+var FIREBASE_CONFIG = {
+  apiKey: 'COLE_apiKey',
+  authDomain: 'buscaativa-jgg.firebaseapp.com',
+  databaseURL: 'https://buscaativa-jgg-default-rtdb.firebaseio.com',
+  projectId: 'buscaativa-jgg'
+};
 /* ================= */
 
 (function(){
@@ -239,9 +305,29 @@ var ANOS_INI = ['PRIMEIROS','SEGUNDOS','TERCEIROS','QUARTOS','QUINTOS'];
 var LBL = {PRIMEIROS:'1º ano',SEGUNDOS:'2º ano',TERCEIROS:'3º ano',QUARTOS:'4º ano',QUINTOS:'5º ano'};
 var COR = {navy:'#0B2545',navy2:'#14345E',navy3:'#1D4E89',soft:'#4C6789',line:'#C2CFDE',alert:'#B23A48',gold:'#C08A2E',green:'#2C7A5B'};
 var el=function(id){return document.getElementById(id);};
-var S={data:null, ano:'Todas', turma:'', logFiltro:'todos', logBusca:'', alFiltro:'todos', alBusca:''};
+var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logBusca:'', alFiltro:'todos', alBusca:'',
+       colBusca:{}, ordCol:'inj', ordDir:-1,
+       acomp:{}, user:null, authOn:false};
+
+/* chave estável por aluno (código da matrícula; senão nome+turma) */
+function alunoKey(r){
+  var cod = r.COD!=null? String(r.COD).replace(/[^0-9A-Za-z]/g,'') : '';
+  if(cod) return 'c'+cod;
+  return 'n'+U.up(r.turma).replace(/[^0-9A-Z]/g,'')+'_'+U.up(r.nome).replace(/[^0-9A-Z]/g,'');
+}
 
 function n(x){ return (x==null||isNaN(x))?'—':Number(x).toLocaleString('pt-BR'); }
+/* ordena turmas: por ano (número) e depois pela letra — 1ºA,1ºB,...,2ºA,... */
+function turmaOrd(t){ var m=String(t).match(/(\d+)\s*º?\s*([A-Za-z]?)/); var ano=m?parseInt(m[1],10):99; var letra=(m&&m[2]?m[2].toUpperCase():'Z'); return ano*100+(letra.charCodeAt(0)||90); }
+function cmpTurma(a,b){ return turmaOrd(a)-turmaOrd(b) || String(a).localeCompare(String(b)); }
+/* valores conforme o bimestre selecionado (1B, 2B ou ambos) */
+function vFaltas(r){ return S.bim==='1'? (r['1B_f']||0) : S.bim==='2'? (r['2B_f']||0) : r.faltasTot; }
+function vAtest(r){ return S.bim==='1'? (r['1B_a']||0) : S.bim==='2'? (r['2B_a']||0) : r.atestTot; }
+function vInj(r){ return S.bim==='1'? (r['1B_i']||0) : S.bim==='2'? (r['2B_i']||0) : r.injTot; }
+function vBusca(r){ return S.bim==='1'? r.b_busca1 : S.bim==='2'? r.b_busca2 : (r.b_busca1||r.b_busca2||r.buscaAny); }
+function vSae(r){ return S.bim==='1'? r.b_sae1 : S.bim==='2'? r.b_sae2 : r.saeAny; }
+function vAlcancado(r){ return vBusca(r) || r.bilhete || vSae(r); }
+function bimLabel(){ return S.bim==='1'?'1º bimestre':S.bim==='2'?'2º bimestre':'ano todo'; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function hora(iso){ if(!iso)return''; var d=new Date(iso); return isNaN(d)?'':d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
 var MES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -254,18 +340,22 @@ function load(){
     .then(function(payload){
       el('btnReload').disabled=false;
       if(!payload) throw new Error('Banco vazio. Rode "sincronizar" no Apps Script.');
+      var primeiraVez = !S.data;
       S.data = build(payload);
       el('loadscreen').classList.add('hidden'); el('errscreen').classList.add('hidden'); el('dash').classList.remove('hidden');
-      initSelectors(); renderAll();
-      setStatus('ok','atualizado '+hora(payload.geradoEm));
-      el('genTime').textContent = payload.planilha ? ('fonte: '+payload.planilha) : '';
+      if(primeiraVez) initSelectors(); else fillTurmas();   // preserva ano/turma no refresh
+      renderAll(); carregarAcomp();
+      var agora=new Date();
+      setStatus('ok','atualizado '+dataHora(agora));
+      el('genTime').textContent = 'última atualização: '+dataHora(agora);
     })
     .catch(function(e){
-      el('btnReload').disabled=false; setStatus('err','erro');
+      el('btnReload').disabled=false; setStatus('err','erro ao atualizar');
       if(!S.data){ el('loadscreen').classList.add('hidden'); el('errscreen').classList.remove('hidden'); el('errmsg').textContent=e.message; }
     });
 }
 function setStatus(c,t){ el('dot').className='ldot '+c; el('statusTxt').textContent=t; }
+function dataHora(d){ d=d||new Date(); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
 
 function build(payload){
   var all = window.BuscaAtiva.parseStudents(payload);
@@ -320,8 +410,8 @@ function selComentarios(){
 function renderKpis(){
   var g=selAlunos();
   var faltas=0,atest=0,inj=0,bilh=0,sae=0,ret=0,acomp=0;
-  g.forEach(function(r){ faltas+=r.faltasTot; atest+=r.atestTot; inj+=r.injTot;
-    if(r.bilhete)bilh++; if(r.saeAny)sae++; if(r.retAny)ret++; if(r.alcancado)acomp++; });
+  g.forEach(function(r){ faltas+=vFaltas(r); atest+=vAtest(r); inj+=vInj(r);
+    if(r.bilhete)bilh++; if(vSae(r))sae++; if(r.retAny)ret++; if(vAlcancado(r))acomp++; });
   var sem=g.length-acomp;
   el('kpiFreq').innerHTML=[
     kpi('Alunos', n(g.length)),
@@ -335,7 +425,7 @@ function renderKpis(){
     kpi('Retornos da SAE', n(ret)),
     kpi('Com acompanhamento', n(acomp), 'green', n(sem)+' sem contato')
   ].join('');
-  var lbl = S.turma ? ('turma '+S.turma) : (S.ano==='Todas'?'todas as turmas':S.ano);
+  var lbl = (S.turma ? ('turma '+S.turma) : (S.ano==='Todas'?'todas as turmas':S.ano)) + ' · ' + bimLabel();
   el('lblFreq').textContent=lbl; el('lblLista').textContent=lbl;
 }
 function kpi(l,v,cls,sub){ return '<div class="kpi"><div class="l">'+l+'</div><div class="v '+(cls||'')+'">'+v+(sub?'<span class="sub">'+sub+'</span>':'')+'</div></div>'; }
@@ -405,8 +495,8 @@ function renderCharts(){
     '<p class="note" style="margin-top:8px">Só conta ações com data escrita no registro; o volume real é maior.</p>';
 
   var base = S.data.ini.filter(function(r){ return S.ano==='Todas'||LBL[r.sheet]===S.ano; });
-  var turmas={}; base.forEach(function(r){ var t=r.turma; turmas[t]=turmas[t]||{n:0,ac:0}; turmas[t].n++; if(r.alcancado)turmas[t].ac++; });
-  var arr=Object.keys(turmas).sort().map(function(t){ return {turma:t,n:turmas[t].n,ac:turmas[t].ac}; });
+  var turmas={}; base.forEach(function(r){ var t=r.turma; turmas[t]=turmas[t]||{n:0,ac:0}; turmas[t].n++; if(vAlcancado(r))turmas[t].ac++; });
+  var arr=Object.keys(turmas).sort(cmpTurma).map(function(t){ return {turma:t,n:turmas[t].n,ac:turmas[t].ac}; });
   el('chartTurmas').innerHTML=turmaChart(arr);
   Array.prototype.forEach.call(el('chartTurmas').querySelectorAll('[data-turma]'),function(node){
     node.addEventListener('click',function(){ var t=node.getAttribute('data-turma'); S.turma=(S.turma===t?'':t); el('selTurma').value=S.turma; renderAll(); });
@@ -436,10 +526,10 @@ function turmaChart(arr){
 }
 
 function renderAlertas(){
-  var g=selAlunos().filter(function(r){ return !r.alcancado && r.injTot>=10; })
-    .sort(function(a,b){return b.injTot-a.injTot;}).slice(0,8);
+  var g=selAlunos().filter(function(r){ return !vAlcancado(r) && vInj(r)>=10; })
+    .sort(function(a,b){return vInj(b)-vInj(a);}).slice(0,8);
   el('alertas').innerHTML = g.length? g.map(function(r){
-    return '<li class="aitem"><div><div class="aname">'+esc(U.cap(r.nome))+'</div><div class="aturma">'+esc(r.turma)+'</div></div><span class="acount">'+r.injTot+' faltas</span></li>';
+    return '<li class="aitem"><div><div class="aname">'+esc(U.cap(r.nome))+'</div><div class="aturma">'+esc(r.turma)+'</div></div><span class="acount">'+vInj(r)+' faltas</span></li>';
   }).join('') : '<p class="note">Nenhum caso nessa condição na seleção atual.</p>';
 }
 
@@ -471,21 +561,76 @@ function logItem(c){
 
 function renderTabela(){
   var g=selAlunos().slice();
-  if(S.alFiltro==='com') g=g.filter(function(r){return r.alcancado;});
-  else if(S.alFiltro==='sem') g=g.filter(function(r){return !r.alcancado;});
-  else if(S.alFiltro==='graves') g=g.filter(function(r){return r.injTot>=10;});
+  if(S.alFiltro==='com') g=g.filter(function(r){return vAlcancado(r);});
+  else if(S.alFiltro==='sem') g=g.filter(function(r){return !vAlcancado(r);});
+  else if(S.alFiltro==='graves') g=g.filter(function(r){return vInj(r)>=10;});
+  else if(S.alFiltro==='bilhete') g=g.filter(function(r){return r.bilhete;});
   var q=S.alBusca.toLowerCase();
   if(q) g=g.filter(function(r){return r.nome.toLowerCase().indexOf(q)>=0;});
-  g.sort(function(a,b){return b.injTot-a.injTot;});
-  var rows=g.slice(0,300).map(function(r){
-    var sae = r.saeAny ? (r.retAny?'retorno':'aguard.') : '—';
-    var st = r.alcancado ? '<span class="pill g">✓ acompanhado</span>' : '<span class="pill r">sem contato</span>';
-    return '<tr><td>'+esc(U.cap(r.nome))+'</td><td class="mono">'+esc(r.turma)+'</td>'+
-      '<td class="num">'+n(r.faltasTot)+'</td><td class="num">'+n(r.atestTot)+'</td><td class="num">'+n(r.injTot)+'</td>'+
-      '<td>'+(r.bilhete?'sim':'—')+'</td><td>'+sae+'</td><td>'+st+'</td></tr>';
-  }).join('');
-  el('tabela').innerHTML='<thead><tr><th>Nome</th><th>Turma</th><th class="num">Faltas</th><th class="num">Atest.</th><th class="num">Injust.</th><th>Bilhete</th><th>SAE</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody>'+
-    (g.length>300?'<tbody><tr><td colspan="8" class="note">Mostrando 300 de '+g.length+'. Refine a busca.</td></tr></tbody>':'');
+  // filtros por coluna
+  var cb=S.colBusca;
+  g=g.filter(function(r){
+    if(cb.turma && String(r.turma).toLowerCase().indexOf(cb.turma.toLowerCase())<0) return false;
+    if(cb.bilhete!=null){ if(cb.bilhete==='sim' && !r.bilhete) return false; if(cb.bilhete==='nao' && r.bilhete) return false; }
+    if(cb.sae!=null){ var s=vSae(r)?(r.retAny?'retorno':'aguard'):'nao'; if(s.indexOf(cb.sae)<0) return false; }
+    if(cb.status!=null){ var st=vAlcancado(r)?'acomp':'sem'; if(st.indexOf(cb.status)<0) return false; }
+    if(cb.faltasMin!=null && vFaltas(r)<cb.faltasMin) return false;
+    if(cb.injMin!=null && vInj(r)<cb.injMin) return false;
+    return true;
+  });
+  // ordenação por coluna
+  var oc=S.ordCol, dir=S.ordDir;
+  g.sort(function(a,b){
+    var x,y;
+    if(oc==='nome'){ x=U.up(a.nome); y=U.up(b.nome); return (x<y?-1:x>y?1:0)*dir; }
+    if(oc==='turma'){ return cmpTurma(a.turma,b.turma)*dir; }
+    if(oc==='faltas'){ x=vFaltas(a); y=vFaltas(b); }
+    else if(oc==='atest'){ x=vAtest(a); y=vAtest(b); }
+    else if(oc==='bilhete'){ x=a.bilhete?1:0; y=b.bilhete?1:0; }
+    else { x=vInj(a); y=vInj(b); }
+    return (x-y)*dir;
+  });
+  var editavel=podeEditar();
+  function arrow(c){ return S.ordCol===c ? (S.ordDir<0?' ▼':' ▲') : ''; }
+  var head='<thead>'+
+    '<tr>'+
+      '<th data-sort="nome" style="cursor:pointer">Nome'+arrow('nome')+'</th>'+
+      '<th data-sort="turma" style="cursor:pointer">Turma'+arrow('turma')+'</th>'+
+      '<th class="num" data-sort="faltas" style="cursor:pointer">Faltas'+arrow('faltas')+'</th>'+
+      '<th class="num" data-sort="atest" style="cursor:pointer">Atest.'+arrow('atest')+'</th>'+
+      '<th class="num" data-sort="inj" style="cursor:pointer">Injust.'+arrow('inj')+'</th>'+
+      '<th data-sort="bilhete" style="cursor:pointer">Bilhete'+arrow('bilhete')+'</th>'+
+      '<th>SAE</th><th>Status</th><th>Resolv.</th><th>Anotação</th>'+
+    '</tr>'+
+    '<tr class="filtros-col">'+
+      '<td></td>'+
+      '<td><input class="colf" data-col="turma" placeholder="turma" value="'+esc(cb.turma||'')+'"></td>'+
+      '<td><input class="colf num" data-col="faltasMin" type="number" min="0" placeholder="≥" value="'+(cb.faltasMin!=null?cb.faltasMin:'')+'"></td>'+
+      '<td></td>'+
+      '<td><input class="colf num" data-col="injMin" type="number" min="0" placeholder="≥" value="'+(cb.injMin!=null?cb.injMin:'')+'"></td>'+
+      '<td><select class="colf" data-col="bilhete"><option value="">todos</option><option value="sim"'+(cb.bilhete==='sim'?' selected':'')+'>com</option><option value="nao"'+(cb.bilhete==='nao'?' selected':'')+'>sem</option></select></td>'+
+      '<td><select class="colf" data-col="sae"><option value="">todos</option><option value="retorno"'+(cb.sae==='retorno'?' selected':'')+'>retorno</option><option value="aguard"'+(cb.sae==='aguard'?' selected':'')+'>aguard.</option><option value="nao"'+(cb.sae==='nao'?' selected':'')+'>sem</option></select></td>'+
+      '<td><select class="colf" data-col="status"><option value="">todos</option><option value="acomp"'+(cb.status==='acomp'?' selected':'')+'>acomp.</option><option value="sem"'+(cb.status==='sem'?' selected':'')+'>sem</option></select></td>'+
+      '<td></td><td></td>'+
+    '</tr></thead>';
+  el('tabela').innerHTML=head+'<tbody id="tbody"></tbody>'+
+    (g.length>300?'<tbody><tr><td colspan="10" class="note">Mostrando 300 de '+g.length+'. Refine a busca.</td></tr></tbody>':'');
+  el('tabCount').textContent=g.length+' alunos';
+  var tb=el('tbody');
+  g.slice(0,300).forEach(function(r){
+    var key=alunoKey(r), a=S.acomp[key]||{};
+    var sae = vSae(r) ? (r.retAny?'retorno':'aguard.') : '—';
+    var st = vAlcancado(r) ? '<span class="pill g">✓ acompanhado</span>' : '<span class="pill r">sem contato</span>';
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(U.cap(r.nome))+'</td><td class="mono">'+esc(r.turma)+'</td>'+
+      '<td class="num">'+n(vFaltas(r))+'</td><td class="num">'+n(vAtest(r))+'</td><td class="num">'+n(vInj(r))+'</td>'+
+      '<td>'+(r.bilhete?'sim':'—')+'</td><td>'+sae+'</td><td>'+st+'</td>'+
+      '<td class="editcol'+(editavel?'':' locked')+'" style="text-align:center"><input type="checkbox" class="chk" data-key="'+key+'"'+(a.resolvido?' checked':'')+(editavel?'':' disabled')+'><span class="saved"></span></td>'+
+      '<td class="editcol'+(editavel?'':' locked')+'"><input class="noteinp" data-key="'+key+'" placeholder="'+(editavel?'anotar…':'—')+'" value="'+esc(a.anotacao||'')+'"'+(editavel?'':' disabled')+'></td>';
+    tr.querySelector('.chk')._rec=r;
+    tr.querySelector('.noteinp')._rec=r;
+    tb.appendChild(tr);
+  });
 }
 
 function initSelectors(){
@@ -494,23 +639,110 @@ function initSelectors(){
   Array.prototype.forEach.call(el('anoChips').querySelectorAll('.anochip'),function(b){
     b.addEventListener('click',function(){ S.ano=b.getAttribute('data-ano'); S.turma=''; syncChips(); fillTurmas(); renderAll(); });
   });
+  var bims=[['ambos','Ano todo'],['1','1º Bim'],['2','2º Bim']];
+  el('bimChips').innerHTML=bims.map(function(b){return '<button class="anochip'+(b[0]===S.bim?' on':'')+'" data-bim="'+b[0]+'">'+b[1]+'</button>';}).join('');
+  Array.prototype.forEach.call(el('bimChips').querySelectorAll('.anochip'),function(b){
+    b.addEventListener('click',function(){ S.bim=b.getAttribute('data-bim');
+      Array.prototype.forEach.call(el('bimChips').querySelectorAll('.anochip'),function(x){x.classList.toggle('on',x===b);}); renderAll(); });
+  });
   fillTurmas();
 }
 function syncChips(){ Array.prototype.forEach.call(el('anoChips').querySelectorAll('.anochip'),function(b){ b.classList.toggle('on', b.getAttribute('data-ano')===S.ano); }); }
 function fillTurmas(){
   var base=S.data.ini.filter(function(r){return S.ano==='Todas'||LBL[r.sheet]===S.ano;});
   var seen={}; base.forEach(function(r){ seen[r.turma]=1; });
-  var ts=Object.keys(seen).sort();
+  var ts=Object.keys(seen).sort(cmpTurma);
   el('selTurma').innerHTML='<option value="">Todas as turmas'+(S.ano==='Todas'?'':' do '+S.ano)+'</option>'+ts.map(function(t){return '<option'+(t===S.turma?' selected':'')+'>'+esc(t)+'</option>';}).join('');
 }
 
 function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
 function renderFoot(){
-  var d=S.data; el('foot').innerHTML='Painel gerado a partir da planilha '+esc(d.planilha||'FALTOSOS 2026')+' · '+d.ini.length+' alunos do 1º ao 5º ano · '+
+  var d=S.data; el('foot').innerHTML=d.ini.length+' alunos do 1º ao 5º ano · '+
     d.comentarios.filter(function(c){return !c.rec||ANOS_INI.indexOf(c.rec.sheet)>=0;}).length+' relatos lidos · dados protegidos pela LGPD, uso interno da gestão.';
 }
 
-el('selTurma').addEventListener('change',function(){ S.turma=el('selTurma').value; renderAll(); });
+/* ---------- acompanhamento (resolvido + anotações) ---------- */
+function carregarAcomp(){
+  fetch(FIREBASE_URL.replace(/\/+$/,'')+'/acompanhamento.json?t='+Date.now(),{cache:'no-store'})
+    .then(function(r){ return r.ok? r.json():null; })
+    .then(function(d){ S.acomp=d||{}; renderTabela(); })
+    .catch(function(){ /* silencioso: sem acomp, painel segue em leitura */ });
+}
+function podeEditar(){ return S.authOn && !!S.user; }
+
+function salvarAcomp(key, rec, patch){
+  if(!podeEditar()) return Promise.reject(new Error('sem login'));
+  var atual = S.acomp[key] || {};
+  var novo = {
+    resolvido: patch.resolvido!=null? patch.resolvido : !!atual.resolvido,
+    anotacao:  patch.anotacao!=null?  patch.anotacao  : (atual.anotacao||''),
+    nome: U.cap(rec.nome), turma: rec.turma, por: S.user.email, em: Date.now()
+  };
+  S.acomp[key]=novo; // otimista
+  return S.user.getIdToken().then(function(tok){
+    return fetch(FIREBASE_URL.replace(/\/+$/,'')+'/acompanhamento/'+key+'.json?auth='+tok, {
+      method:'PUT', body:JSON.stringify(novo)
+    });
+  }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return true; });
+}
+
+/* auth */
+function initAuth(){
+  if(!window.firebase || !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.indexOf('COLE')===0) {
+    // edição desligada: some o botão, tudo funciona em leitura
+    el('btnLogin').style.display='none'; S.authOn=false; return;
+  }
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    S.authOn=true;
+    firebase.auth().onAuthStateChanged(function(u){ S.user=u; updateAuthUI(); renderTabela(); });
+  }catch(e){ el('btnLogin').style.display='none'; S.authOn=false; }
+}
+function updateAuthUI(){
+  var b=el('btnLogin');
+  if(S.user){ b.textContent='Sair ('+(S.user.email||'').split('@')[0]+')'; }
+  else { b.textContent='Entrar para editar'; }
+}
+function abrirLogin(){ el('loginErr').textContent=''; el('loginModal').classList.remove('hidden'); el('loginEmail').focus(); }
+function fecharLogin(){ el('loginModal').classList.add('hidden'); }
+function fazerLogin(){
+  var e=el('loginEmail').value.trim(), p=el('loginPw').value;
+  if(!e||!p) return;
+  el('loginErr').textContent='entrando…';
+  firebase.auth().signInWithEmailAndPassword(e,p)
+    .then(function(){ fecharLogin(); el('loginPw').value=''; })
+    .catch(function(err){ el('loginErr').textContent = err.code==='auth/invalid-credential'||err.code==='auth/wrong-password'||err.code==='auth/user-not-found' ? 'E-mail ou senha incorretos.' : ('Erro: '+err.message); });
+}
+
+el('btnLogin').addEventListener('click',function(){
+  if(!S.authOn) return;
+  if(S.user) firebase.auth().signOut();
+  else abrirLogin();
+});
+el('loginGo').addEventListener('click',fazerLogin);
+el('loginCancel').addEventListener('click',fecharLogin);
+el('loginPw').addEventListener('keydown',function(e){ if(e.key==='Enter') fazerLogin(); });
+
+/* edição inline na tabela (delegação, sem re-render que perca o foco) */
+el('tabela').addEventListener('change', function(ev){
+  var t=ev.target;
+  if(t.classList.contains('chk')){
+    var key=t.getAttribute('data-key'), r=t._rec;
+    salvarAcomp(key, r, {resolvido:t.checked}).then(function(){ flash(t); }).catch(function(){ t.checked=!t.checked; });
+  }
+});
+el('tabela').addEventListener('blur', function(ev){
+  var t=ev.target;
+  if(t.classList.contains('noteinp')){
+    var key=t.getAttribute('data-key'), r=t._rec, val=t.value.trim();
+    var atual=(S.acomp[key]||{}).anotacao||'';
+    if(val===atual) return;
+    salvarAcomp(key, r, {anotacao:val}).then(function(){ flash(t); });
+  }
+}, true);
+function flash(node){ var s=node.parentNode.querySelector('.saved'); if(s){ s.textContent='✓ salvo'; setTimeout(function(){s.textContent='';},1500);} }
+
+el('selTurma').addEventListener('change',function(){ S.turma=el('selTurma').value; if(el('selTurma2'))el('selTurma2').value=S.turma; renderAll(); });
 el('btnReload').addEventListener('click',load);
 el('btnRetry').addEventListener('click',load);
 el('btnPrint').addEventListener('click',function(){ window.print(); });
@@ -521,7 +753,54 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-f]'),function(b){ 
 Array.prototype.forEach.call(document.querySelectorAll('[data-af]'),function(b){ b.addEventListener('click',function(){
   S.alFiltro=b.getAttribute('data-af'); document.querySelectorAll('[data-af]').forEach(function(x){x.classList.toggle('on',x===b);}); renderTabela(); }); });
 
-setInterval(function(){ if(!document.hidden) load(); }, 180000);
+/* turma no filtro da lista (espelha o seletor do topo) */
+el('selTurma2').addEventListener('change',function(){ S.turma=this.value; el('selTurma').value=S.turma; renderAll(); });
+
+/* ordenar por coluna + filtros por coluna (delegação no cabeçalho da tabela) */
+el('tabela').addEventListener('click',function(ev){
+  var th=ev.target.closest && ev.target.closest('th[data-sort]'); if(!th) return;
+  var c=th.getAttribute('data-sort');
+  if(S.ordCol===c) S.ordDir=-S.ordDir; else { S.ordCol=c; S.ordDir=(c==='nome'||c==='turma')?1:-1; }
+  renderTabela();
+});
+el('tabela').addEventListener('input',function(ev){
+  var t=ev.target; if(!t.classList||!t.classList.contains('colf')) return;
+  var col=t.getAttribute('data-col'), v=t.value;
+  if(col==='faltasMin'||col==='injMin') S.colBusca[col]= v===''?null:Number(v);
+  else S.colBusca[col]= v===''?null:v;
+  // re-render sem perder o foco do campo que está sendo digitado
+  var active=col; renderTabela();
+  var again=el('tabela').querySelector('.colf[data-col="'+active+'"]'); if(again){ again.focus(); if(again.setSelectionRange && again.type!=='number'){ var L=again.value.length; try{again.setSelectionRange(L,L);}catch(e){} } }
+});
+el('tabela').addEventListener('change',function(ev){
+  var t=ev.target; if(!t.classList||!t.classList.contains('colf')||t.tagName!=='SELECT') return;
+  S.colBusca[t.getAttribute('data-col')]= t.value===''?null:t.value; renderTabela();
+});
+
+/* modal de bilhetes */
+function abrirBilhetes(){
+  var g=selAlunos().filter(function(r){return r.bilhete;});
+  g.sort(function(a,b){ return cmpTurma(a.turma,b.turma) || U.up(a.nome).localeCompare(U.up(b.nome)); });
+  el('bilhModal')._all=g;
+  el('bilhSub').textContent=g.length+' bilhete(s) — '+(S.turma?('turma '+S.turma):(S.ano==='Todas'?'todas as turmas':S.ano));
+  renderBilhetes(''); el('bilhModal').classList.remove('hidden'); el('bilhSearch').value=''; el('bilhSearch').focus();
+}
+function renderBilhetes(q){
+  q=(q||'').toLowerCase();
+  var g=(el('bilhModal')._all||[]).filter(function(r){ return !q || r.nome.toLowerCase().indexOf(q)>=0 || String(r.turma).toLowerCase().indexOf(q)>=0; });
+  el('bilhList').innerHTML = g.length? g.map(function(r){
+    var ds=U.datesIn(r.RECLASS).map(function(d){return String(d[1]).padStart(2,'0')+'/'+MES[d[0]-1];});
+    var data = ds.length? ds.join(', ') : '<span style="color:var(--soft)">sem data anotada</span>';
+    return '<div class="logitem"><div class="loghead"><span class="logname">'+esc(U.cap(r.nome))+' <span class="logmeta">'+esc(r.turma)+'</span></span><span class="logmeta">'+data+'</span></div></div>';
+  }).join('') : '<p class="note">Nenhum bilhete nesta seleção.</p>';
+}
+el('btnBilhetes').addEventListener('click',abrirBilhetes);
+el('bilhClose').addEventListener('click',function(){ el('bilhModal').classList.add('hidden'); });
+el('bilhSearch').addEventListener('input',function(){ renderBilhetes(this.value); });
+el('bilhPrint').addEventListener('click',function(){ window.print(); });
+
+initAuth();
+setInterval(function(){ if(!document.hidden){ load(); carregarAcomp(); } }, 180000);
 load();
 })();
 </script>
