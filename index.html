@@ -373,21 +373,43 @@ function build(payload){
 
 function identificar(all, comments){
   var byName={}; all.forEach(function(r){ var k=U.up(r.nome); (byName[k]=byName[k]||[]).push(r); });
+  // roster de nome completo (>=9 chars), do mais longo pro mais curto
   var roster = all.map(function(r){return {k:U.up(r.nome), r:r};})
                   .filter(function(x){return x.k.length>=9;})
                   .sort(function(a,b){return b.k.length-a.k.length;});
+  // índice por "primeiro + último nome" (ex.: "ANA PONTES") para casar citação parcial no texto.
+  // só entra no índice quando esse par é ÚNICO na escola, pra não vincular errado.
+  var parCount={}, parMap={};
+  all.forEach(function(r){
+    var p=U.up(r.nome).split(' ').filter(Boolean);
+    if(p.length<2) return;
+    var par=p[0]+' '+p[p.length-1];
+    parCount[par]=(parCount[par]||0)+1; parMap[par]=r;
+  });
+  function acha(txt){
+    // 1) nome completo aparece no texto
+    for(var i=0;i<roster.length;i++){ if(txt.indexOf(roster[i].k)>=0) return {r:roster[i].r, via:'texto'}; }
+    // 2) primeiro + último nome (só se for único na escola)
+    var best=null,bestLen=0;
+    Object.keys(parMap).forEach(function(par){
+      if(parCount[par]===1 && par.length>bestLen && txt.indexOf(par)>=0){ best=parMap[par]; bestLen=par.length; }
+    });
+    if(best) return {r:best, via:'texto'};
+    return null;
+  }
   return (comments||[]).map(function(c){
     var o={texto:c.texto||'', data:c.data||'', autor:c.autor||'', resolvido:!!c.resolvido,
            quoted:c.quotedFileContent||'', motivo:window.BuscaAtiva.classifyMotivo(c.texto||''), rec:null, via:null};
     var q=U.up(o.quoted);
-    if(q && byName[q] && byName[q].length===1){ o.rec=byName[q][0]; o.via='nome'; }
+    if(q && byName[q] && byName[q].length===1){ o.rec=byName[q][0]; o.via='nome'; }       // comentou na célula do nome
+    else if(q && byName[q] && byName[q].length>1){ o.rec=byName[q][0]; o.via='texto'; }    // nome repetido: sugere 1º
     else {
-      var txt=U.up(o.texto);
-      for(var i=0;i<roster.length;i++){ if(txt.indexOf(roster[i].k)>=0){ o.rec=roster[i].r; o.via='texto'; break; } }
+      var hit=acha(U.up(o.texto));
+      if(hit){ o.rec=hit.r; o.via=hit.via; }
     }
     o.ano = o.rec? o.rec.sheet : null;
-    o.turma = o.rec? o.rec.turma : null;
-    o.nome = o.rec? o.rec.nome : null;
+    o.turma = o.rec? o.rec.turma : null;   // turma vem da ficha do aluno (equivale à coluna A do bloco)
+    o.nome = o.rec? o.rec.nome : null;     // nome vem da ficha (coluna C)
     return o;
   });
 }
@@ -652,7 +674,11 @@ function fillTurmas(){
   var base=S.data.ini.filter(function(r){return S.ano==='Todas'||LBL[r.sheet]===S.ano;});
   var seen={}; base.forEach(function(r){ seen[r.turma]=1; });
   var ts=Object.keys(seen).sort(cmpTurma);
-  el('selTurma').innerHTML='<option value="">Todas as turmas'+(S.ano==='Todas'?'':' do '+S.ano)+'</option>'+ts.map(function(t){return '<option'+(t===S.turma?' selected':'')+'>'+esc(t)+'</option>';}).join('');
+  var opts='<option value="">Todas as turmas'+(S.ano==='Todas'?'':' do '+S.ano)+'</option>'+
+    ts.map(function(t){return '<option'+(t===S.turma?' selected':'')+'>'+esc(t)+'</option>';}).join('');
+  el('selTurma').innerHTML=opts;
+  el('selTurma').value=S.turma;
+  if(el('selTurma2')){ el('selTurma2').innerHTML=opts; el('selTurma2').value=S.turma; }
 }
 
 function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
@@ -754,7 +780,7 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-af]'),function(b){
   S.alFiltro=b.getAttribute('data-af'); document.querySelectorAll('[data-af]').forEach(function(x){x.classList.toggle('on',x===b);}); renderTabela(); }); });
 
 /* turma no filtro da lista (espelha o seletor do topo) */
-el('selTurma2').addEventListener('change',function(){ S.turma=this.value; el('selTurma').value=S.turma; renderAll(); });
+el('selTurma2').addEventListener('change',function(){ S.turma=this.value; if(el('selTurma'))el('selTurma').value=S.turma; renderAll(); });
 
 /* ordenar por coluna + filtros por coluna (delegação no cabeçalho da tabela) */
 el('tabela').addEventListener('click',function(ev){
