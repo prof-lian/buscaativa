@@ -87,12 +87,18 @@
           else if(/^(qt\.?\s*)?(de\s+)?faltas/.test(h)){ set(bd||'','FCOL',c3); }
         }
         if(meta.NOME==null) continue;
+        // coluna logo após o Nome costuma ser Situação/Reclassificação (onde vai "TRANSFERIDO"),
+        // mesmo quando o cabeçalho está em branco. Captura como SITU2 se não for já conhecida.
+        var apos=meta.NOME+1;
+        var conhecidas={}; conhecidas[meta.COD]=1; conhecidas[meta.RECLASS]=1; conhecidas[meta.ASSIN]=1; conhecidas[meta.MATRIC]=1; conhecidas[meta.SITUACAO]=1;
+        if(!conhecidas[apos]) meta.SITU2=apos;
+        if(meta.RECLASS==null && !conhecidas[apos]) { /* já vira SITU2 */ }
         for(var r2=hr+1;r2<=end;r2++){
           var row=V[r2]; if(!row) continue;
           var nome=norm(row[meta.NOME]); if(!nome) continue;
           var rec={sheet:sheet, ano:LBL[sheet], seg:SEG[sheet], turma:turma, linha:r2+1, nome:nome, nomeChave:up(nome),
                    cells:{}, notas:[]};
-          ['COD','RECLASS','ASSIN','MATRIC'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
+          ['COD','RECLASS','ASSIN','MATRIC','SITUACAO','SITU2'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
           ['1B','2B','3B','4B'].forEach(function(bi){
             var cc=cols[bi]||{};
             var fbim = cc.FBIM!=null? num(row[cc.FBIM]) : null;
@@ -132,7 +138,7 @@
           rec.bilhete3=isSim(rec['3B_BIL'])||/bilhete/.test(low(rec['3B_BIL']));
           rec.bilhete4=isSim(rec['4B_BIL'])||/bilhete/.test(low(rec['4B_BIL']));
           rec.bilhete=rec.bilhete1||rec.bilhete2||rec.bilhete3||rec.bilhete4||/bilhete/.test(reclass);
-          rec.transf=/transferid|domiciliar/.test(reclass) || /transferid|domiciliar/.test(low(rec.SITUACAO||''));
+          rec.transf=/transferid|domiciliar/.test(reclass) || /transferid|domiciliar/.test(low(rec.SITUACAO||'')) || /transferid|domiciliar/.test(low(rec.SITU2||''));
           rec.laudo=/laudo/.test(reclass);
           rec.termo=/assinad/.test(ass)||ass.indexOf('sim')===0||/assinad/.test(reclass);
           // devolutivas (texto do relato) por bimestre
