@@ -224,12 +224,9 @@ select.colf{cursor:pointer}
 
     <div class="panel wide">
       <h2>Devolutivas das famílias</h2>
-      <p class="note">Cada comentário lido da planilha. <strong>A identificar</strong> = comentário que não vinculou pelo nome; quando o texto cita um aluno, o painel sugere quem é (confirme).</p>
+      <p class="note">Texto da coluna "Devolutiva da família" da planilha, já vinculado ao aluno e ao bimestre. Categorização de motivo automática.</p>
       <div class="controls">
-        <div class="search">🔎<input id="logSearch" placeholder="Buscar no texto ou no nome…"></div>
-        <button class="fbtn on" data-f="todos">Todos</button>
-        <button class="fbtn" data-f="ident">Identificados</button>
-        <button class="fbtn" data-f="rev">A identificar</button>
+        <div class="search">🔎<input id="logSearch" placeholder="Buscar no texto, no nome ou na turma…"></div>
         <span class="mono" id="logCount" style="font-size:12px;color:var(--soft)"></span>
       </div>
       <div class="log" id="log"></div>
@@ -301,8 +298,8 @@ var FIREBASE_CONFIG = {
 (function(){
 'use strict';
 var U = window.BuscaAtiva._util;
-var ANOS_INI = ['PRIMEIROS','SEGUNDOS','TERCEIROS','QUARTOS','QUINTOS'];
-var LBL = {PRIMEIROS:'1º ano',SEGUNDOS:'2º ano',TERCEIROS:'3º ano',QUARTOS:'4º ano',QUINTOS:'5º ano'};
+var ANOS_INI = ['PRIMEIROS','SEGUNDOS','TERCEIROS','QUARTOS','QUINTOS','QUINTOS TARDE'];
+var LBL = {PRIMEIROS:'1º ano',SEGUNDOS:'2º ano',TERCEIROS:'3º ano',QUARTOS:'4º ano',QUINTOS:'5º ano','QUINTOS TARDE':'5º ano'};
 var COR = {navy:'#0B2545',navy2:'#14345E',navy3:'#1D4E89',soft:'#4C6789',line:'#C2CFDE',alert:'#B23A48',gold:'#C08A2E',green:'#2C7A5B'};
 var el=function(id){return document.getElementById(id);};
 var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logBusca:'', alFiltro:'todos', alBusca:'',
@@ -366,53 +363,19 @@ function build(payload){
     r.faltasTot=(r['1B_f']||0)+(r['2B_f']||0);
     r.atestTot=(r['1B_a']||0)+(r['2B_a']||0);
   });
-  var comentarios = identificar(all, payload.comments||[]);
   var ini = all.filter(function(r){ return ANOS_INI.indexOf(r.sheet)>=0; });
-  return { all:all, ini:ini, comentarios:comentarios, geradoEm:payload.geradoEm, planilha:payload.planilha };
-}
-
-function identificar(all, comments){
-  var byName={}; all.forEach(function(r){ var k=U.up(r.nome); (byName[k]=byName[k]||[]).push(r); });
-  // roster de nome completo (>=9 chars), do mais longo pro mais curto
-  var roster = all.map(function(r){return {k:U.up(r.nome), r:r};})
-                  .filter(function(x){return x.k.length>=9;})
-                  .sort(function(a,b){return b.k.length-a.k.length;});
-  // índice por "primeiro + último nome" (ex.: "ANA PONTES") para casar citação parcial no texto.
-  // só entra no índice quando esse par é ÚNICO na escola, pra não vincular errado.
-  var parCount={}, parMap={};
-  all.forEach(function(r){
-    var p=U.up(r.nome).split(' ').filter(Boolean);
-    if(p.length<2) return;
-    var par=p[0]+' '+p[p.length-1];
-    parCount[par]=(parCount[par]||0)+1; parMap[par]=r;
-  });
-  function acha(txt){
-    // 1) nome completo aparece no texto
-    for(var i=0;i<roster.length;i++){ if(txt.indexOf(roster[i].k)>=0) return {r:roster[i].r, via:'texto'}; }
-    // 2) primeiro + último nome (só se for único na escola)
-    var best=null,bestLen=0;
-    Object.keys(parMap).forEach(function(par){
-      if(parCount[par]===1 && par.length>bestLen && txt.indexOf(par)>=0){ best=parMap[par]; bestLen=par.length; }
+  // relatos = coluna "Devolutiva da família", já na linha do aluno (100% vinculado)
+  var relatos=[];
+  ini.forEach(function(r){
+    (r.devolutivas||[]).forEach(function(d){
+      relatos.push({ rec:r, nome:r.nome, turma:r.turma, ano:r.sheet, bim:d.bim,
+        texto:d.texto, motivo:window.BuscaAtiva.classifyMotivo(d.texto),
+        resolvido: vSaeRec(r,d.bim) });
     });
-    if(best) return {r:best, via:'texto'};
-    return null;
-  }
-  return (comments||[]).map(function(c){
-    var o={texto:c.texto||'', data:c.data||'', autor:c.autor||'', resolvido:!!c.resolvido,
-           quoted:c.quotedFileContent||'', motivo:window.BuscaAtiva.classifyMotivo(c.texto||''), rec:null, via:null};
-    var q=U.up(o.quoted);
-    if(q && byName[q] && byName[q].length===1){ o.rec=byName[q][0]; o.via='nome'; }       // comentou na célula do nome
-    else if(q && byName[q] && byName[q].length>1){ o.rec=byName[q][0]; o.via='texto'; }    // nome repetido: sugere 1º
-    else {
-      var hit=acha(U.up(o.texto));
-      if(hit){ o.rec=hit.r; o.via=hit.via; }
-    }
-    o.ano = o.rec? o.rec.sheet : null;
-    o.turma = o.rec? o.rec.turma : null;   // turma vem da ficha do aluno (equivale à coluna A do bloco)
-    o.nome = o.rec? o.rec.nome : null;     // nome vem da ficha (coluna C)
-    return o;
   });
+  return { all:all, ini:ini, relatos:relatos, geradoEm:payload.geradoEm, planilha:payload.planilha };
 }
+function vSaeRec(r,bim){ return bim===1? r.b_sae1 : bim===2? r.b_sae2 : r.saeAny; }
 
 function selAlunos(){
   var g=S.data.ini;
@@ -421,10 +384,11 @@ function selAlunos(){
   return g;
 }
 function selComentarios(){
-  return S.data.comentarios.filter(function(c){
-    if(c.rec && ANOS_INI.indexOf(c.rec.sheet)<0) return false;
-    if(S.ano!=='Todas'){ if(c.rec){ if(LBL[c.rec.sheet]!==S.ano) return false; } else return false; }
-    if(S.turma){ if(c.rec){ if(c.rec.turma!==S.turma) return false; } else return false; }
+  return S.data.relatos.filter(function(c){
+    if(S.ano!=='Todas' && LBL[c.rec.sheet]!==S.ano) return false;
+    if(S.turma && c.rec.turma!==S.turma) return false;
+    if(S.bim==='1' && c.bim!==1) return false;
+    if(S.bim==='2' && c.bim!==2) return false;
     return true;
   });
 }
@@ -559,25 +523,18 @@ function renderLog(){
   var full=selComentarios();
   var q=S.logBusca.toLowerCase();
   var list=full.filter(function(c){
-    if(S.logFiltro==='ident' && !c.rec) return false;
-    if(S.logFiltro==='rev' && c.rec) return false;
-    if(q && (c.texto||'').toLowerCase().indexOf(q)<0 && (c.nome||'').toLowerCase().indexOf(q)<0) return false;
+    if(q && (c.texto||'').toLowerCase().indexOf(q)<0 && (c.nome||'').toLowerCase().indexOf(q)<0 && String(c.turma).toLowerCase().indexOf(q)<0) return false;
     return true;
   });
-  list.sort(function(a,b){ return (a.rec?0:1)-(b.rec?0:1) || (new Date(b.data)-new Date(a.data)); });
-  el('logCount').textContent=list.length+' de '+full.length+' relatos';
-  el('log').innerHTML = list.length? list.map(logItem).join('') : '<p class="note">Nenhum relato nesta seleção.</p>';
+  list.sort(function(a,b){ return cmpTurma(a.turma,b.turma) || U.up(a.nome).localeCompare(U.up(b.nome)) || a.bim-b.bim; });
+  el('logCount').textContent=list.length+' relato(s)';
+  el('log').innerHTML = list.length? list.map(logItem).join('') : '<p class="note">Nenhuma devolutiva registrada nesta seleção. A professora preenche a coluna "Devolutiva da família" na planilha.</p>';
 }
 function logItem(c){
-  var nome = c.rec ? '<span>'+esc(U.cap(c.nome))+'</span> <span class="logmeta">'+esc(c.turma)+'</span>'
-                   : '<span class="unk">A identificar</span>';
-  var via = c.via==='texto' ? '<span class="tag via">identificado pelo texto · confirmar</span>'
-          : (!c.rec && c.quoted ? '<span class="tag">célula: '+esc(c.quoted.slice(0,22))+'</span>' : '');
-  var tags=['<span class="tag motivo">'+esc(c.motivo)+'</span>'];
-  if(c.resolvido) tags.push('<span class="tag ok">resolvido</span>');
-  if(via) tags.push(via);
-  var meta=[]; if(c.autor&&c.autor!=='-') meta.push(esc(c.autor)); if(c.data) meta.push(dataCurta(c.data));
-  return '<div class="logitem"><div class="loghead"><span class="logname">'+nome+'</span><span class="logmeta">'+meta.join(' · ')+'</span></div>'+
+  var nome = '<span>'+esc(U.cap(c.nome))+'</span> <span class="logmeta">'+esc(c.turma)+'</span>';
+  var tags=['<span class="tag motivo">'+esc(c.motivo)+'</span>','<span class="tag">'+c.bim+'º bim</span>'];
+  if(c.resolvido) tags.push('<span class="tag ok">SAE acionada</span>');
+  return '<div class="logitem"><div class="loghead"><span class="logname">'+nome+'</span></div>'+
     '<p class="logtxt">'+esc(c.texto)+'</p><div class="tags">'+tags.join('')+'</div></div>';
 }
 
@@ -684,7 +641,7 @@ function fillTurmas(){
 function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
 function renderFoot(){
   var d=S.data; el('foot').innerHTML=d.ini.length+' alunos do 1º ao 5º ano · '+
-    d.comentarios.filter(function(c){return !c.rec||ANOS_INI.indexOf(c.rec.sheet)>=0;}).length+' relatos lidos · dados protegidos pela LGPD, uso interno da gestão.';
+    d.relatos.length+' devolutivas registradas · dados protegidos pela LGPD, uso interno da gestão.';
 }
 
 /* ---------- acompanhamento (resolvido + anotações) ---------- */
