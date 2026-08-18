@@ -154,7 +154,7 @@ select.colf{cursor:pointer}
       <div class="top-meta">
         <div class="live"><span class="ldot" id="dot"></span> <span id="statusTxt">iniciando…</span></div>
         <div id="genTime"></div>
-        <div style="margin-top:6px"><button class="btn" id="btnLogin">Entrar para editar</button> <button class="btn" id="btnPrint">Imprimir / PDF</button> <button class="btn" id="btnReload">Atualizar</button></div>
+        <div style="margin-top:6px"><button class="btn" id="btnPrint">Imprimir / PDF</button></div>
       </div>
     </div>
   </div>
@@ -234,7 +234,7 @@ select.colf{cursor:pointer}
 
     <div class="panel wide">
       <h2>Lista de alunos</h2>
-      <p class="note"><span id="lblLista"></span> — clique nos títulos das colunas para ordenar; use a linha de filtros abaixo do cabeçalho para refinar.</p>
+      <p class="note"><span id="lblLista"></span> — clique nos títulos das colunas para ordenar.</p>
       <div class="controls">
         <div class="search">🔎<input id="alSearch" placeholder="Buscar aluno…"></div>
         <select class="turma" id="selTurma2" style="background:#fff;color:var(--navy);border-color:var(--line)"></select>
@@ -263,36 +263,10 @@ select.colf{cursor:pointer}
   </div>
 </div>
 
-<!-- Firebase (só para LOGIN de quem vai editar; ver/consultar não precisa) -->
-<div class="modal hidden" id="loginModal">
-  <div class="card">
-    <h3>Entrar para editar</h3>
-    <p>Só para marcar "resolvido" e escrever anotações. Consultar o painel não precisa de login.</p>
-    <input id="loginEmail" type="email" placeholder="e-mail" autocomplete="username">
-    <input id="loginPw" type="password" placeholder="senha" autocomplete="current-password">
-    <div class="err" id="loginErr"></div>
-    <div class="row"><button class="b1" id="loginGo">Entrar</button><button class="b2" id="loginCancel">Cancelar</button></div>
-  </div>
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="logic.js"></script>
 <script>
 /* ===== CONFIG ===== */
 var FIREBASE_URL = 'https://buscaativa-jgg-default-rtdb.firebaseio.com';
-
-/* Para LIGAR a edição (checkbox "resolvido" + anotações), cole aqui a
-   config do seu app web do Firebase:
-   Firebase Console › ⚙ Configurações do projeto › Seus apps › Web › Config.
-   Enquanto apiKey estiver como 'COLE_...', o painel funciona só em leitura
-   (ninguém edita) — e nada quebra. */
-var FIREBASE_CONFIG = {
-  apiKey: 'COLE_apiKey',
-  authDomain: 'buscaativa-jgg.firebaseapp.com',
-  databaseURL: 'https://buscaativa-jgg-default-rtdb.firebaseio.com',
-  projectId: 'buscaativa-jgg'
-};
 /* ================= */
 
 (function(){
@@ -303,8 +277,7 @@ var LBL = {PRIMEIROS:'1º ano',SEGUNDOS:'2º ano',TERCEIROS:'3º ano',QUARTOS:'4
 var COR = {navy:'#0B2545',navy2:'#14345E',navy3:'#1D4E89',soft:'#4C6789',line:'#C2CFDE',alert:'#B23A48',gold:'#C08A2E',green:'#2C7A5B'};
 var el=function(id){return document.getElementById(id);};
 var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logBusca:'', alFiltro:'todos', alBusca:'',
-       colBusca:{}, ordCol:'inj', ordDir:-1,
-       acomp:{}, user:null, authOn:false};
+       ordCol:'inj', ordDir:-1};
 
 /* chave estável por aluno (código da matrícula; senão nome+turma) */
 function alunoKey(r){
@@ -331,23 +304,22 @@ var MES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'
 function dataCurta(iso){ if(!iso)return''; var d=new Date(iso); if(isNaN(d))return''; return String(d.getDate()).padStart(2,'0')+'/'+MES[d.getMonth()]; }
 
 function load(){
-  setStatus('load','carregando…'); el('btnReload').disabled=true;
+  setStatus('load','carregando…');
   fetch(FIREBASE_URL.replace(/\/+$/,'')+'/busca_ativa.json?t='+Date.now(),{cache:'no-store'})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(payload){
-      el('btnReload').disabled=false;
       if(!payload) throw new Error('Banco vazio. Rode "sincronizar" no Apps Script.');
       var primeiraVez = !S.data;
       S.data = build(payload);
       el('loadscreen').classList.add('hidden'); el('errscreen').classList.add('hidden'); el('dash').classList.remove('hidden');
-      if(primeiraVez) initSelectors(); else fillTurmas();   // preserva ano/turma no refresh
-      renderAll(); carregarAcomp();
+      if(primeiraVez) initSelectors(); else fillTurmas();
+      renderAll();
       var agora=new Date();
       setStatus('ok','atualizado '+dataHora(agora));
       el('genTime').textContent = 'última atualização: '+dataHora(agora);
     })
     .catch(function(e){
-      el('btnReload').disabled=false; setStatus('err','erro ao atualizar');
+      setStatus('err','erro ao atualizar');
       if(!S.data){ el('loadscreen').classList.add('hidden'); el('errscreen').classList.remove('hidden'); el('errmsg').textContent=e.message; }
     });
 }
@@ -546,17 +518,6 @@ function renderTabela(){
   else if(S.alFiltro==='bilhete') g=g.filter(function(r){return r.bilhete;});
   var q=S.alBusca.toLowerCase();
   if(q) g=g.filter(function(r){return r.nome.toLowerCase().indexOf(q)>=0;});
-  // filtros por coluna
-  var cb=S.colBusca;
-  g=g.filter(function(r){
-    if(cb.turma && String(r.turma).toLowerCase().indexOf(cb.turma.toLowerCase())<0) return false;
-    if(cb.bilhete!=null){ if(cb.bilhete==='sim' && !r.bilhete) return false; if(cb.bilhete==='nao' && r.bilhete) return false; }
-    if(cb.sae!=null){ var s=vSae(r)?(r.retAny?'retorno':'aguard'):'nao'; if(s.indexOf(cb.sae)<0) return false; }
-    if(cb.status!=null){ var st=vAlcancado(r)?'acomp':'sem'; if(st.indexOf(cb.status)<0) return false; }
-    if(cb.faltasMin!=null && vFaltas(r)<cb.faltasMin) return false;
-    if(cb.injMin!=null && vInj(r)<cb.injMin) return false;
-    return true;
-  });
   // ordenação por coluna
   var oc=S.ordCol, dir=S.ordDir;
   g.sort(function(a,b){
@@ -569,45 +530,27 @@ function renderTabela(){
     else { x=vInj(a); y=vInj(b); }
     return (x-y)*dir;
   });
-  var editavel=podeEditar();
   function arrow(c){ return S.ordCol===c ? (S.ordDir<0?' ▼':' ▲') : ''; }
-  var head='<thead>'+
-    '<tr>'+
+  var head='<thead><tr>'+
       '<th data-sort="nome" style="cursor:pointer">Nome'+arrow('nome')+'</th>'+
       '<th data-sort="turma" style="cursor:pointer">Turma'+arrow('turma')+'</th>'+
       '<th class="num" data-sort="faltas" style="cursor:pointer">Faltas'+arrow('faltas')+'</th>'+
       '<th class="num" data-sort="atest" style="cursor:pointer">Atest.'+arrow('atest')+'</th>'+
       '<th class="num" data-sort="inj" style="cursor:pointer">Injust.'+arrow('inj')+'</th>'+
       '<th data-sort="bilhete" style="cursor:pointer">Bilhete'+arrow('bilhete')+'</th>'+
-      '<th>SAE</th><th>Status</th><th>Resolv.</th><th>Anotação</th>'+
-    '</tr>'+
-    '<tr class="filtros-col">'+
-      '<td></td>'+
-      '<td><input class="colf" data-col="turma" placeholder="turma" value="'+esc(cb.turma||'')+'"></td>'+
-      '<td><input class="colf num" data-col="faltasMin" type="number" min="0" placeholder="≥" value="'+(cb.faltasMin!=null?cb.faltasMin:'')+'"></td>'+
-      '<td></td>'+
-      '<td><input class="colf num" data-col="injMin" type="number" min="0" placeholder="≥" value="'+(cb.injMin!=null?cb.injMin:'')+'"></td>'+
-      '<td><select class="colf" data-col="bilhete"><option value="">todos</option><option value="sim"'+(cb.bilhete==='sim'?' selected':'')+'>com</option><option value="nao"'+(cb.bilhete==='nao'?' selected':'')+'>sem</option></select></td>'+
-      '<td><select class="colf" data-col="sae"><option value="">todos</option><option value="retorno"'+(cb.sae==='retorno'?' selected':'')+'>retorno</option><option value="aguard"'+(cb.sae==='aguard'?' selected':'')+'>aguard.</option><option value="nao"'+(cb.sae==='nao'?' selected':'')+'>sem</option></select></td>'+
-      '<td><select class="colf" data-col="status"><option value="">todos</option><option value="acomp"'+(cb.status==='acomp'?' selected':'')+'>acomp.</option><option value="sem"'+(cb.status==='sem'?' selected':'')+'>sem</option></select></td>'+
-      '<td></td><td></td>'+
+      '<th>SAE</th><th>Status</th>'+
     '</tr></thead>';
   el('tabela').innerHTML=head+'<tbody id="tbody"></tbody>'+
-    (g.length>300?'<tbody><tr><td colspan="10" class="note">Mostrando 300 de '+g.length+'. Refine a busca.</td></tr></tbody>':'');
+    (g.length>300?'<tbody><tr><td colspan="8" class="note">Mostrando 300 de '+g.length+'. Refine a busca.</td></tr></tbody>':'');
   el('tabCount').textContent=g.length+' alunos';
   var tb=el('tbody');
   g.slice(0,300).forEach(function(r){
-    var key=alunoKey(r), a=S.acomp[key]||{};
     var sae = vSae(r) ? (r.retAny?'retorno':'aguard.') : '—';
     var st = vAlcancado(r) ? '<span class="pill g">✓ acompanhado</span>' : '<span class="pill r">sem contato</span>';
     var tr=document.createElement('tr');
     tr.innerHTML='<td>'+esc(U.cap(r.nome))+'</td><td class="mono">'+esc(r.turma)+'</td>'+
       '<td class="num">'+n(vFaltas(r))+'</td><td class="num">'+n(vAtest(r))+'</td><td class="num">'+n(vInj(r))+'</td>'+
-      '<td>'+(r.bilhete?'sim':'—')+'</td><td>'+sae+'</td><td>'+st+'</td>'+
-      '<td class="editcol'+(editavel?'':' locked')+'" style="text-align:center"><input type="checkbox" class="chk" data-key="'+key+'"'+(a.resolvido?' checked':'')+(editavel?'':' disabled')+'><span class="saved"></span></td>'+
-      '<td class="editcol'+(editavel?'':' locked')+'"><input class="noteinp" data-key="'+key+'" placeholder="'+(editavel?'anotar…':'—')+'" value="'+esc(a.anotacao||'')+'"'+(editavel?'':' disabled')+'></td>';
-    tr.querySelector('.chk')._rec=r;
-    tr.querySelector('.noteinp')._rec=r;
+      '<td>'+(r.bilhete?'sim':'—')+'</td><td>'+sae+'</td><td>'+st+'</td>';
     tb.appendChild(tr);
   });
 }
@@ -644,120 +587,23 @@ function renderFoot(){
     d.relatos.length+' devolutivas registradas · dados protegidos pela LGPD, uso interno da gestão.';
 }
 
-/* ---------- acompanhamento (resolvido + anotações) ---------- */
-function carregarAcomp(){
-  fetch(FIREBASE_URL.replace(/\/+$/,'')+'/acompanhamento.json?t='+Date.now(),{cache:'no-store'})
-    .then(function(r){ return r.ok? r.json():null; })
-    .then(function(d){ S.acomp=d||{}; renderTabela(); })
-    .catch(function(){ /* silencioso: sem acomp, painel segue em leitura */ });
-}
-function podeEditar(){ return S.authOn && !!S.user; }
-
-function salvarAcomp(key, rec, patch){
-  if(!podeEditar()) return Promise.reject(new Error('sem login'));
-  var atual = S.acomp[key] || {};
-  var novo = {
-    resolvido: patch.resolvido!=null? patch.resolvido : !!atual.resolvido,
-    anotacao:  patch.anotacao!=null?  patch.anotacao  : (atual.anotacao||''),
-    nome: U.cap(rec.nome), turma: rec.turma, por: S.user.email, em: Date.now()
-  };
-  S.acomp[key]=novo; // otimista
-  return S.user.getIdToken().then(function(tok){
-    return fetch(FIREBASE_URL.replace(/\/+$/,'')+'/acompanhamento/'+key+'.json?auth='+tok, {
-      method:'PUT', body:JSON.stringify(novo)
-    });
-  }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return true; });
-}
-
-/* auth */
-function initAuth(){
-  if(!window.firebase || !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.indexOf('COLE')===0) {
-    // edição desligada: some o botão, tudo funciona em leitura
-    el('btnLogin').style.display='none'; S.authOn=false; return;
-  }
-  try{
-    firebase.initializeApp(FIREBASE_CONFIG);
-    S.authOn=true;
-    firebase.auth().onAuthStateChanged(function(u){ S.user=u; updateAuthUI(); renderTabela(); });
-  }catch(e){ el('btnLogin').style.display='none'; S.authOn=false; }
-}
-function updateAuthUI(){
-  var b=el('btnLogin');
-  if(S.user){ b.textContent='Sair ('+(S.user.email||'').split('@')[0]+')'; }
-  else { b.textContent='Entrar para editar'; }
-}
-function abrirLogin(){ el('loginErr').textContent=''; el('loginModal').classList.remove('hidden'); el('loginEmail').focus(); }
-function fecharLogin(){ el('loginModal').classList.add('hidden'); }
-function fazerLogin(){
-  var e=el('loginEmail').value.trim(), p=el('loginPw').value;
-  if(!e||!p) return;
-  el('loginErr').textContent='entrando…';
-  firebase.auth().signInWithEmailAndPassword(e,p)
-    .then(function(){ fecharLogin(); el('loginPw').value=''; })
-    .catch(function(err){ el('loginErr').textContent = err.code==='auth/invalid-credential'||err.code==='auth/wrong-password'||err.code==='auth/user-not-found' ? 'E-mail ou senha incorretos.' : ('Erro: '+err.message); });
-}
-
-el('btnLogin').addEventListener('click',function(){
-  if(!S.authOn) return;
-  if(S.user) firebase.auth().signOut();
-  else abrirLogin();
-});
-el('loginGo').addEventListener('click',fazerLogin);
-el('loginCancel').addEventListener('click',fecharLogin);
-el('loginPw').addEventListener('keydown',function(e){ if(e.key==='Enter') fazerLogin(); });
-
-/* edição inline na tabela (delegação, sem re-render que perca o foco) */
-el('tabela').addEventListener('change', function(ev){
-  var t=ev.target;
-  if(t.classList.contains('chk')){
-    var key=t.getAttribute('data-key'), r=t._rec;
-    salvarAcomp(key, r, {resolvido:t.checked}).then(function(){ flash(t); }).catch(function(){ t.checked=!t.checked; });
-  }
-});
-el('tabela').addEventListener('blur', function(ev){
-  var t=ev.target;
-  if(t.classList.contains('noteinp')){
-    var key=t.getAttribute('data-key'), r=t._rec, val=t.value.trim();
-    var atual=(S.acomp[key]||{}).anotacao||'';
-    if(val===atual) return;
-    salvarAcomp(key, r, {anotacao:val}).then(function(){ flash(t); });
-  }
-}, true);
-function flash(node){ var s=node.parentNode.querySelector('.saved'); if(s){ s.textContent='✓ salvo'; setTimeout(function(){s.textContent='';},1500);} }
-
 el('selTurma').addEventListener('change',function(){ S.turma=el('selTurma').value; if(el('selTurma2'))el('selTurma2').value=S.turma; renderAll(); });
-el('btnReload').addEventListener('click',load);
 el('btnRetry').addEventListener('click',load);
 el('btnPrint').addEventListener('click',function(){ window.print(); });
 el('logSearch').addEventListener('input',function(){ S.logBusca=this.value; renderLog(); });
 el('alSearch').addEventListener('input',function(){ S.alBusca=this.value; renderTabela(); });
-Array.prototype.forEach.call(document.querySelectorAll('[data-f]'),function(b){ b.addEventListener('click',function(){
-  S.logFiltro=b.getAttribute('data-f'); document.querySelectorAll('[data-f]').forEach(function(x){x.classList.toggle('on',x===b);}); renderLog(); }); });
 Array.prototype.forEach.call(document.querySelectorAll('[data-af]'),function(b){ b.addEventListener('click',function(){
   S.alFiltro=b.getAttribute('data-af'); document.querySelectorAll('[data-af]').forEach(function(x){x.classList.toggle('on',x===b);}); renderTabela(); }); });
 
 /* turma no filtro da lista (espelha o seletor do topo) */
 el('selTurma2').addEventListener('change',function(){ S.turma=this.value; if(el('selTurma'))el('selTurma').value=S.turma; renderAll(); });
 
-/* ordenar por coluna + filtros por coluna (delegação no cabeçalho da tabela) */
+/* ordenar por coluna (clique no cabeçalho) */
 el('tabela').addEventListener('click',function(ev){
   var th=ev.target.closest && ev.target.closest('th[data-sort]'); if(!th) return;
   var c=th.getAttribute('data-sort');
   if(S.ordCol===c) S.ordDir=-S.ordDir; else { S.ordCol=c; S.ordDir=(c==='nome'||c==='turma')?1:-1; }
   renderTabela();
-});
-el('tabela').addEventListener('input',function(ev){
-  var t=ev.target; if(!t.classList||!t.classList.contains('colf')) return;
-  var col=t.getAttribute('data-col'), v=t.value;
-  if(col==='faltasMin'||col==='injMin') S.colBusca[col]= v===''?null:Number(v);
-  else S.colBusca[col]= v===''?null:v;
-  // re-render sem perder o foco do campo que está sendo digitado
-  var active=col; renderTabela();
-  var again=el('tabela').querySelector('.colf[data-col="'+active+'"]'); if(again){ again.focus(); if(again.setSelectionRange && again.type!=='number'){ var L=again.value.length; try{again.setSelectionRange(L,L);}catch(e){} } }
-});
-el('tabela').addEventListener('change',function(ev){
-  var t=ev.target; if(!t.classList||!t.classList.contains('colf')||t.tagName!=='SELECT') return;
-  S.colBusca[t.getAttribute('data-col')]= t.value===''?null:t.value; renderTabela();
 });
 
 /* modal de bilhetes */
@@ -782,8 +628,7 @@ el('bilhClose').addEventListener('click',function(){ el('bilhModal').classList.a
 el('bilhSearch').addEventListener('input',function(){ renderBilhetes(this.value); });
 el('bilhPrint').addEventListener('click',function(){ window.print(); });
 
-initAuth();
-setInterval(function(){ if(!document.hidden){ load(); carregarAcomp(); } }, 180000);
+setInterval(function(){ if(!document.hidden){ load(); } }, 180000);
 load();
 })();
 </script>
