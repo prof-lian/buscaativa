@@ -203,6 +203,13 @@ select.colf{cursor:pointer}
     </div>
 
     <div class="panel wide">
+      <h2>Faltas × Atestados × Injustificadas por turma</h2>
+      <p class="note">Para cada turma: total de faltas, quanto foi justificado por atestado, e quanto restou como injustificada. Mostra onde a ausência é doença (atestado) e onde é abandono (injustificada).</p>
+      <div id="chartCorrel"></div>
+      <div class="legend"><span><i style="background:var(--navy-3)"></i>Total de faltas</span><span><i style="background:var(--green)"></i>Atestados</span><span><i style="background:var(--alert)"></i>Injustificadas</span></div>
+    </div>
+
+    <div class="panel wide">
       <h2>Alunos e acompanhamento por turma</h2>
       <p class="note">Total de alunos monitorados e quantos têm ao menos uma ação de busca ativa registrada. Clique numa barra para filtrar a turma.</p>
       <div id="chartTurmas"></div>
@@ -367,15 +374,16 @@ function selComentarios(){
 
 function renderKpis(){
   var g=selAlunos();
-  var faltas=0,atest=0,inj=0,bilh=0,sae=0,ret=0,acomp=0;
+  var faltas=0,atest=0,inj=0,bilh=0,sae=0,ret=0,acomp=0,transf=0;
   g.forEach(function(r){ faltas+=vFaltas(r); atest+=vAtest(r); inj+=vInj(r);
-    if(r.bilhete)bilh++; if(vSae(r))sae++; if(r.retAny)ret++; if(vAlcancado(r))acomp++; });
+    if(r.bilhete)bilh++; if(vSae(r))sae++; if(r.retAny)ret++; if(vAlcancado(r))acomp++; if(r.transf)transf++; });
   var sem=g.length-acomp;
   el('kpiFreq').innerHTML=[
     kpi('Alunos', n(g.length)),
     kpi('Total de faltas', n(faltas)),
     kpi('Atestados', n(atest)),
-    kpi('Faltas injustificadas', n(inj), 'alert')
+    kpi('Faltas injustificadas', n(inj), 'alert'),
+    kpi('Transferidos', n(transf))
   ].join('');
   el('kpiAcao').innerHTML=[
     kpi('Bilhetes enviados', n(bilh)),
@@ -463,6 +471,31 @@ function renderCharts(){
   var mc={}; selComentarios().forEach(function(c){ mc[c.motivo]=(mc[c.motivo]||0)+1; });
   var mot=Object.keys(mc).map(function(k){return {lab:k,val:mc[k]};}).sort(function(a,b){return b.val-a.val;}).slice(0,8);
   el('chartMotivos').innerHTML= mot.length? barsH(mot,{h:220}) : '<p class="note">Nenhum comentário categorizado nesta seleção.</p>';
+  renderCorrel();
+}
+
+function renderCorrel(){
+  // por turma (respeita ano; se turma selecionada, mostra só ela): faltas, atestados, injustificadas
+  var base = S.data.ini.filter(function(r){ return (S.ano==='Todas'||LBL[r.sheet]===S.ano) && (!S.turma || r.turma===S.turma); });
+  var by={}; base.forEach(function(r){ var t=r.turma; by[t]=by[t]||{f:0,a:0,i:0}; by[t].f+=vFaltas(r); by[t].a+=vAtest(r); by[t].i+=vInj(r); });
+  var arr=Object.keys(by).sort(cmpTurma).map(function(t){ return {turma:t, f:by[t].f, a:by[t].a, i:by[t].i}; });
+  if(!arr.length){ el('chartCorrel').innerHTML='<p class="note">Sem dados nesta seleção.</p>'; return; }
+  var W=Math.max(600, arr.length*70+60), H=250, base_y=H-42, x0=44;
+  var mx=1; arr.forEach(function(a){ mx=Math.max(mx,a.f,a.a,a.i); });
+  var gGap=22, gW=(W-x0-16-gGap*(arr.length-1))/arr.length, bw=gW/3-2;
+  var cols=[COR.navy3, COR.green, COR.alert];
+  var s=['<svg viewBox="0 0 '+W+' '+H+'" role="img">'];
+  for(var t=0;t<=3;t++){ var yv=mx*t/3, y=base_y-(yv/mx)*(base_y-18);
+    s.push('<line x1="'+x0+'" y1="'+y.toFixed(1)+'" x2="'+(W-10)+'" y2="'+y.toFixed(1)+'" stroke="#D2DCE8"/>');
+    s.push('<text x="'+(x0-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#8AA0BC">'+Math.round(yv)+'</text>'); }
+  arr.forEach(function(a,gi){ var gx=x0+gi*(gW+gGap); var vals=[a.f,a.a,a.i];
+    vals.forEach(function(v,si){ var x=gx+si*(bw+2), h=(v/mx)*(base_y-18), y=base_y-h;
+      s.push('<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="2.5" fill="'+cols[si]+'"/>');
+      if(v>0) s.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-4).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="'+cols[si]+'">'+v+'</text>'); });
+    s.push('<text x="'+(gx+gW/2).toFixed(1)+'" y="'+(base_y+15)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#0B2545">'+esc(a.turma)+'</text>'); });
+  s.push('<line x1="'+x0+'" y1="'+base_y+'" x2="'+(W-10)+'" y2="'+base_y+'" stroke="#0B2545" stroke-width="1.2"/>');
+  s.push('</svg>');
+  el('chartCorrel').innerHTML='<div style="overflow-x:auto">'+s.join('')+'</div>';
 }
 
 function turmaChart(arr){
