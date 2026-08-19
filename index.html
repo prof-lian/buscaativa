@@ -47,6 +47,19 @@ select.turma{font-family:'IBM Plex Sans';font-size:13px;padding:7px 10px;border-
 .blocklabel{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .section{margin-bottom:26px}
 
+/* bloco de resultado (destaque) */
+.result{background:var(--navy);color:#fff;border-radius:12px;padding:22px 24px;margin-bottom:26px}
+.result .rtop{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#8FA8C7;margin-bottom:14px}
+.result .rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:760px){.result .rgrid{grid-template-columns:1fr;gap:16px}}
+.result .rcard{border-left:3px solid var(--gold);padding-left:16px}
+.result .rcard .rnum{font-family:'Fraunces',serif;font-size:40px;font-weight:700;line-height:1;color:#fff}
+.result .rcard .rnum .u{font-size:18px;color:#C0D0E4;margin-left:2px}
+.result .rcard .rlab{font-size:14px;font-weight:600;color:#EAF1F8;margin:6px 0 5px}
+.result .rcard .rdesc{font-size:12.5px;line-height:1.5;color:#A9BFD9}
+.result .rfoot{margin-top:16px;padding-top:14px;border-top:1px solid #2A466B;font-size:12.5px;line-height:1.55;color:#B9CADF}
+.result .rfoot strong{color:#fff}
+
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
 .kpis.cinco{grid-template-columns:repeat(5,1fr)}
 .kpi{background:#fff;padding:14px 16px}
@@ -180,6 +193,8 @@ select.colf{cursor:pointer}
   </div>
 
   <div id="dash" class="hidden">
+
+    <div class="result" id="resultBox"></div>
 
     <div class="section">
       <p class="blocklabel">Frequência — <span id="lblFreq">todas as turmas</span></p>
@@ -616,7 +631,38 @@ function fillTurmas(){
   if(el('selTurma2')){ el('selTurma2').innerHTML=opts; el('selTurma2').value=S.turma; }
 }
 
-function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
+function renderAll(){ renderResultado(); renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
+
+function renderResultado(){
+  var g=selAlunos();
+  // pares: alunos com 1º e 2º bimestre preenchidos (dá pra comparar antes/depois)
+  var pares=g.filter(function(r){ return r['1B_i']!=null && r['2B_i']!=null; });
+  var contat=pares.filter(function(r){ return r.alcancado; });
+  var naoContat=pares.filter(function(r){ return !r.alcancado; });
+  var melhorou=contat.filter(function(r){ return r['2B_i']<r['1B_i']; }).length;
+  var recup=0; contat.forEach(function(r){ var d=(r['1B_i']||0)-(r['2B_i']||0); if(d>0) recup+=d; });
+  var pctContat = contat.length? Math.round(100*melhorou/contat.length) : 0;
+  var melhNao=naoContat.filter(function(r){ return r['2B_i']<r['1B_i']; }).length;
+  var pctNao = naoContat.length? Math.round(100*melhNao/naoContat.length) : 0;
+  var difP = pctContat - pctNao;
+
+  if(contat.length<5){
+    el('resultBox').innerHTML='<div class="rtop">Resultado do trabalho</div>'+
+      '<div class="rfoot">Ainda não há registros suficientes de alunos contatados nesta seleção para calcular o resultado. Conforme a escola registra bilhetes, buscas ativas e encaminhamentos, este quadro mostra o efeito do acompanhamento.</div>';
+    return;
+  }
+  el('resultBox').innerHTML=
+    '<div class="rtop">Resultado do trabalho de busca ativa</div>'+
+    '<div class="rgrid">'+
+      rcard(pctContat+'<span class="u">%</span>', 'dos alunos contatados melhoraram',
+            'Entre os '+contat.length+' alunos que receberam alguma ação da escola (bilhete, busca ativa ou encaminhamento à SAE) e têm os dois bimestres registrados, '+melhorou+' reduziram as faltas injustificadas do 1º para o 2º bimestre.')+
+      rcard(n(recup), 'dias de aula recuperados',
+            'Soma das faltas injustificadas que deixaram de acontecer entre o 1º e o 2º bimestre, considerando os alunos contatados. Cada unidade é um dia a mais de criança em sala.')+
+      rcard(pctContat+'% <span class="u">vs</span> '+pctNao+'%', 'contatados melhoram mais que os não contatados',
+            'Entre quem NÃO foi contatado, só '+pctNao+'% melhorou. Ou seja: onde a escola agiu, a melhora foi '+(difP>0?('cerca de '+difP+' pontos maior'):'semelhante')+'. É o indício de que o acompanhamento faz diferença.')+
+    '</div>';
+}
+function rcard(num,lab,desc){ return '<div class="rcard"><div class="rnum">'+num+'</div><div class="rlab">'+lab+'</div><div class="rdesc">'+desc+'</div></div>'; }
 function renderFoot(){
   var d=S.data; el('foot').innerHTML=d.ini.length+' alunos do 1º ao 5º ano · '+
     d.relatos.length+' devolutivas registradas · dados protegidos pela LGPD, uso interno da gestão.';
