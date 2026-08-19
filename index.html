@@ -144,6 +144,65 @@ select.colf{cursor:pointer}
 .modal .b2{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 14px;cursor:pointer;color:var(--soft)}
 .modal .err{color:var(--alert);font-size:12.5px;margin-top:8px;min-height:16px}
 
+/* ===== CELULAR ===== */
+@media(max-width:640px){
+  body{font-size:13.5px}
+  .wrap,.top-in,.selrow,.top-row{padding-left:14px;padding-right:14px}
+  .topbar{padding-top:14px}
+  .top-row{padding-bottom:12px;align-items:flex-start}
+  .eyebrow{font-size:9px;letter-spacing:.08em}
+  h1.title{font-size:19px;margin-top:3px}
+  .subtitle{font-size:11.5px;margin-top:3px}
+  .top-meta{text-align:left;font-size:10px}
+  .top-meta .btn{padding:5px 10px}
+
+  .selrow{gap:7px}
+  .selrow label{width:100%;margin-bottom:-3px;margin-top:2px}
+  select.turma{min-width:0!important;flex:1;font-size:13px;padding:8px}
+
+  .blocklabel{font-size:10px}
+  h2{font-size:15px}
+  .panel{padding:15px 14px 14px;margin-bottom:16px}
+  .panel .note{font-size:11.5px}
+  .section{margin-bottom:18px}
+  .grid{gap:14px}
+
+  /* KPIs: primeiro (Alunos) ocupa a linha toda, resto em 2 colunas */
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpis.cinco{grid-template-columns:repeat(2,1fr)}
+  .kpis.cinco .kpi:first-child{grid-column:1 / -1}
+  .kpi{padding:11px 13px}
+  .kpi .v{font-size:22px}
+  .kpi .l{font-size:9px}
+
+  /* Resultado: 2 cards lado a lado, menores */
+  .result{padding:16px 15px}
+  .result .rgrid,.result .rgrid.dois{grid-template-columns:1fr 1fr;gap:12px}
+  .result .rcard{padding-left:11px;border-left-width:2px}
+  .result .rcard .rnum{font-size:26px}
+  .result .rcard .rnum .u{font-size:13px}
+  .result .rcard .rlab{font-size:11.5px;margin:4px 0 3px}
+  .result .rcard .rdesc{font-size:10.5px;line-height:1.4}
+  .result .rtop{font-size:9.5px;margin-bottom:10px}
+
+  /* Lista de alunos: esconde colunas menos essenciais pra não rolar de lado */
+  table{font-size:11.5px}
+  th,td{padding:6px 5px}
+  #tabela th:nth-child(4),#tabela td:nth-child(4){display:none} /* Atest. */
+  #tabela th:nth-child(6),#tabela td:nth-child(6){display:none} /* Bilhete */
+  #tabela th:nth-child(7),#tabela td:nth-child(7){display:none} /* SAE */
+  .twrap{max-height:60vh}
+
+  .controls{gap:6px}
+  .fbtn{font-size:10px;padding:6px 9px}
+  .search{min-width:120px}
+  .log{max-height:none}
+}
+@media(max-width:400px){
+  h1.title{font-size:17px}
+  .kpi .v{font-size:20px}
+}
+
 @media print{
   body{background:#fff}
   .topbar{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -163,24 +222,23 @@ select.colf{cursor:pointer}
     <div class="top-row">
       <div>
         <div class="eyebrow">Projeto Escola e Família · E.M.C.M. Prof. José Geraldo Guimarães</div>
-        <h1 class="title">Diário de Busca Ativa — Anos Iniciais</h1>
+        <h1 class="title">Diário de Busca Ativa · Anos Iniciais</h1>
         <div class="subtitle">1º ao 5º ano · faltas, bilhetes, encaminhamentos à SAE e devolutivas das famílias</div>
       </div>
       <div class="top-meta">
         <div class="live"><span class="ldot" id="dot"></span> <span id="statusTxt">iniciando…</span></div>
-        <div id="genTime"></div>
         <div style="margin-top:6px"><button class="btn" id="btnPrint">Imprimir / PDF</button></div>
       </div>
     </div>
   </div>
   <div class="selbar">
     <div class="selrow">
+      <label>Ano</label>
+      <select class="turma" id="selAno" style="min-width:120px"></select>
       <label>Turma</label>
-      <div class="anos" id="anoChips"></div>
       <select class="turma" id="selTurma"></select>
-      <span style="width:1px;height:22px;background:#33507A;margin:0 4px"></span>
       <label>Bimestre</label>
-      <div class="anos" id="bimChips"></div>
+      <select class="turma" id="selBim" style="min-width:120px"></select>
     </div>
   </div>
 </div>
@@ -336,11 +394,12 @@ function load(){
       var primeiraVez = !S.data;
       S.data = build(payload);
       el('loadscreen').classList.add('hidden'); el('errscreen').classList.add('hidden'); el('dash').classList.remove('hidden');
-      if(primeiraVez) initSelectors(); else fillTurmas();
+      if(primeiraVez) initSelectors(); else { fillTurmas(); fillBim(); }
       renderAll();
       var agora=new Date();
-      setStatus('ok','atualizado '+dataHora(agora));
-      el('genTime').textContent = 'última atualização: '+dataHora(agora);
+      setStatus('ok','atualizado');
+      S.atualizadoEm = dataHora(agora);
+      renderFoot();
     })
     .catch(function(e){
       setStatus('err','erro ao atualizar');
@@ -629,23 +688,21 @@ function renderTabela(){
 }
 
 function initSelectors(){
-  var chips=['Todas','1º ano','2º ano','3º ano','4º ano','5º ano'];
-  el('anoChips').innerHTML=chips.map(function(a){return '<button class="anochip'+(a===S.ano?' on':'')+'" data-ano="'+a+'">'+a+'</button>';}).join('');
-  Array.prototype.forEach.call(el('anoChips').querySelectorAll('.anochip'),function(b){
-    b.addEventListener('click',function(){ S.ano=b.getAttribute('data-ano'); S.turma=''; syncChips(); fillTurmas(); renderAll(); });
-  });
-  var comDados=bimestresComDados();
-  var bims=[['ambos','Ano todo']];
-  comDados.forEach(function(b){ bims.push([String(b), b+'º Bim']); });
-  if(S.bim!=='ambos' && comDados.indexOf(Number(S.bim))<0) S.bim='ambos';
-  el('bimChips').innerHTML=bims.map(function(b){return '<button class="anochip'+(b[0]===S.bim?' on':'')+'" data-bim="'+b[0]+'">'+b[1]+'</button>';}).join('');
-  Array.prototype.forEach.call(el('bimChips').querySelectorAll('.anochip'),function(b){
-    b.addEventListener('click',function(){ S.bim=b.getAttribute('data-bim');
-      Array.prototype.forEach.call(el('bimChips').querySelectorAll('.anochip'),function(x){x.classList.toggle('on',x===b);}); renderAll(); });
-  });
+  var anos=['Todas','1º ano','2º ano','3º ano','4º ano','5º ano'];
+  el('selAno').innerHTML=anos.map(function(a){return '<option value="'+a+'"'+(a===S.ano?' selected':'')+'>'+(a==='Todas'?'Todos os anos':a)+'</option>';}).join('');
+  el('selAno').addEventListener('change',function(){ S.ano=this.value; S.turma=''; fillTurmas(); renderAll(); });
+  fillBim();
+  el('selBim').addEventListener('change',function(){ S.bim=this.value; renderAll(); });
   fillTurmas();
 }
-function syncChips(){ Array.prototype.forEach.call(el('anoChips').querySelectorAll('.anochip'),function(b){ b.classList.toggle('on', b.getAttribute('data-ano')===S.ano); }); }
+function fillBim(){
+  var comDados=bimestresComDados();
+  if(S.bim!=='ambos' && comDados.indexOf(Number(S.bim))<0) S.bim='ambos';
+  var bims=[['ambos','Ano todo']];
+  comDados.forEach(function(b){ bims.push([String(b), b+'º Bimestre']); });
+  el('selBim').innerHTML=bims.map(function(b){return '<option value="'+b[0]+'"'+(b[0]===S.bim?' selected':'')+'>'+b[1]+'</option>';}).join('');
+  el('selBim').value=S.bim;
+}
 function fillTurmas(){
   var base=S.data.ini.filter(function(r){return S.ano==='Todas'||LBL[r.sheet]===S.ano;});
   var seen={}; base.forEach(function(r){ seen[r.turma]=1; });
@@ -691,7 +748,9 @@ function renderResultado(){
 }
 function rcard(num,lab,desc){ return '<div class="rcard"><div class="rnum">'+num+'</div><div class="rlab">'+lab+'</div><div class="rdesc">'+desc+'</div></div>'; }
 function renderFoot(){
-  var d=S.data; el('foot').innerHTML=d.ini.length+' alunos do 1º ao 5º ano · '+
+  var d=S.data; el('foot').innerHTML=
+    (S.atualizadoEm? 'Atualizado em '+S.atualizadoEm+'<br>':'')+
+    d.ini.length+' alunos do 1º ao 5º ano · '+
     d.relatos.length+' devolutivas registradas · dados protegidos pela LGPD, uso interno da gestão.';
 }
 
