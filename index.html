@@ -446,34 +446,6 @@ function groupBars(grupos, series, opts){
   var leg='<div class="legend">'+series.map(function(se){return '<span><i style="background:'+se.cor+'"></i>'+se.nome+'</span>';}).join('')+'</div>';
   return s.join('')+leg;
 }
-function pieChart(dados){
-  // dados: [{lab,val}] -> donut com legenda
-  var total=dados.reduce(function(s,d){return s+d.val;},0);
-  if(!total) return '<p class="note">Nenhuma devolutiva registrada nesta seleção.</p>';
-  var paleta=[COR.navy3, COR.gold, COR.green, COR.alert, COR.navy2, COR.soft, '#7A93B5', '#9B6BA3'];
-  var cx=110, cy=120, R=92, r=48; // donut
-  var ang=-Math.PI/2, s=['<svg viewBox="0 0 440 240" role="img" style="width:100%;max-width:440px">'];
-  function pt(a,rad){ return [(cx+rad*Math.cos(a)).toFixed(2),(cy+rad*Math.sin(a)).toFixed(2)]; }
-  dados.forEach(function(d,i){
-    var frac=d.val/total, a2=ang+frac*Math.PI*2, big=frac>0.5?1:0, cor=paleta[i%paleta.length];
-    var p1=pt(ang,R), p2=pt(a2,R), p3=pt(a2,r), p4=pt(ang,r);
-    s.push('<path d="M'+p1[0]+' '+p1[1]+' A'+R+' '+R+' 0 '+big+' 1 '+p2[0]+' '+p2[1]+' L'+p3[0]+' '+p3[1]+' A'+r+' '+r+' 0 '+big+' 0 '+p4[0]+' '+p4[1]+' Z" fill="'+cor+'"/>');
-    ang=a2;
-  });
-  s.push('<text x="'+cx+'" y="'+(cy-4)+'" text-anchor="middle" font-family="Fraunces" font-size="26" font-weight="700" fill="'+COR.navy+'">'+total+'</text>');
-  s.push('<text x="'+cx+'" y="'+(cy+14)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="'+COR.soft+'">devolutivas</text>');
-  // legenda
-  var ly=26;
-  dados.forEach(function(d,i){
-    var cor=paleta[i%paleta.length], pct=Math.round(100*d.val/total);
-    s.push('<rect x="232" y="'+(ly-9)+'" width="11" height="11" rx="2.5" fill="'+cor+'"/>');
-    s.push('<text x="249" y="'+ly+'" font-family="IBM Plex Sans" font-size="12" fill="'+COR.navy+'">'+esc(d.lab)+'</text>');
-    s.push('<text x="430" y="'+ly+'" text-anchor="end" font-family="IBM Plex Mono" font-size="12" font-weight="500" fill="'+COR.soft+'">'+d.val+' · '+pct+'%</text>');
-    ly+=27;
-  });
-  s.push('</svg>');
-  return s.join('');
-}
 
 function barsH(dados, opts){
   opts=opts||{}; var W=opts.w||500, rowH=30, top=6, x0=opts.x0||170, xmax=W-40;
@@ -516,7 +488,7 @@ function renderCharts(){
 
   var mc={}; selComentarios().forEach(function(c){ mc[c.motivo]=(mc[c.motivo]||0)+1; });
   var mot=Object.keys(mc).map(function(k){return {lab:k,val:mc[k]};}).sort(function(a,b){return b.val-a.val;}).slice(0,8);
-  el('chartMotivos').innerHTML= mot.length? pieChart(mot) : '<p class="note">Nenhuma devolutiva registrada nesta seleção.</p>';
+  el('chartMotivos').innerHTML= mot.length? barsH(mot,{w:500,x0:180}) : '<p class="note">Nenhuma devolutiva registrada nesta seleção.</p>';
   renderCorrel();
 }
 
