@@ -315,13 +315,13 @@ function n(x){ return (x==null||isNaN(x))?'—':Number(x).toLocaleString('pt-BR'
 function turmaOrd(t){ var m=String(t).match(/(\d+)\s*º?\s*([A-Za-z]?)/); var ano=m?parseInt(m[1],10):99; var letra=(m&&m[2]?m[2].toUpperCase():'Z'); return ano*100+(letra.charCodeAt(0)||90); }
 function cmpTurma(a,b){ return turmaOrd(a)-turmaOrd(b) || String(a).localeCompare(String(b)); }
 /* valores conforme o bimestre selecionado (1B, 2B ou ambos) */
-function vFaltas(r){ return S.bim==='1'? (r['1B_f']||0) : S.bim==='2'? (r['2B_f']||0) : r.faltasTot; }
-function vAtest(r){ return S.bim==='1'? (r['1B_a']||0) : S.bim==='2'? (r['2B_a']||0) : r.atestTot; }
-function vInj(r){ return S.bim==='1'? (r['1B_i']||0) : S.bim==='2'? (r['2B_i']||0) : r.injTot; }
-function vBusca(r){ return S.bim==='1'? r.b_busca1 : S.bim==='2'? r.b_busca2 : (r.b_busca1||r.b_busca2||r.buscaAny); }
-function vSae(r){ return S.bim==='1'? r.b_sae1 : S.bim==='2'? r.b_sae2 : r.saeAny; }
+function vFaltas(r){ return S.bim==='ambos'? r.faltasTot : (r[S.bim+'B_f']||0); }
+function vAtest(r){ return S.bim==='ambos'? r.atestTot : (r[S.bim+'B_a']||0); }
+function vInj(r){ return S.bim==='ambos'? r.injTot : (r[S.bim+'B_i']||0); }
+function vBusca(r){ return S.bim==='ambos'? (r.b_busca1||r.b_busca2||r.b_busca3||r.b_busca4||r.buscaAny) : U.isSim(r[S.bim+'B_BUS']); }
+function vSae(r){ return S.bim==='ambos'? r.saeAny : U.isSim(r[S.bim+'B_SAE']); }
 function vAlcancado(r){ return vBusca(r) || r.bilhete || vSae(r); }
-function bimLabel(){ return S.bim==='1'?'1º bimestre':S.bim==='2'?'2º bimestre':'ano todo'; }
+function bimLabel(){ return S.bim==='ambos'?'ano todo':S.bim+'º bimestre'; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function hora(iso){ if(!iso)return''; var d=new Date(iso); return isNaN(d)?'':d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
 var MES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -354,10 +354,12 @@ function build(payload){
   var all = window.BuscaAtiva.parseStudents(payload);
   all.forEach(function(r){
     r.b_busca1=U.isSim(r['1B_BUS']); r.b_busca2=U.isSim(r['2B_BUS']);
+    r.b_busca3=U.isSim(r['3B_BUS']); r.b_busca4=U.isSim(r['4B_BUS']);
     r.b_sae1=U.isSim(r['1B_SAE']);  r.b_sae2=U.isSim(r['2B_SAE']);
-    r.injTot=(r['1B_i']||0)+(r['2B_i']||0);
-    r.faltasTot=(r['1B_f']||0)+(r['2B_f']||0);
-    r.atestTot=(r['1B_a']||0)+(r['2B_a']||0);
+    r.b_sae3=U.isSim(r['3B_SAE']);  r.b_sae4=U.isSim(r['4B_SAE']);
+    r.injTot=(r['1B_i']||0)+(r['2B_i']||0)+(r['3B_i']||0)+(r['4B_i']||0);
+    r.faltasTot=(r['1B_f']||0)+(r['2B_f']||0)+(r['3B_f']||0)+(r['4B_f']||0);
+    r.atestTot=(r['1B_a']||0)+(r['2B_a']||0)+(r['3B_a']||0)+(r['4B_a']||0);
   });
   var ini = all.filter(function(r){ return ANOS_INI.indexOf(r.sheet)>=0; });
   // relatos = coluna "Devolutiva da família", já na linha do aluno (100% vinculado)
@@ -371,7 +373,23 @@ function build(payload){
   });
   return { all:all, ini:ini, relatos:relatos, geradoEm:payload.geradoEm, planilha:payload.planilha };
 }
-function vSaeRec(r,bim){ return bim===1? r.b_sae1 : bim===2? r.b_sae2 : r.saeAny; }
+function vSaeRec(r,bim){ return U.isSim(r[bim+'B_SAE']); }
+
+/* quais bimestres têm dado RELEVANTE (em qualquer aluno dos anos iniciais).
+   Um registro solto (ex.: 1 "Sim" perdido, sem faltas) não conta:
+   o bimestre aparece se houver faltas/injustificadas OU ao menos 3 alunos com ação. */
+function bimestresComDados(){
+  var res=[];
+  [1,2,3,4].forEach(function(b){
+    var temNumeros=false, comAcao=0;
+    S.data.ini.forEach(function(r){
+      if((r[b+'B_f']||0)>0 || (r[b+'B_i']||0)>0 || (r[b+'B_a']||0)>0) temNumeros=true;
+      if(U.isSim(r[b+'B_BUS']) || U.isSim(r[b+'B_SAE']) || U.isSim(r[b+'B_BIL']) || ((r[b+'B_DEV']||'').length>3)) comAcao++;
+    });
+    if(temNumeros || comAcao>=3) res.push(b);
+  });
+  return res;
+}
 
 function selAlunos(){
   var g=S.data.ini;
@@ -383,8 +401,7 @@ function selComentarios(){
   return S.data.relatos.filter(function(c){
     if(S.ano!=='Todas' && LBL[c.rec.sheet]!==S.ano) return false;
     if(S.turma && c.rec.turma!==S.turma) return false;
-    if(S.bim==='1' && c.bim!==1) return false;
-    if(S.bim==='2' && c.bim!==2) return false;
+    if(S.bim!=='ambos' && c.bim!==Number(S.bim)) return false;
     return true;
   });
 }
@@ -461,16 +478,20 @@ function barsH(dados, opts){
 
 function renderCharts(){
   var g=selAlunos();
-  var b1=0,b2=0,s1=0,s2=0;
-  g.forEach(function(r){ if(r.b_busca1)b1++; if(r.b_busca2)b2++; if(r.b_sae1)s1++; if(r.b_sae2)s2++; });
-  el('chartBim').innerHTML=groupBars(
-    [{lab:'1º Bimestre',vals:[b1,s1]},{lab:'2º Bimestre',vals:[b2,s2]}],
+  var bims=bimestresComDados();
+  if(!bims.length) bims=[1,2];
+  var grupos=bims.map(function(b){
+    var bu=0,sa=0;
+    g.forEach(function(r){ if(U.isSim(r[b+'B_BUS']))bu++; if(U.isSim(r[b+'B_SAE']))sa++; });
+    return {lab:b+'º Bimestre', vals:[bu,sa]};
+  });
+  el('chartBim').innerHTML=groupBars(grupos,
     [{nome:'Busca ativa',cor:COR.navy},{nome:'Encaminhamento SAE',cor:COR.gold}], {h:220});
 
   var meses={};
   function add(m){ if(m>=2&&m<=7) meses[m]=(meses[m]||0)+1; }
   g.forEach(function(r){
-    ['1B_BUS','2B_BUS','1B_SAE','2B_SAE','1B_RET','2B_RET'].forEach(function(f){
+    ['1B_BUS','2B_BUS','3B_BUS','4B_BUS','1B_SAE','2B_SAE','3B_SAE','4B_SAE','1B_RET','2B_RET','3B_RET','4B_RET'].forEach(function(f){
       U.datesIn(r[f]).forEach(function(d){ add(d[0]); }); });
     if(r.bilhete) U.datesIn(r.RECLASS).forEach(function(d){ add(d[0]); });
   });
@@ -613,7 +634,10 @@ function initSelectors(){
   Array.prototype.forEach.call(el('anoChips').querySelectorAll('.anochip'),function(b){
     b.addEventListener('click',function(){ S.ano=b.getAttribute('data-ano'); S.turma=''; syncChips(); fillTurmas(); renderAll(); });
   });
-  var bims=[['ambos','Ano todo'],['1','1º Bim'],['2','2º Bim']];
+  var comDados=bimestresComDados();
+  var bims=[['ambos','Ano todo']];
+  comDados.forEach(function(b){ bims.push([String(b), b+'º Bim']); });
+  if(S.bim!=='ambos' && comDados.indexOf(Number(S.bim))<0) S.bim='ambos';
   el('bimChips').innerHTML=bims.map(function(b){return '<button class="anochip'+(b[0]===S.bim?' on':'')+'" data-bim="'+b[0]+'">'+b[1]+'</button>';}).join('');
   Array.prototype.forEach.call(el('bimChips').querySelectorAll('.anochip'),function(b){
     b.addEventListener('click',function(){ S.bim=b.getAttribute('data-bim');
