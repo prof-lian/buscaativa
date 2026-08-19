@@ -67,7 +67,7 @@
         // contadores de ocorrência p/ inferir o bimestre quando a banda não diz
         var seq={BUS:0,SAE:0,RET:0,DEV:0,BIL:0,FBIM:0,INJ:0,ATE:0};
         var ordBim=['1B','2B','3B','4B'];
-        function bimDe(bd,role){ if(bd && /^[1-4]B$/.test(bd)) return bd; var i=seq[role]||0; return ordBim[i]||'4B'; }
+        function bimDe(bd,role){ if(bd && /^[1-4]B$/.test(bd)) return bd; if(bd==='TOT') return 'TOT'; var i=seq[role]||0; return ordBim[i]||'4B'; }
         for(var c3=0;c3<head.length;c3++){
           var h=low(head[c3]); if(!h) continue; var bd=band[c3]||'';
           if(h==='nome') meta.NOME=c3;
@@ -108,8 +108,9 @@
             var duplo = (cc.FBIM!=null && cc.FCOL!=null);
             var faltas = fbim!=null? fbim : fcol;   // se há coluna do próprio bimestre, usa ela; senão a única
             var injust;
-            if(duplo) injust = faltas!=null? (faltas-(ate||0)) : null;
-            else injust = inj!=null? inj : (faltas!=null? faltas-(ate||0) : null);
+            if(inj!=null) injust = inj;             // coluna "Faltas injustificadas" existe -> ela manda
+            else if(faltas!=null) injust = faltas-(ate||0);
+            else injust = null;
             rec[bi+'_f']=faltas; rec[bi+'_a']=ate;
             rec[bi+'_i']= injust!=null? Math.max(injust,0):null;
             rec[bi+'_acum']= duplo? fcol : null;
