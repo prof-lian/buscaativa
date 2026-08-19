@@ -207,7 +207,7 @@ select.colf{cursor:pointer}
       <h2>Faltas × Atestados × Injustificadas por ano</h2>
       <p class="note">Para cada ano (somando as turmas): total de faltas, quanto foi justificado por atestado, e quanto restou como injustificada. Mostra onde a ausência é doença (atestado) e onde é abandono (injustificada).</p>
       <div id="chartCorrel"></div>
-      <div class="legend"><span><i style="background:var(--navy-3)"></i>Total de faltas</span><span><i style="background:var(--green)"></i>Atestados</span><span><i style="background:var(--alert)"></i>Injustificadas</span></div>
+      <div class="legend"><span><i style="background:var(--navy-3)"></i>Total de faltas</span><span><i style="background:var(--alert)"></i>Injustificadas</span><span><i style="background:var(--green)"></i>Atestados</span></div>
     </div>
 
     <div class="panel wide">
@@ -485,12 +485,12 @@ function renderCorrel(){
   var W=900, H=270, base_y=H-46, x0=48;
   var mx=1; arr.forEach(function(a){ mx=Math.max(mx,a.f,a.at,a.i); });
   var gGap=34, gW=(W-x0-16-gGap*(arr.length-1))/arr.length, bw=gW/3-6;
-  var cols=[COR.navy3, COR.green, COR.alert];
+  var cols=[COR.navy3, COR.alert, COR.green];
   var s=['<svg viewBox="0 0 '+W+' '+H+'" role="img" style="width:100%">'];
   for(var t=0;t<=4;t++){ var yv=mx*t/4, y=base_y-(yv/mx)*(base_y-20);
     s.push('<line x1="'+x0+'" y1="'+y.toFixed(1)+'" x2="'+(W-10)+'" y2="'+y.toFixed(1)+'" stroke="#D2DCE8"/>');
     s.push('<text x="'+(x0-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="#8AA0BC">'+Math.round(yv)+'</text>'); }
-  arr.forEach(function(a,gi){ var gx=x0+gi*(gW+gGap); var vals=[a.f,a.at,a.i];
+  arr.forEach(function(a,gi){ var gx=x0+gi*(gW+gGap); var vals=[a.f,a.i,a.at];
     vals.forEach(function(v,si){ var x=gx+si*(bw+3), h=(v/mx)*(base_y-20), y=base_y-h;
       s.push('<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="'+cols[si]+'"/>');
       if(v>0) s.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-5).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" font-weight="500" fill="'+cols[si]+'">'+n(v)+'</text>'); });
