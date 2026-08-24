@@ -253,8 +253,6 @@ select.colf{cursor:pointer}
 
   <div id="dash" class="hidden">
 
-    <div class="result" id="resultBox"></div>
-
     <div class="section">
       <p class="blocklabel">Frequência — <span id="lblFreq">todas as turmas</span></p>
       <div class="kpis cinco" id="kpiFreq"></div>
@@ -715,39 +713,8 @@ function fillTurmas(){
   if(el('selTurma2')){ el('selTurma2').innerHTML=opts; el('selTurma2').value=S.turma; }
 }
 
-function renderAll(){ renderResultado(); renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
+function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
 
-function renderResultado(){
-  var g=selAlunos();
-  // pares: alunos com 1º e 2º bimestre preenchidos (dá pra comparar antes/depois)
-  var pares=g.filter(function(r){ return r['1B_i']!=null && r['2B_i']!=null; });
-  var contat=pares.filter(function(r){ return r.alcancado; });
-  var naoContat=pares.filter(function(r){ return !r.alcancado; });
-  var melhorou=contat.filter(function(r){ return r['2B_i']<r['1B_i']; }).length;
-  var recup=0; contat.forEach(function(r){ var d=(r['1B_i']||0)-(r['2B_i']||0); if(d>0) recup+=d; });
-  var pctContat = contat.length? Math.round(100*melhorou/contat.length) : 0;
-  var melhNao=naoContat.filter(function(r){ return r['2B_i']<r['1B_i']; }).length;
-  var pctNao = naoContat.length? Math.round(100*melhNao/naoContat.length) : 0;
-  var difP = pctContat - pctNao;
-
-  if(contat.length<5){
-    el('resultBox').innerHTML='<div class="rtop">Resultado do trabalho</div>'+
-      '<div class="rfoot">Ainda não há registros suficientes de alunos contatados nesta seleção para calcular o resultado. Conforme a escola registra bilhetes, buscas ativas e encaminhamentos, este quadro mostra o efeito do acompanhamento.</div>';
-    return;
-  }
-  // total de ações realizadas
-  var nBil=0,nBus=0,nSae=0; g.forEach(function(r){ if(r.bilhete)nBil++; if(r.buscaAny)nBus++; if(r.saeAny)nSae++; });
-  var totAcoes=nBil+nBus+nSae, alcancados=g.filter(function(r){return r.alcancado;}).length;
-  el('resultBox').innerHTML=
-    '<div class="rtop">Resultado do trabalho de busca ativa</div>'+
-    '<div class="rgrid dois">'+
-      rcard(n(totAcoes), 'ações de busca ativa realizadas',
-            n(nBil)+' bilhetes, '+n(nBus)+' buscas ativas e '+n(nSae)+' encaminhamentos à SAE, alcançando '+n(alcancados)+' alunos ao longo do ano.')+
-      rcard(pctContat+'<span class="u">%</span>', 'dos alunos contatados melhoraram',
-            'Entre os '+contat.length+' alunos que receberam alguma ação e têm os dois bimestres registrados, '+melhorou+' reduziram as faltas injustificadas do 1º para o 2º bimestre — em média '+(melhorou?Math.round(recup/melhorou):0)+' faltas a menos por aluno.')+
-    '</div>';
-}
-function rcard(num,lab,desc){ return '<div class="rcard"><div class="rnum">'+num+'</div><div class="rlab">'+lab+'</div><div class="rdesc">'+desc+'</div></div>'; }
 function renderFoot(){
   var d=S.data; el('foot').innerHTML=
     (S.atualizadoEm? 'Atualizado em '+S.atualizadoEm+'<br>':'')+
