@@ -21,7 +21,13 @@
     if (s===''||s==='-'||s==='.') return null;
     var f=parseFloat(s); return isNaN(f)?null:f;
   }
-  function isSim(v){ var t=low(v); return t.indexOf('sim')===0 || t.indexOf('realizad')===0; }
+  
+  // Agora qualquer anotação diferente de "não" conta como tratativa realizada
+  function isSim(v){ 
+    var t=norm(v).toLowerCase(); 
+    if(!t || t==='-' || t==='não' || t==='nao' || t==='falso') return false; 
+    return true; 
+  }
   function isNao(v){ var t=low(v); return t.indexOf('não')===0 || t.indexOf('nao')===0; }
   function cap(s){ return norm(s).split(' ').map(function(w){return w.length>2? (w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()):w.toLowerCase();}).join(' '); }
 
@@ -34,12 +40,10 @@
     return out;
   }
 
-  // ---- parseia um payload em lista de registros de aluno + colunas de anotação por célula
   function parseStudents(payload){
     var recs=[];
     (payload.sheets||[]).forEach(function(sh){
       var sheet=sh.name, V=sh.values||[], notes=sh.notes||[];
-      // acha linhas de cabeçalho (célula == 'Nome')
       var headerRows=[];
       for(var r=0;r<V.length;r++){
         for(var c=0;c<(V[r]||[]).length;c++){
@@ -48,12 +52,11 @@
       }
       headerRows.push(V.length);
       for(var b=0;b<headerRows.length-1;b++){
-        var hr=headerRows[b], end=headerRows[b+1]-1; // end = linha do título do próximo bloco
-        // turma: procura em coluna 0 subindo de hr-1
+        var hr=headerRows[b], end=headerRows[b+1]-1; 
         var turma=null;
         for(var rr=hr-1; rr>=Math.max(0,hr-2); rr--){ if(norm(V[rr] && V[rr][0])){ turma=norm(V[rr][0]); break; } }
         if(!turma) continue;
-        // bandas (bimestre) na linha hr-1
+        
         var band={}, cur=null, titleRow=V[hr-1]||[];
         for(var c2=0;c2<titleRow.length;c2++){
           var tv=up(titleRow[c2]);
@@ -61,10 +64,9 @@
           else if(tv.indexOf('TOTAL')>=0) cur='TOT';
           band[c2]=cur;
         }
-        // classifica colunas pelo header
+        
         var head=V[hr]||[], cols={}, meta={};
         function set(bd,role,c){ (cols[bd]=cols[bd]||{})[role]=c; }
-        // contadores de ocorrência p/ inferir o bimestre quando a banda não diz
         var seq={BUS:0,SAE:0,RET:0,DEV:0,BIL:0,FBIM:0,INJ:0,ATE:0};
         var ordBim=['1B','2B','3B','4B'];
         function bimDe(bd,role){ if(bd && /^[1-4]B$/.test(bd)) return bd; if(bd==='TOT') return 'TOT'; var i=seq[role]||0; return ordBim[i]||'4B'; }
@@ -87,17 +89,14 @@
           else if(/^(qt\.?\s*)?(de\s+)?faltas/.test(h)){ set(bd||'','FCOL',c3); }
         }
         if(meta.NOME==null) continue;
-        // coluna logo após o Nome costuma ser Situação/Reclassificação (onde vai "TRANSFERIDO"),
-        // mesmo quando o cabeçalho está em branco. Captura como SITU2 se não for já conhecida.
         var apos=meta.NOME+1;
         var conhecidas={}; conhecidas[meta.COD]=1; conhecidas[meta.RECLASS]=1; conhecidas[meta.ASSIN]=1; conhecidas[meta.MATRIC]=1; conhecidas[meta.SITUACAO]=1;
         if(!conhecidas[apos]) meta.SITU2=apos;
-        if(meta.RECLASS==null && !conhecidas[apos]) { /* já vira SITU2 */ }
+        
         for(var r2=hr+1;r2<=end;r2++){
           var row=V[r2]; if(!row) continue;
           var nome=norm(row[meta.NOME]); if(!nome) continue;
-          var rec={sheet:sheet, ano:LBL[sheet], seg:SEG[sheet], turma:turma, linha:r2+1, nome:nome, nomeChave:up(nome),
-                   cells:{}, notas:[]};
+          var rec={sheet:sheet, ano:LBL[sheet], seg:SEG[sheet], turma:turma, linha:r2+1, nome:nome, nomeChave:up(nome), cells:{}, notas:[]};
           ['COD','RECLASS','ASSIN','MATRIC','SITUACAO','SITU2'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
           ['1B','2B','3B','4B'].forEach(function(bi){
             var cc=cols[bi]||{};
@@ -106,9 +105,9 @@
             var ate  = cc.ATE!=null?  num(row[cc.ATE])  : null;
             var inj  = cc.INJ!=null?  num(row[cc.INJ])  : null;
             var duplo = (cc.FBIM!=null && cc.FCOL!=null);
-            var faltas = fbim!=null? fbim : fcol;   // se há coluna do próprio bimestre, usa ela; senão a única
+            var faltas = fbim!=null? fbim : fcol;
             var injust;
-            if(inj!=null) injust = inj;             // coluna "Faltas injustificadas" existe -> ela manda
+            if(inj!=null) injust = inj;
             else if(faltas!=null) injust = faltas-(ate||0);
             else injust = null;
             rec[bi+'_f']=faltas; rec[bi+'_a']=ate;
@@ -120,14 +119,14 @@
             rec[bi+'_DEV']= cc.DEV!=null? norm(row[cc.DEV]):'';
             rec[bi+'_BIL']= cc.BIL!=null? norm(row[cc.BIL]):'';
           });
-          // notas de célula desta linha -> anexa com o header da coluna
+          
           if(notes && notes[r2]){
             for(var cn=0;cn<notes[r2].length;cn++){
               var nt=norm(notes[r2][cn]);
               if(nt){ rec.notas.push({coluna:norm(head[cn])||('col'+cn), texto:nt}); }
             }
           }
-          // flags derivadas
+          
           rec.busca1=isSim(rec['1B_BUS']); rec.busca2=isSim(rec['2B_BUS']);
           rec.busca3=isSim(rec['3B_BUS']); rec.busca4=isSim(rec['4B_BUS']);
           rec.buscaAny=rec.busca1||rec.busca2||rec.busca3||rec.busca4;
@@ -142,7 +141,7 @@
           rec.transf=/transferid|domiciliar/.test(reclass) || /transferid|domiciliar/.test(low(rec.SITUACAO||'')) || /transferid|domiciliar/.test(low(rec.SITU2||''));
           rec.laudo=/laudo/.test(reclass);
           rec.termo=/assinad/.test(ass)||ass.indexOf('sim')===0||/assinad/.test(reclass);
-          // devolutivas (texto do relato) por bimestre
+          
           rec.devolutivas=[];
           [1,2,3,4].forEach(function(i){ var d=rec[i+'B_DEV']; if(d && d.length>3) rec.devolutivas.push({bim:i, texto:d}); });
           rec.alcancado=rec.buscaAny||rec.bilhete||rec.saeAny;
@@ -156,7 +155,6 @@
     return recs;
   }
 
-  // ---- vincula comentários (threaded) aos alunos por nome (quotedFileContent)
   function linkComments(recs, comments){
     var idx={};
     recs.forEach(function(r){ (idx[r.nomeChave]=idx[r.nomeChave]||[]).push(r); });
@@ -176,7 +174,6 @@
     return {vinculados:vinc, naoVinculados:naoVinc};
   }
 
-  // ---- notas de célula viram comentários vinculados (âncora perfeita)
   function notesAsComments(recs){
     var out=[];
     recs.forEach(function(r){
@@ -188,9 +185,6 @@
     return out;
   }
 
-  // ---- categoriza o motivo declarado a partir do texto
-  // Ordem importa: pistas específicas vêm antes da "questão familiar" genérica,
-  // senão "mãe"/"pai" capturam relatos que na verdade são de saúde, emoção etc.
   var MOTIVOS=[
     ['Sem retorno / não localizado', /n[ãa]o atende|n[ãa]o localiz|n[úu]mero (errad|n[ãa]o)|sem retorno|n[ãa]o respond|caixa postal|desligad|correspond[êe]ncia volt|endere[çc]o n[ãa]o/i],
     ['Saúde mental / emocional', /ansiedad|depress|emocional|bullying|psic[óo]log|psiquiatr|medo|n[ãa]o quer (vir|ir)|desmotivad|recus|acompanhamento psic/i],
@@ -216,7 +210,6 @@
     var comments=(payload.comments||[]);
     var lk=linkComments(recs, comments);
     var notas=notesAsComments(recs);
-    // anexa contagem de anotações ao aluno
     var porAluno={};
     lk.vinculados.concat(notas).forEach(function(c){
       var k=c.turma+'|'+(c.aluno||''); (porAluno[k]=porAluno[k]||[]).push(c);
@@ -256,7 +249,6 @@
     A.acoesTotais = A.buscasAcoes + A.bilhetes + A.alunosSae + A.alunosRet;
     A.diasRecuperados = sum(pares,function(o){return Math.max(o['1B_i']-o['2B_i'],0);});
 
-    // por ano
     A.anos = ANO_ORDER.map(function(s){
       var g=recs.filter(function(o){return o.sheet===s;});
       var gp=pares.filter(function(o){return o.sheet===s;});
@@ -270,7 +262,6 @@
         mel: gp.filter(function(o){return o['2B_i']<o['1B_i'];}).length, np:gp.length};
     });
 
-    // por turma
     var chaves={}; recs.forEach(function(o){chaves[o.sheet+'||'+o.turma]=1;});
     A.turmas_tab=Object.keys(chaves).map(function(k){
       var p=k.split('||'), s=p[0], t=p[1];
@@ -285,7 +276,6 @@
         mel:gp.filter(function(o){return o['2B_i']<o['1B_i'];}).length, np:gp.length};
     }).sort(function(a,b){ return a.ord-b.ord || a.turma.localeCompare(b.turma); });
 
-    // comentários (notas + threaded), com motivo
     var todos = notas.concat(lk.vinculados).map(function(c){
       c.motivo=classifyMotivo(c.texto); return c;
     });
@@ -293,13 +283,11 @@
     A.comentarios = todos;
     A.comentariosNaoVinc = naoV;
     A.totalComentarios = todos.length + naoV.length;
-    // ranking de motivos (inclui não vinculados, pois o texto vale)
     var mc={};
     todos.concat(naoV).forEach(function(c){ mc[c.motivo]=(mc[c.motivo]||0)+1; });
     A.motivos = Object.keys(mc).map(function(k){return {motivo:k,n:mc[k]};})
                   .sort(function(a,b){return b.n-a.n;});
 
-    // lista de alunos enxuta pro dashboard
     A.alunos = recs.map(function(o){
       return {nome:cap(o.nome), turma:norm(o.turma).replace(/\s+/g,''), ano:o.ano,
         i1:o['1B_i'], i2:o['2B_i'], f1:o['1B_f'], f2:o['2B_f'],
