@@ -63,12 +63,13 @@ select.turma{font-family:'IBM Plex Sans';font-size:13px;padding:7px 10px;border-
 
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
 .kpis.cinco{grid-template-columns:repeat(5,1fr)}
+.kpis.tres{grid-template-columns:repeat(3,1fr)}
 .kpi{background:#fff;padding:14px 16px}
 .kpi .l{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--soft);margin-bottom:6px}
 .kpi .v{font-family:'Fraunces',serif;font-size:27px;font-weight:600;display:flex;align-items:baseline;gap:6px}
 .kpi .v.alert{color:var(--alert)} .kpi .v.green{color:var(--green)}
 .kpi .sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--soft);font-weight:400}
-@media(max-width:820px){.kpis,.kpis.cinco{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:820px){.kpis,.kpis.cinco,.kpis.tres{grid-template-columns:repeat(2,1fr)}}
 
 .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px}
 @media(max-width:900px){.grid{grid-template-columns:1fr}}
@@ -125,14 +126,6 @@ select.colf{cursor:pointer}
 .hidden{display:none!important}
 .foot{border-top:1px solid var(--line);margin-top:30px;padding-top:16px;font-size:11.5px;color:var(--soft)}
 
-/* edição inline */
-.chk{width:16px;height:16px;cursor:pointer;accent-color:var(--green)}
-.chk:disabled{cursor:not-allowed;opacity:.5}
-.noteinp{width:100%;min-width:120px;border:1px solid var(--line);border-radius:5px;padding:4px 7px;font-size:12px;font-family:'IBM Plex Sans';background:#fff;color:var(--navy)}
-.noteinp:disabled{background:var(--paper);color:var(--soft);cursor:not-allowed}
-.saved{color:var(--green);font-size:10px;font-family:'IBM Plex Mono'}
-.editcol.locked{opacity:.6}
-
 /* modal */
 .modal{position:fixed;inset:0;background:rgba(11,37,69,.55);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px}
 .modal .card{background:#fff;border-radius:10px;padding:26px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
@@ -167,15 +160,14 @@ select.colf{cursor:pointer}
   .section{margin-bottom:18px}
   .grid{gap:14px}
 
-  /* KPIs: primeiro (Alunos) ocupa a linha toda, resto em 2 colunas */
   .kpis{grid-template-columns:repeat(2,1fr)}
   .kpis.cinco{grid-template-columns:repeat(2,1fr)}
+  .kpis.tres{grid-template-columns:repeat(2,1fr)}
   .kpis.cinco .kpi:first-child{grid-column:1 / -1}
   .kpi{padding:11px 13px}
   .kpi .v{font-size:22px}
   .kpi .l{font-size:9px}
 
-  /* Resultado: 2 cards lado a lado, menores */
   .result{padding:16px 15px}
   .result .rgrid,.result .rgrid.dois{grid-template-columns:1fr 1fr;gap:12px}
   .result .rcard{padding-left:11px;border-left-width:2px}
@@ -185,12 +177,11 @@ select.colf{cursor:pointer}
   .result .rcard .rdesc{font-size:10.5px;line-height:1.4}
   .result .rtop{font-size:9.5px;margin-bottom:10px}
 
-  /* Lista de alunos: esconde colunas menos essenciais pra não rolar de lado */
   table{font-size:11.5px}
   th,td{padding:6px 5px}
-  #tabela th:nth-child(4),#tabela td:nth-child(4){display:none} /* Atest. */
-  #tabela th:nth-child(6),#tabela td:nth-child(6){display:none} /* Bilhete */
-  #tabela th:nth-child(7),#tabela td:nth-child(7){display:none} /* SAE */
+  #tabela th:nth-child(4),#tabela td:nth-child(4){display:none} 
+  #tabela th:nth-child(6),#tabela td:nth-child(6){display:none} 
+  #tabela th:nth-child(7),#tabela td:nth-child(7){display:none} 
   .twrap{max-height:60vh}
 
   .controls{gap:6px}
@@ -270,7 +261,7 @@ select.colf{cursor:pointer}
       </div>
       <div class="panel">
         <h2>Comparativo mês a mês</h2>
-        <p class="note">Ações com data anotada, por mês (fevereiro a julho).</p>
+        <p class="note">Ações com data anotada, por mês do ano.</p>
         <div id="chartMes"></div>
       </div>
     </div>
@@ -291,8 +282,8 @@ select.colf{cursor:pointer}
 
     <div class="grid">
       <div class="panel">
-        <h2>⚠ Muitas faltas, sem contato</h2>
-        <p class="note">10 ou mais faltas injustificadas e nenhuma ação de busca ativa registrada.</p>
+        <h2>⚠ Alunos com 10+ faltas</h2>
+        <p class="note">Acompanhamento de alunos com muitas faltas injustificadas.</p>
         <ul class="alist" id="alertas"></ul>
       </div>
       <div class="panel">
@@ -356,10 +347,8 @@ var ANOS_INI = ['PRIMEIROS','SEGUNDOS','TERCEIROS','QUARTOS','QUINTOS','QUINTOS 
 var LBL = {PRIMEIROS:'1º ano',SEGUNDOS:'2º ano',TERCEIROS:'3º ano',QUARTOS:'4º ano',QUINTOS:'5º ano','QUINTOS TARDE':'5º ano'};
 var COR = {navy:'#0B2545',navy2:'#14345E',navy3:'#1D4E89',soft:'#4C6789',line:'#C2CFDE',alert:'#B23A48',gold:'#C08A2E',green:'#2C7A5B'};
 var el=function(id){return document.getElementById(id);};
-var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logBusca:'', alFiltro:'todos', alBusca:'',
-       ordCol:'inj', ordDir:-1};
+var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logBusca:'', alFiltro:'todos', alBusca:'', ordCol:'inj', ordDir:-1};
 
-/* chave estável por aluno (código da matrícula; senão nome+turma) */
 function alunoKey(r){
   var cod = r.COD!=null? String(r.COD).replace(/[^0-9A-Za-z]/g,'') : '';
   if(cod) return 'c'+cod;
@@ -367,23 +356,49 @@ function alunoKey(r){
 }
 
 function n(x){ return (x==null||isNaN(x))?'—':Number(x).toLocaleString('pt-BR'); }
-/* ordena turmas: por ano (número) e depois pela letra — 1ºA,1ºB,...,2ºA,... */
 function turmaOrd(t){ var m=String(t).match(/(\d+)\s*º?\s*([A-Za-z]?)/); var ano=m?parseInt(m[1],10):99; var letra=(m&&m[2]?m[2].toUpperCase():'Z'); return ano*100+(letra.charCodeAt(0)||90); }
 function cmpTurma(a,b){ return turmaOrd(a)-turmaOrd(b) || String(a).localeCompare(String(b)); }
-/* valores conforme o bimestre selecionado (1B, 2B ou ambos) */
+
+/* Contadores Globais */
 function vFaltas(r){ return S.bim==='ambos'? r.faltasTot : (r[S.bim+'B_f']||0); }
 function vAtest(r){ return S.bim==='ambos'? r.atestTot : (r[S.bim+'B_a']||0); }
 function vInj(r){ return S.bim==='ambos'? r.injTot : (r[S.bim+'B_i']||0); }
-function vBusca(r){ return S.bim==='ambos'? (r.b_busca1||r.b_busca2||r.b_busca3||r.b_busca4||r.buscaAny) : U.isSim(r[S.bim+'B_BUS']); }
-function vSae(r){ return S.bim==='ambos'? r.saeAny : U.isSim(r[S.bim+'B_SAE']); }
-function vBilhete(r){ return S.bim==='ambos'? r.bilhete : !!r['bilhete'+S.bim]; }
-function vRet(r){ return S.bim==='ambos'? r.retAny : U.isSim(r[S.bim+'B_RET']); }
-function vAlcancado(r){ return vBusca(r) || vBilhete(r) || vSae(r); }
+
+function temAcao(v) {
+  var t = String(v||'').trim().toLowerCase();
+  return (t && t !== '-' && t !== 'não' && t !== 'nao' && t !== 'falso');
+}
+function vBusca(r){ 
+  var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
+  var count = 0;
+  bims.forEach(function(b){ if(temAcao(r[b+'B_BUS']) || (r[b+'B_DEV']&&r[b+'B_DEV'].length>3)) count++; });
+  return count;
+}
+function vSae(r){ 
+  var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
+  var count = 0;
+  bims.forEach(function(b){ if(temAcao(r[b+'B_SAE'])) count++; });
+  return count;
+}
+function vRet(r){ 
+  var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
+  var count = 0;
+  bims.forEach(function(b){ if(temAcao(r[b+'B_RET'])) count++; });
+  return count;
+}
+function vBilhete(r){ 
+  var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
+  var count = 0;
+  bims.forEach(function(b){ if(temAcao(r[b+'B_BIL'])) count++; });
+  if (S.bim==='ambos' && /bilhete/i.test(r.RECLASS||'')) count++;
+  return count;
+}
+function vBuscaTotal(r){ return vBusca(r) + vSae(r) + vBilhete(r); }
+function vAlcancado(r){ return vBuscaTotal(r) > 0; }
+
 function bimLabel(){ return S.bim==='ambos'?'ano todo':S.bim+'º bimestre'; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-function hora(iso){ if(!iso)return''; var d=new Date(iso); return isNaN(d)?'':d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
 var MES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-function dataCurta(iso){ if(!iso)return''; var d=new Date(iso); if(isNaN(d))return''; return String(d.getDate()).padStart(2,'0')+'/'+MES[d.getMonth()]; }
 
 function load(){
   setStatus('load','carregando…');
@@ -412,37 +427,29 @@ function dataHora(d){ d=d||new Date(); return d.toLocaleDateString('pt-BR',{day:
 function build(payload){
   var all = window.BuscaAtiva.parseStudents(payload);
   all.forEach(function(r){
-    r.b_busca1=U.isSim(r['1B_BUS']); r.b_busca2=U.isSim(r['2B_BUS']);
-    r.b_busca3=U.isSim(r['3B_BUS']); r.b_busca4=U.isSim(r['4B_BUS']);
-    r.b_sae1=U.isSim(r['1B_SAE']);  r.b_sae2=U.isSim(r['2B_SAE']);
-    r.b_sae3=U.isSim(r['3B_SAE']);  r.b_sae4=U.isSim(r['4B_SAE']);
     r.injTot=(r['1B_i']||0)+(r['2B_i']||0)+(r['3B_i']||0)+(r['4B_i']||0);
     r.faltasTot=(r['1B_f']||0)+(r['2B_f']||0)+(r['3B_f']||0)+(r['4B_f']||0);
     r.atestTot=(r['1B_a']||0)+(r['2B_a']||0)+(r['3B_a']||0)+(r['4B_a']||0);
   });
   var ini = all.filter(function(r){ return ANOS_INI.indexOf(r.sheet)>=0; });
-  // relatos = coluna "Devolutiva da família", já na linha do aluno (100% vinculado)
   var relatos=[];
   ini.forEach(function(r){
     (r.devolutivas||[]).forEach(function(d){
       relatos.push({ rec:r, nome:r.nome, turma:r.turma, ano:r.sheet, bim:d.bim,
         texto:d.texto, motivo:window.BuscaAtiva.classifyMotivo(d.texto),
-        resolvido: vSaeRec(r,d.bim) });
+        resolvido: temAcao(r[d.bim+'B_SAE']) });
     });
   });
   return { all:all, ini:ini, relatos:relatos, geradoEm:payload.geradoEm, planilha:payload.planilha };
 }
-function vSaeRec(r,bim){ return U.isSim(r[bim+'B_SAE']); }
 
-/* quais bimestres têm ALGUM dado (em qualquer aluno dos anos iniciais).
-   Só fica oculto o bimestre 100% zerado/vazio. */
 function bimestresComDados(){
   var res=[];
   [1,2,3,4].forEach(function(b){
     var tem = S.data.ini.some(function(r){
       return (r[b+'B_f']||0)>0 || (r[b+'B_i']||0)>0 || (r[b+'B_a']||0)>0 ||
-             U.isSim(r[b+'B_BUS']) || U.isSim(r[b+'B_SAE']) || U.isSim(r[b+'B_RET']) ||
-             U.isSim(r[b+'B_BIL']) || ((r[b+'B_DEV']||'').length>3);
+             temAcao(r[b+'B_BUS']) || temAcao(r[b+'B_SAE']) || temAcao(r[b+'B_RET']) ||
+             temAcao(r[b+'B_BIL']) || ((r[b+'B_DEV']||'').length>3);
     });
     if(tem) res.push(b);
   });
@@ -466,10 +473,29 @@ function selComentarios(){
 
 function renderKpis(){
   var g=selAlunos();
-  var faltas=0,atest=0,inj=0,bilh=0,sae=0,ret=0,acomp=0,transf=0;
-  g.forEach(function(r){ faltas+=vFaltas(r); atest+=vAtest(r); inj+=vInj(r);
-    if(vBilhete(r))bilh++; if(vSae(r))sae++; if(vRet(r))ret++; if(vAlcancado(r))acomp++; if(r.transf)transf++; });
+  var faltas=0,atest=0,inj=0,bilh=0,sae=0,ret=0,acomp=0,transf=0,buscas=0,indisp=0;
+  
+  g.forEach(function(r){ 
+    faltas+=vFaltas(r); atest+=vAtest(r); inj+=vInj(r);
+    bilh += vBilhete(r);
+    sae += vSae(r);
+    ret += vRet(r);
+    buscas += vBusca(r);
+    if(vAlcancado(r)) acomp++; 
+    if(r.transf) transf++; 
+    
+    var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
+    bims.forEach(function(b){
+        var text = String(r[b+'B_DEV']||'') + ' ' + String(r[b+'B_BUS']||'');
+        if (/n[ãa]o atende|n[úu]mero (errad|n[ãa]o)|sem retorno|caixa postal|desligad|inexistente|n[ãa]o localiz/i.test(text)) {
+            indisp++;
+        }
+    });
+  });
+  
   var sem=g.length-acomp;
+  var totalAcoes = buscas + bilh + sae;
+  
   el('kpiFreq').innerHTML=[
     kpi('Alunos', n(g.length)),
     kpi('Total de faltas', n(faltas)),
@@ -477,12 +503,17 @@ function renderKpis(){
     kpi('Faltas injustificadas', n(inj), 'alert'),
     kpi('Transferidos', n(transf))
   ].join('');
+  
   el('kpiAcao').innerHTML=[
+    kpi('Buscas ativas globais', n(totalAcoes), '', 'total de ações'),
+    kpi('Família indisponível', n(indisp), 'alert', 'não atenderam'),
     kpi('Bilhetes enviados', n(bilh)),
     kpi('Encaminhados à SAE', n(sae)),
     kpi('Retornos da SAE', n(ret)),
     kpi('Com acompanhamento', n(acomp), 'green', n(sem)+' sem contato')
   ].join('');
+  el('kpiAcao').className = 'kpis tres';
+  
   var lbl = (S.turma ? ('turma '+S.turma) : (S.ano==='Todas'?'todas as turmas':S.ano)) + ' · ' + bimLabel();
   el('lblFreq').textContent=lbl; el('lblLista').textContent=lbl;
 }
@@ -540,20 +571,26 @@ function renderCharts(){
   if(!bims.length) bims=[1,2];
   var grupos=bims.map(function(b){
     var bi=0,bu=0,sa=0;
-    g.forEach(function(r){ if(r['bilhete'+b])bi++; if(U.isSim(r[b+'B_BUS']))bu++; if(U.isSim(r[b+'B_SAE']))sa++; });
+    g.forEach(function(r){ 
+      if(temAcao(r[b+'B_BIL'])) bi++; 
+      if(temAcao(r[b+'B_BUS'])||(r[b+'B_DEV']&&r[b+'B_DEV'].length>3)) bu++; 
+      if(temAcao(r[b+'B_SAE'])) sa++; 
+    });
     return {lab:b+'º Bimestre', vals:[bi,bu,sa]};
   });
   el('chartBim').innerHTML=groupBars(grupos,
     [{nome:'Bilhete',cor:COR.green},{nome:'Busca ativa',cor:COR.navy},{nome:'Encaminhamento SAE',cor:COR.gold}], {h:220});
 
   var meses={};
-  function add(m){ if(m>=2&&m<=7) meses[m]=(meses[m]||0)+1; }
+  function add(m){ if(m>=1&&m<=12) meses[m]=(meses[m]||0)+1; }
   g.forEach(function(r){
-    ['1B_BUS','2B_BUS','3B_BUS','4B_BUS','1B_SAE','2B_SAE','3B_SAE','4B_SAE','1B_RET','2B_RET','3B_RET','4B_RET'].forEach(function(f){
-      U.datesIn(r[f]).forEach(function(d){ add(d[0]); }); });
-    if(r.bilhete) U.datesIn(r.RECLASS).forEach(function(d){ add(d[0]); });
+    ['1B_BUS','2B_BUS','3B_BUS','4B_BUS','1B_SAE','2B_SAE','3B_SAE','4B_SAE','1B_RET','2B_RET','3B_RET','4B_RET','1B_DEV','2B_DEV','3B_DEV','4B_DEV','1B_BIL','2B_BIL','3B_BIL','4B_BIL'].forEach(function(f){
+      U.datesIn(r[f]).forEach(function(d){ add(d[0]); }); 
+    });
+    if(vBilhete(r)>0) U.datesIn(r.RECLASS).forEach(function(d){ add(d[0]); });
   });
-  var seq=[2,3,4,5,6,7].map(function(m){ return {lab:MES[m-1], val:meses[m]||0}; });
+  var maxMes=2; for(var m=12; m>=2; m--) { if(meses[m]) { maxMes=m; break; } }
+  var seq=[]; for(var m=2; m<=maxMes; m++) { seq.push({lab:MES[m-1], val:meses[m]||0}); }
   el('chartMes').innerHTML=barsV(seq,{h:220,gap:14})+
     '<p class="note" style="margin-top:8px">Só conta ações com data escrita no registro; o volume real é maior.</p>';
 
@@ -572,7 +609,6 @@ function renderCharts(){
 }
 
 function renderCorrel(){
-  // agrupado por ANO (soma todas as turmas). Respeita o ano/turma selecionados.
   var base = S.data.ini.filter(function(r){ return (S.ano==='Todas'||LBL[r.sheet]===S.ano) && (!S.turma || r.turma===S.turma); });
   var ordem=['1º ano','2º ano','3º ano','4º ano','5º ano'];
   var by={}; base.forEach(function(r){ var a=LBL[r.sheet]; by[a]=by[a]||{f:0,at:0,i:0}; by[a].f+=vFaltas(r); by[a].at+=vAtest(r); by[a].i+=vInj(r); });
@@ -615,10 +651,28 @@ function turmaChart(arr){
 }
 
 function renderAlertas(){
-  var g=selAlunos().filter(function(r){ return !vAlcancado(r) && vInj(r)>=10; })
+  var g=selAlunos().filter(function(r){ return vInj(r)>=10; })
     .sort(function(a,b){return vInj(b)-vInj(a);}).slice(0,8);
   el('alertas').innerHTML = g.length? g.map(function(r){
-    return '<li class="aitem"><div><div class="aname">'+esc(U.cap(r.nome))+'</div><div class="aturma">'+esc(r.turma)+'</div></div><span class="acount">'+vInj(r)+' faltas</span></li>';
+    var trat = [];
+    var qtBil = vBilhete(r);
+    if(qtBil>0) trat.push(qtBil+' bilhete(s)');
+    
+    var qtSae = vSae(r);
+    if(qtSae>0) trat.push(qtSae+' vez(es) na SAE');
+    
+    var qtBusca = vBusca(r);
+    if(qtBusca>0) trat.push(qtBusca+' busca(s)');
+    
+    var desc = trat.length ? trat.join(' · ') : 'Sem contato registrado';
+
+    return '<li class="aitem" style="display:block; padding:10px 0;">'+
+           '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+             '<div><div class="aname">'+esc(U.cap(r.nome))+'</div><div class="aturma">'+esc(r.turma)+'</div></div>'+
+             '<span class="acount">'+vInj(r)+' faltas</span>'+
+           '</div>'+
+           '<div style="font-size:11.5px; color:var(--soft); margin-top:4px;">↳ Tratativas: '+esc(desc)+'</div>'+
+           '</li>';
   }).join('') : '<p class="note">Nenhum caso nessa condição na seleção atual.</p>';
 }
 
@@ -646,10 +700,9 @@ function renderTabela(){
   if(S.alFiltro==='com') g=g.filter(function(r){return vAlcancado(r);});
   else if(S.alFiltro==='sem') g=g.filter(function(r){return !vAlcancado(r);});
   else if(S.alFiltro==='graves') g=g.filter(function(r){return vInj(r)>=10;});
-  else if(S.alFiltro==='bilhete') g=g.filter(function(r){return vBilhete(r);});
+  else if(S.alFiltro==='bilhete') g=g.filter(function(r){return vBilhete(r)>0;});
   var q=S.alBusca.toLowerCase();
   if(q) g=g.filter(function(r){return r.nome.toLowerCase().indexOf(q)>=0;});
-  // ordenação por coluna
   var oc=S.ordCol, dir=S.ordDir;
   g.sort(function(a,b){
     var x,y;
@@ -676,12 +729,12 @@ function renderTabela(){
   el('tabCount').textContent=g.length+' alunos';
   var tb=el('tbody');
   g.slice(0,300).forEach(function(r){
-    var sae = vSae(r) ? (vRet(r)?'retorno':'aguard.') : '—';
+    var sae = vSae(r)>0 ? (vRet(r)>0?'retorno':'aguard.') : '—';
     var st = vAlcancado(r) ? '<span class="pill g">✓ acompanhado</span>' : '<span class="pill r">sem contato</span>';
     var tr=document.createElement('tr');
     tr.innerHTML='<td>'+esc(U.cap(r.nome))+'</td><td class="mono">'+esc(r.turma)+'</td>'+
       '<td class="num">'+n(vFaltas(r))+'</td><td class="num">'+n(vAtest(r))+'</td><td class="num">'+n(vInj(r))+'</td>'+
-      '<td>'+(vBilhete(r)?'sim':'—')+'</td><td>'+sae+'</td><td>'+st+'</td>';
+      '<td>'+(vBilhete(r)>0?'sim':'—')+'</td><td>'+sae+'</td><td>'+st+'</td>';
     tb.appendChild(tr);
   });
 }
@@ -730,10 +783,8 @@ el('alSearch').addEventListener('input',function(){ S.alBusca=this.value; render
 Array.prototype.forEach.call(document.querySelectorAll('[data-af]'),function(b){ b.addEventListener('click',function(){
   S.alFiltro=b.getAttribute('data-af'); document.querySelectorAll('[data-af]').forEach(function(x){x.classList.toggle('on',x===b);}); renderTabela(); }); });
 
-/* turma no filtro da lista (espelha o seletor do topo) */
 el('selTurma2').addEventListener('change',function(){ S.turma=this.value; if(el('selTurma'))el('selTurma').value=S.turma; renderAll(); });
 
-/* ordenar por coluna (clique no cabeçalho) */
 el('tabela').addEventListener('click',function(ev){
   var th=ev.target.closest && ev.target.closest('th[data-sort]'); if(!th) return;
   var c=th.getAttribute('data-sort');
@@ -741,9 +792,8 @@ el('tabela').addEventListener('click',function(ev){
   renderTabela();
 });
 
-/* modal de bilhetes */
 function abrirBilhetes(){
-  var g=selAlunos().filter(function(r){return vBilhete(r);});
+  var g=selAlunos().filter(function(r){return vBilhete(r)>0;});
   g.sort(function(a,b){ return cmpTurma(a.turma,b.turma) || U.up(a.nome).localeCompare(U.up(b.nome)); });
   el('bilhModal')._all=g;
   el('bilhSub').textContent=g.length+' bilhete(s) — '+(S.turma?('turma '+S.turma):(S.ano==='Todas'?'todas as turmas':S.ano))+' · '+bimLabel();
