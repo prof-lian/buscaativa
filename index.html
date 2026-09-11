@@ -47,29 +47,14 @@ select.turma{font-family:'IBM Plex Sans';font-size:13px;padding:7px 10px;border-
 .blocklabel{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .section{margin-bottom:26px}
 
-/* bloco de resultado (destaque) */
-.result{background:var(--navy);color:#fff;border-radius:12px;padding:22px 24px;margin-bottom:26px}
-.result .rtop{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#8FA8C7;margin-bottom:14px}
-.result .rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.result .rgrid.dois{grid-template-columns:repeat(2,1fr)}
-@media(max-width:760px){.result .rgrid{grid-template-columns:1fr;gap:16px}}
-.result .rcard{border-left:3px solid var(--gold);padding-left:16px}
-.result .rcard .rnum{font-family:'Fraunces',serif;font-size:40px;font-weight:700;line-height:1;color:#fff}
-.result .rcard .rnum .u{font-size:18px;color:#C0D0E4;margin-left:2px}
-.result .rcard .rlab{font-size:14px;font-weight:600;color:#EAF1F8;margin:6px 0 5px}
-.result .rcard .rdesc{font-size:12.5px;line-height:1.5;color:#A9BFD9}
-.result .rfoot{margin-top:16px;padding-top:14px;border-top:1px solid #2A466B;font-size:12.5px;line-height:1.55;color:#B9CADF}
-.result .rfoot strong{color:#fff}
-
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
 .kpis.cinco{grid-template-columns:repeat(5,1fr)}
-.kpis.tres{grid-template-columns:repeat(3,1fr)}
 .kpi{background:#fff;padding:14px 16px}
 .kpi .l{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--soft);margin-bottom:6px}
 .kpi .v{font-family:'Fraunces',serif;font-size:27px;font-weight:600;display:flex;align-items:baseline;gap:6px}
 .kpi .v.alert{color:var(--alert)} .kpi .v.green{color:var(--green)}
 .kpi .sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--soft);font-weight:400}
-@media(max-width:820px){.kpis,.kpis.cinco,.kpis.tres{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:820px){.kpis,.kpis.cinco{grid-template-columns:repeat(2,1fr)}}
 
 .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px}
 @media(max-width:900px){.grid{grid-template-columns:1fr}}
@@ -126,7 +111,6 @@ select.colf{cursor:pointer}
 .hidden{display:none!important}
 .foot{border-top:1px solid var(--line);margin-top:30px;padding-top:16px;font-size:11.5px;color:var(--soft)}
 
-/* modal */
 .modal{position:fixed;inset:0;background:rgba(11,37,69,.55);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px}
 .modal .card{background:#fff;border-radius:10px;padding:26px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .modal h3{font-size:20px;margin-bottom:6px}
@@ -137,7 +121,6 @@ select.colf{cursor:pointer}
 .modal .b2{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 14px;cursor:pointer;color:var(--soft)}
 .modal .err{color:var(--alert);font-size:12.5px;margin-top:8px;min-height:16px}
 
-/* ===== CELULAR ===== */
 @media(max-width:640px){
   body{font-size:13.5px}
   .wrap,.top-in,.selrow,.top-row{padding-left:14px;padding-right:14px}
@@ -148,42 +131,27 @@ select.colf{cursor:pointer}
   .subtitle{font-size:11.5px;margin-top:3px}
   .top-meta{text-align:left;font-size:10px}
   .top-meta .btn{padding:5px 10px}
-
   .selrow{gap:7px}
   .selrow label{width:100%;margin-bottom:-3px;margin-top:2px}
   select.turma{min-width:0!important;flex:1;font-size:13px;padding:8px}
-
   .blocklabel{font-size:10px}
   h2{font-size:15px}
   .panel{padding:15px 14px 14px;margin-bottom:16px}
   .panel .note{font-size:11.5px}
   .section{margin-bottom:18px}
   .grid{gap:14px}
-
   .kpis{grid-template-columns:repeat(2,1fr)}
   .kpis.cinco{grid-template-columns:repeat(2,1fr)}
-  .kpis.tres{grid-template-columns:repeat(2,1fr)}
   .kpis.cinco .kpi:first-child{grid-column:1 / -1}
   .kpi{padding:11px 13px}
   .kpi .v{font-size:22px}
   .kpi .l{font-size:9px}
-
-  .result{padding:16px 15px}
-  .result .rgrid,.result .rgrid.dois{grid-template-columns:1fr 1fr;gap:12px}
-  .result .rcard{padding-left:11px;border-left-width:2px}
-  .result .rcard .rnum{font-size:26px}
-  .result .rcard .rnum .u{font-size:13px}
-  .result .rcard .rlab{font-size:11.5px;margin:4px 0 3px}
-  .result .rcard .rdesc{font-size:10.5px;line-height:1.4}
-  .result .rtop{font-size:9.5px;margin-bottom:10px}
-
   table{font-size:11.5px}
   th,td{padding:6px 5px}
   #tabela th:nth-child(4),#tabela td:nth-child(4){display:none} 
   #tabela th:nth-child(6),#tabela td:nth-child(6){display:none} 
   #tabela th:nth-child(7),#tabela td:nth-child(7){display:none} 
   .twrap{max-height:60vh}
-
   .controls{gap:6px}
   .fbtn{font-size:10px;padding:6px 9px}
   .search{min-width:120px}
@@ -193,7 +161,6 @@ select.colf{cursor:pointer}
   h1.title{font-size:17px}
   .kpi .v{font-size:20px}
 }
-
 @media print{
   body{background:#fff}
   .topbar{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -260,17 +227,11 @@ select.colf{cursor:pointer}
         <div id="chartBim"></div>
       </div>
       <div class="panel">
-        <h2>Comparativo mês a mês</h2>
-        <p class="note">Ações com data anotada, por mês do ano.</p>
-        <div id="chartMes"></div>
+        <h2>Faltas × Atestados × Injustificadas</h2>
+        <p class="note">Evolução por bimestre: total de faltas, atestados e injustificadas.</p>
+        <div id="chartCorrel"></div>
+        <div class="legend"><span><i style="background:var(--navy-3)"></i>Total de faltas</span><span><i style="background:var(--alert)"></i>Injustificadas</span><span><i style="background:var(--green)"></i>Atestados</span></div>
       </div>
-    </div>
-
-    <div class="panel wide">
-      <h2>Faltas × Atestados × Injustificadas por ano</h2>
-      <p class="note">Para cada ano (somando as turmas): total de faltas, quanto foi justificado por atestado, e quanto restou como injustificada. Mostra onde a ausência é doença (atestado) e onde é abandono (injustificada).</p>
-      <div id="chartCorrel"></div>
-      <div class="legend"><span><i style="background:var(--navy-3)"></i>Total de faltas</span><span><i style="background:var(--alert)"></i>Injustificadas</span><span><i style="background:var(--green)"></i>Atestados</span></div>
     </div>
 
     <div class="panel wide">
@@ -359,7 +320,6 @@ function n(x){ return (x==null||isNaN(x))?'—':Number(x).toLocaleString('pt-BR'
 function turmaOrd(t){ var m=String(t).match(/(\d+)\s*º?\s*([A-Za-z]?)/); var ano=m?parseInt(m[1],10):99; var letra=(m&&m[2]?m[2].toUpperCase():'Z'); return ano*100+(letra.charCodeAt(0)||90); }
 function cmpTurma(a,b){ return turmaOrd(a)-turmaOrd(b) || String(a).localeCompare(String(b)); }
 
-/* Contadores Globais */
 function vFaltas(r){ return S.bim==='ambos'? r.faltasTot : (r[S.bim+'B_f']||0); }
 function vAtest(r){ return S.bim==='ambos'? r.atestTot : (r[S.bim+'B_a']||0); }
 function vInj(r){ return S.bim==='ambos'? r.injTot : (r[S.bim+'B_i']||0); }
@@ -473,7 +433,7 @@ function selComentarios(){
 
 function renderKpis(){
   var g=selAlunos();
-  var faltas=0,atest=0,inj=0,bilh=0,sae=0,ret=0,acomp=0,transf=0,buscas=0,indisp=0;
+  var faltas=0,atest=0,inj=0,bilh=0,sae=0,ret=0,transf=0,buscas=0;
   
   g.forEach(function(r){ 
     faltas+=vFaltas(r); atest+=vAtest(r); inj+=vInj(r);
@@ -481,19 +441,9 @@ function renderKpis(){
     sae += vSae(r);
     ret += vRet(r);
     buscas += vBusca(r);
-    if(vAlcancado(r)) acomp++; 
     if(r.transf) transf++; 
-    
-    var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
-    bims.forEach(function(b){
-        var text = String(r[b+'B_DEV']||'') + ' ' + String(r[b+'B_BUS']||'');
-        if (/n[ãa]o atende|n[úu]mero (errad|n[ãa]o)|sem retorno|caixa postal|desligad|inexistente|n[ãa]o localiz/i.test(text)) {
-            indisp++;
-        }
-    });
   });
   
-  var sem=g.length-acomp;
   var totalAcoes = buscas + bilh + sae;
   
   el('kpiFreq').innerHTML=[
@@ -506,34 +456,17 @@ function renderKpis(){
   
   el('kpiAcao').innerHTML=[
     kpi('Buscas ativas globais', n(totalAcoes), '', 'total de ações'),
-    kpi('Família indisponível', n(indisp), 'alert', 'não atenderam'),
     kpi('Bilhetes enviados', n(bilh)),
     kpi('Encaminhados à SAE', n(sae)),
-    kpi('Retornos da SAE', n(ret)),
-    kpi('Com acompanhamento', n(acomp), 'green', n(sem)+' sem contato')
+    kpi('Retornos da SAE', n(ret))
   ].join('');
-  el('kpiAcao').className = 'kpis tres';
+  el('kpiAcao').className = 'kpis';
   
   var lbl = (S.turma ? ('turma '+S.turma) : (S.ano==='Todas'?'todas as turmas':S.ano)) + ' · ' + bimLabel();
   el('lblFreq').textContent=lbl; el('lblLista').textContent=lbl;
 }
 function kpi(l,v,cls,sub){ return '<div class="kpi"><div class="l">'+l+'</div><div class="v '+(cls||'')+'">'+v+(sub?'<span class="sub">'+sub+'</span>':'')+'</div></div>'; }
 
-function barsV(dados, opts){
-  opts=opts||{}; var W=opts.w||520,H=opts.h||210, base=H-46, x0=44;
-  var mx=Math.max(1,Math.max.apply(null,dados.map(function(d){return d.val;})));
-  var nn=dados.length, gap=opts.gap||18, bw=(W-x0-16-gap*(nn-1))/nn;
-  var s=['<svg viewBox="0 0 '+W+' '+H+'" role="img">'];
-  for(var t=0;t<=3;t++){ var yv=mx*t/3, y=base-(yv/mx)*(base-16);
-    s.push('<line x1="'+x0+'" y1="'+y.toFixed(1)+'" x2="'+(W-10)+'" y2="'+y.toFixed(1)+'" stroke="#D2DCE8"/>');
-    s.push('<text x="'+(x0-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#8AA0BC">'+Math.round(yv)+'</text>'); }
-  dados.forEach(function(d,i){ var x=x0+i*(bw+gap), h=(d.val/mx)*(base-16), y=base-h;
-    s.push('<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="'+(d.cor||COR.navy)+'"/>');
-    s.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-6).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" font-weight="500" fill="'+(d.cor||COR.navy)+'">'+d.val+'</text>');
-    s.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(base+15)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="#4C6789">'+esc(d.lab)+'</text>'); });
-  s.push('<line x1="'+x0+'" y1="'+base+'" x2="'+(W-10)+'" y2="'+base+'" stroke="#0B2545" stroke-width="1.3"/>');
-  s.push('</svg>'); return s.join('');
-}
 function groupBars(grupos, series, opts){
   opts=opts||{}; var W=opts.w||520,H=opts.h||220, base=H-52,x0=44;
   var mx=1; grupos.forEach(function(g){g.vals.forEach(function(v){if(v>mx)mx=v;});});
@@ -569,6 +502,7 @@ function renderCharts(){
   var g=selAlunos();
   var bims=bimestresComDados();
   if(!bims.length) bims=[1,2];
+  
   var grupos=bims.map(function(b){
     var bi=0,bu=0,sa=0;
     g.forEach(function(r){ 
@@ -581,19 +515,6 @@ function renderCharts(){
   el('chartBim').innerHTML=groupBars(grupos,
     [{nome:'Bilhete',cor:COR.green},{nome:'Busca ativa',cor:COR.navy},{nome:'Encaminhamento SAE',cor:COR.gold}], {h:220});
 
-  var meses={};
-  function add(m){ if(m>=1&&m<=12) meses[m]=(meses[m]||0)+1; }
-  g.forEach(function(r){
-    ['1B_BUS','2B_BUS','3B_BUS','4B_BUS','1B_SAE','2B_SAE','3B_SAE','4B_SAE','1B_RET','2B_RET','3B_RET','4B_RET','1B_DEV','2B_DEV','3B_DEV','4B_DEV','1B_BIL','2B_BIL','3B_BIL','4B_BIL'].forEach(function(f){
-      U.datesIn(r[f]).forEach(function(d){ add(d[0]); }); 
-    });
-    if(vBilhete(r)>0) U.datesIn(r.RECLASS).forEach(function(d){ add(d[0]); });
-  });
-  var maxMes=2; for(var m=12; m>=2; m--) { if(meses[m]) { maxMes=m; break; } }
-  var seq=[]; for(var m=2; m<=maxMes; m++) { seq.push({lab:MES[m-1], val:meses[m]||0}); }
-  el('chartMes').innerHTML=barsV(seq,{h:220,gap:14})+
-    '<p class="note" style="margin-top:8px">Só conta ações com data escrita no registro; o volume real é maior.</p>';
-
   var base = S.data.ini.filter(function(r){ return S.ano==='Todas'||LBL[r.sheet]===S.ano; });
   var turmas={}; base.forEach(function(r){ var t=r.turma; turmas[t]=turmas[t]||{n:0,ac:0}; turmas[t].n++; if(vAlcancado(r))turmas[t].ac++; });
   var arr=Object.keys(turmas).sort(cmpTurma).map(function(t){ return {turma:t,n:turmas[t].n,ac:turmas[t].ac}; });
@@ -602,31 +523,52 @@ function renderCharts(){
     node.addEventListener('click',function(){ var t=node.getAttribute('data-turma'); S.turma=(S.turma===t?'':t); el('selTurma').value=S.turma; renderAll(); });
   });
 
-  var mc={}; selComentarios().forEach(function(c){ mc[c.motivo]=(mc[c.motivo]||0)+1; });
+  var mc={}; 
+  selComentarios().forEach(function(c){ 
+    var m = c.motivo;
+    if (m === 'Outro / não classificado') {
+        m = 'Sem retorno / não localizado';
+    }
+    mc[m] = (mc[m]||0)+1; 
+  });
   var mot=Object.keys(mc).map(function(k){return {lab:k,val:mc[k]};}).sort(function(a,b){return b.val-a.val;}).slice(0,8);
   el('chartMotivos').innerHTML= mot.length? barsH(mot,{w:500,x0:180}) : '<p class="note">Nenhuma devolutiva registrada nesta seleção.</p>';
+  
   renderCorrel();
 }
 
 function renderCorrel(){
   var base = S.data.ini.filter(function(r){ return (S.ano==='Todas'||LBL[r.sheet]===S.ano) && (!S.turma || r.turma===S.turma); });
-  var ordem=['1º ano','2º ano','3º ano','4º ano','5º ano'];
-  var by={}; base.forEach(function(r){ var a=LBL[r.sheet]; by[a]=by[a]||{f:0,at:0,i:0}; by[a].f+=vFaltas(r); by[a].at+=vAtest(r); by[a].i+=vInj(r); });
-  var arr=ordem.filter(function(a){return by[a];}).map(function(a){ return {lab:a, f:by[a].f, at:by[a].at, i:by[a].i}; });
+  var bims = [1, 2, 3, 4];
+  var arr = bims.map(function(b) {
+    var f=0, at=0, i=0;
+    base.forEach(function(r) {
+      f += (r[b+'B_f'] || 0);
+      at += (r[b+'B_a'] || 0);
+      i += (r[b+'B_i'] || 0);
+    });
+    return { lab: b + 'º Bim', f: f, at: at, i: i };
+  });
+
+  var ativos = bimestresComDados();
+  if(!ativos.length) ativos=[1,2];
+  arr = arr.filter(function(a, idx) { return ativos.indexOf(idx+1) >= 0; });
+
   if(!arr.length){ el('chartCorrel').innerHTML='<p class="note">Sem dados nesta seleção.</p>'; return; }
-  var W=900, H=270, base_y=H-46, x0=48;
+  
+  var W=520, H=220, base_y=H-46, x0=48;
   var mx=1; arr.forEach(function(a){ mx=Math.max(mx,a.f,a.at,a.i); });
-  var gGap=34, gW=(W-x0-16-gGap*(arr.length-1))/arr.length, bw=gW/3-6;
+  var gGap=30, gW=(W-x0-16-gGap*(arr.length-1))/arr.length, bw=gW/3-3;
   var cols=[COR.navy3, COR.alert, COR.green];
   var s=['<svg viewBox="0 0 '+W+' '+H+'" role="img" style="width:100%">'];
-  for(var t=0;t<=4;t++){ var yv=mx*t/4, y=base_y-(yv/mx)*(base_y-20);
+  for(var t=0;t<=3;t++){ var yv=mx*t/3, y=base_y-(yv/mx)*(base_y-20);
     s.push('<line x1="'+x0+'" y1="'+y.toFixed(1)+'" x2="'+(W-10)+'" y2="'+y.toFixed(1)+'" stroke="#D2DCE8"/>');
-    s.push('<text x="'+(x0-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="#8AA0BC">'+Math.round(yv)+'</text>'); }
+    s.push('<text x="'+(x0-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#8AA0BC">'+Math.round(yv)+'</text>'); }
   arr.forEach(function(a,gi){ var gx=x0+gi*(gW+gGap); var vals=[a.f,a.i,a.at];
-    vals.forEach(function(v,si){ var x=gx+si*(bw+3), h=(v/mx)*(base_y-20), y=base_y-h;
-      s.push('<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="'+cols[si]+'"/>');
-      if(v>0) s.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-5).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" font-weight="500" fill="'+cols[si]+'">'+n(v)+'</text>'); });
-    s.push('<text x="'+(gx+gW/2).toFixed(1)+'" y="'+(base_y+18)+'" text-anchor="middle" font-family="Fraunces" font-size="14" font-weight="600" fill="#0B2545">'+esc(a.lab)+'</text>'); });
+    vals.forEach(function(v,si){ var x=gx+si*(bw+2), h=(v/mx)*(base_y-20), y=base_y-h;
+      s.push('<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="2.5" fill="'+cols[si]+'"/>');
+      if(v>0) s.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-4).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" font-weight="500" fill="'+cols[si]+'">'+n(v)+'</text>'); });
+    s.push('<text x="'+(gx+gW/2).toFixed(1)+'" y="'+(base_y+16)+'" text-anchor="middle" font-family="Fraunces" font-size="12" font-weight="600" fill="#0B2545">'+esc(a.lab)+'</text>'); });
   s.push('<line x1="'+x0+'" y1="'+base_y+'" x2="'+(W-10)+'" y2="'+base_y+'" stroke="#0B2545" stroke-width="1.3"/>');
   s.push('</svg>');
   el('chartCorrel').innerHTML=s.join('');
@@ -657,10 +599,8 @@ function renderAlertas(){
     var trat = [];
     var qtBil = vBilhete(r);
     if(qtBil>0) trat.push(qtBil+' bilhete(s)');
-    
     var qtSae = vSae(r);
     if(qtSae>0) trat.push(qtSae+' vez(es) na SAE');
-    
     var qtBusca = vBusca(r);
     if(qtBusca>0) trat.push(qtBusca+' busca(s)');
     
@@ -769,10 +709,7 @@ function fillTurmas(){
 function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
 
 function renderFoot(){
-  var d=S.data; el('foot').innerHTML=
-    (S.atualizadoEm? 'Atualizado em '+S.atualizadoEm+'<br>':'')+
-    d.ini.length+' alunos do 1º ao 5º ano · '+
-    d.relatos.length+' devolutivas registradas · dados protegidos pela LGPD, uso interno da gestão.';
+  el('foot').innerHTML = S.atualizadoEm ? 'Atualizado em ' + S.atualizadoEm : '';
 }
 
 el('selTurma').addEventListener('change',function(){ S.turma=el('selTurma').value; if(el('selTurma2'))el('selTurma2').value=S.turma; renderAll(); });
