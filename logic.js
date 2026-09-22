@@ -28,7 +28,6 @@
     return true; 
   }
   
-  // Função rigorosa pra uso restrito (ex: SAE)
   function isSimStrict(v) {
     var t = String(v||'').trim().toLowerCase();
     return t.indexOf('sim') === 0;
@@ -125,14 +124,22 @@
             var duplo = (cc.FBIM!=null && cc.FCOL!=null);
             var faltas = fbim!=null? fbim : fcol;
             
+            // CORREÇÃO: Se Faltas estiver vazio mas a professora preencheu Injustificadas/Atestado,
+            // o sistema deduz inteligentemente as faltas totais.
+            if (faltas == null && (inj != null || ate != null)) {
+                faltas = (inj || 0) + (ate || 0);
+            }
+            
             var injust;
             if(inj!=null) injust = inj;
             else if(faltas!=null) injust = faltas-(ate||0);
             else injust = null;
             
-            // TRAVA LÓGICA DE FALTAS: Injustificadas nunca podem ultrapassar o número de Faltas
+            // TRAVA LÓGICA DE FALTAS: Injustificadas nunca podem ultrapassar as Faltas
             if (injust != null && faltas != null) {
-                if (injust > faltas) injust = faltas;
+                if (injust > faltas) {
+                    faltas = injust + (ate || 0);
+                }
             }
             
             rec[bi+'_f']=faltas; rec[bi+'_a']=ate;
@@ -171,7 +178,7 @@
           [1,2,3,4].forEach(function(i){ var d=rec[i+'B_DEV']; if(d && d.length>3) rec.devolutivas.push({bim:i, texto:d}); });
           rec.alcancado=rec.buscaAny||rec.bilhete||rec.saeAny;
           rec.contatos=[rec.busca1,rec.busca2,rec.busca3,rec.busca4,rec.bilhete,
-                        isSim(rec['1B_SAE']),isSim(rec['2B_SAE']),isSim(rec['3B_SAE']),isSim(rec['4B_SAE'])]
+                        isSimStrict(rec['1B_SAE']),isSimStrict(rec['2B_SAE']),isSimStrict(rec['3B_SAE']),isSimStrict(rec['4B_SAE'])]
                         .filter(Boolean).length;
           recs.push(rec);
         }
