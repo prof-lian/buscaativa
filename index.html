@@ -95,12 +95,18 @@ svg{display:block;max-width:100%;height:auto}
 .twrap{max-height:460px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{position:sticky;top:0;background:var(--navy);color:#fff;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.03em;padding:8px;font-weight:500}
-th.num,td.num{text-align:center;font-family:'IBM Plex Mono',monospace} /* Alterado para centralizar */
+th.num,td.num{text-align:center;font-family:'IBM Plex Mono',monospace} 
 td{padding:7px 8px;border-bottom:1px solid var(--line)}
 tbody tr:nth-child(even){background:#F6F9FC}
 tbody tr:hover td{background:var(--paper-2)}
 .pill{display:inline-flex;align-items:center;gap:4px;font-size:11px}
 .pill.g{color:var(--green)} .pill.r{color:var(--alert)}
+
+/* Estilos para textos expansíveis (SAE) */
+.sae-text { font-size:12.5px; color:var(--navy); line-height:1.5; }
+.sae-text.short { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.sae-toggle { background:none; border:none; color:var(--navy-3); font-size:11.5px; font-weight:600; cursor:pointer; padding:0; margin-top:6px; font-family:'IBM Plex Sans'; text-decoration:underline; }
+.sae-toggle:hover { color:var(--navy); }
 
 .loadscreen,.errscreen{max-width:560px;margin:80px auto;text-align:center;color:var(--soft)}
 .errscreen h2{color:var(--navy);font-size:22px;margin-bottom:8px}
@@ -261,25 +267,6 @@ tbody tr:hover td{background:var(--paper-2)}
     </div>
 
     <div class="panel wide">
-      <h2>Relatório SAE — Encaminhamentos e Retornos</h2>
-      <p class="note">Detalhamento dos alunos encaminhados à rede de proteção (SAE) e o status das respostas recebidas.</p>
-      <div id="kpiSae" style="margin-bottom:20px;"></div>
-      <div class="controls">
-        <div class="search">🔎<input id="saeSearch" placeholder="Buscar aluno na SAE..."></div>
-        <span class="mono" id="saeCount" style="font-size:12px;color:var(--soft)"></span>
-      </div>
-      <div class="twrap"><table style="width:100%">
-        <thead><tr>
-          <th style="width:30%">Nome</th>
-          <th style="text-align:center; width:10%">Turma</th>
-          <th class="num" style="width:10%">Injust.</th>
-          <th style="width:50%">Status / Retorno da SAE</th>
-        </tr></thead>
-        <tbody id="tbodySae"></tbody>
-      </table></div>
-    </div>
-
-    <div class="panel wide">
       <h2>Lista de alunos</h2>
       <p class="note"><span id="lblLista"></span> — clique nos títulos das colunas para ordenar.</p>
       <div class="controls">
@@ -294,6 +281,32 @@ tbody tr:hover td{background:var(--paper-2)}
         <span class="mono" id="tabCount" style="font-size:12px;color:var(--soft)"></span>
       </div>
       <div class="twrap"><table id="tabela"></table></div>
+    </div>
+    
+    <div class="panel wide">
+      <h2>Relatório SAE — Encaminhamentos e Retornos</h2>
+      <p class="note">Detalhamento dos alunos encaminhados à rede de proteção (SAE), status das respostas e categorias dos retornos.</p>
+      
+      <div id="kpiSae" style="margin-bottom:20px;"></div>
+      
+      <div style="margin-bottom:26px; padding-bottom:24px; border-bottom:1px solid var(--line)">
+        <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Motivos identificados nos retornos da SAE</h3>
+        <div id="chartSae"></div>
+      </div>
+
+      <div class="controls">
+        <div class="search">🔎<input id="saeSearch" placeholder="Buscar aluno na SAE..."></div>
+        <span class="mono" id="saeCount" style="font-size:12px;color:var(--soft)"></span>
+      </div>
+      <div class="twrap"><table style="width:100%">
+        <thead><tr>
+          <th style="width:25%">Nome</th>
+          <th style="text-align:center; width:10%">Turma</th>
+          <th class="num" style="width:10%">Injust.</th>
+          <th style="width:55%">Status / Retorno da SAE</th>
+        </tr></thead>
+        <tbody id="tbodySae"></tbody>
+      </table></div>
     </div>
 
     <div class="foot" id="foot"></div>
@@ -617,11 +630,22 @@ function renderSae(){
   g.sort(function(a,b){ return cmpTurma(a.turma,b.turma) || U.up(a.nome).localeCompare(U.up(b.nome)); });
 
   var total=0, comRet=0;
+  var mcSae = {};
+  
   selAlunos().forEach(function(r){ 
       if(vSae(r)>0){ 
           total++; 
           if(vRet(r)>0) comRet++; 
       }
+      var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
+      bims.forEach(function(b){
+          var txt = String(r[b+'B_RET']||'').trim();
+          if(temAcao(txt) && txt.toLowerCase() !== 'sim') { 
+              var m = window.BuscaAtiva.classifyMotivo(txt);
+              if (m === 'Outro / não classificado') m = 'Orientação / Situação monitorada';
+              mcSae[m] = (mcSae[m]||0)+1;
+          }
+      });
   });
 
   el('kpiSae').innerHTML = 
@@ -630,21 +654,38 @@ function renderSae(){
       '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Com Retorno</div><div class="v green">'+comRet+'</div></div>' +
       '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Aguardando Retorno</div><div class="v alert">'+(total-comRet)+'</div></div>' +
     '</div>';
+    
+  var motSae=Object.keys(mcSae).map(function(k){return {lab:k,val:mcSae[k]};}).sort(function(a,b){return b.val-a.val;}).slice(0,8);
+  el('chartSae').innerHTML= motSae.length? barsH(motSae,{w:500,x0:210}) : '<p class="note">Nenhum detalhamento categorizado nesta seleção.</p>';
 
   el('saeCount').textContent = g.length + ' alunos na SAE';
   var tb=el('tbodySae'); tb.innerHTML='';
-  g.forEach(function(r){
+  g.forEach(function(r, i){
       var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
       var rets = [];
       bims.forEach(function(b){
           var txt = String(r[b+'B_RET']||'').trim();
           if(temAcao(txt)) rets.push(txt);
       });
-      var statusSae = rets.length ? esc(rets.join(' | ')) : '<span style="color:var(--alert); font-weight:500">Aguardando retorno da SAE...</span>';
+      
+      var statusSae = '';
+      if(rets.length) {
+          var fullText = rets.join('\n\n');
+          var escText = esc(fullText).replace(/\n/g,'<br>');
+          // Se for muito grande, exibe uma prévia com botão "Ler tudo"
+          if (fullText.length > 160) {
+              statusSae = '<div><div class="sae-text short" id="sae-t-'+i+'">'+escText+'</div>' + 
+                          '<button class="sae-toggle" onclick="var t=document.getElementById(\'sae-t-'+i+'\'); if(t.classList.contains(\'short\')){t.classList.remove(\'short\');this.innerText=\'Ocultar\';}else{t.classList.add(\'short\');this.innerText=\'Ler tudo\';}">Ler tudo</button></div>';
+          } else {
+              statusSae = '<div class="sae-text">'+escText+'</div>';
+          }
+      } else {
+          statusSae = '<span style="color:var(--alert); font-size:12.5px; font-weight:500">Aguardando retorno da SAE...</span>';
+      }
       
       var tr=document.createElement('tr');
-      tr.innerHTML='<td>'+esc(U.cap(r.nome))+'</td><td class="mono" style="text-align:center">'+esc(r.turma)+'</td>'+
-                   '<td class="num">'+n(vInj(r))+'</td><td>'+statusSae+'</td>';
+      tr.innerHTML='<td><div style="font-weight:500; font-size:13px">'+esc(U.cap(r.nome))+'</div></td><td class="mono" style="text-align:center">'+esc(r.turma)+'</td>'+
+                   '<td class="num">'+n(vInj(r))+'</td><td style="padding:10px 8px">'+statusSae+'</td>';
       tb.appendChild(tr);
   });
 }
@@ -739,8 +780,8 @@ function renderTabela(){
     var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
     var temDev = false;
     bims.forEach(function(b){ if((r[b+'B_DEV']||'').length>3) temDev = true; });
-    var iconDev = '';
     
+    var iconDev = '';
     if (r.transf) {
         iconDev = '<span style="color:var(--line-2)">—</span>';
     } else {
@@ -784,7 +825,7 @@ function fillTurmas(){
   if(el('selTurma2')){ el('selTurma2').innerHTML=opts; el('selTurma2').value=S.turma; }
 }
 
-function renderAll(){ renderKpis(); renderCharts(); renderSae(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
+function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderSae(); renderFoot(); }
 
 function renderFoot(){
   el('foot').innerHTML = S.atualizadoEm ? 'Atualizado em ' + S.atualizadoEm : '';
