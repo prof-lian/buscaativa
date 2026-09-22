@@ -69,7 +69,21 @@
         function set(bd,role,c){ (cols[bd]=cols[bd]||{})[role]=c; }
         var seq={BUS:0,SAE:0,RET:0,DEV:0,BIL:0,FBIM:0,INJ:0,ATE:0};
         var ordBim=['1B','2B','3B','4B'];
-        function bimDe(bd,role){ if(bd && /^[1-4]B$/.test(bd)) return bd; if(bd==='TOT') return 'TOT'; var i=seq[role]||0; return ordBim[i]||'4B'; }
+        
+        // CÓDIGO CORRIGIDO: Sistema à prova de falhas para quando os cabeçalhos de bimestre somem na planilha
+        function bimDe(bd, role) {
+          var i = seq[role] || 0;
+          var expected = ordBim[i] || '4B';
+          if (bd && /^[1-4]B$/.test(bd)) {
+            // Se a banda diz "1B", mas já preenchemos a coluna do "1B" antes, ele pula automaticamente pro 2B
+            if (!cols[bd] || cols[bd][role] == null) {
+              return bd;
+            }
+          }
+          if (bd === 'TOT') return 'TOT';
+          return expected;
+        }
+
         for(var c3=0;c3<head.length;c3++){
           var h=low(head[c3]); if(!h) continue; var bd=band[c3]||'';
           if(h==='nome') meta.NOME=c3;
