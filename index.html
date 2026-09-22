@@ -253,14 +253,15 @@ tbody tr:hover td{background:var(--paper-2)}
       </div>
       <div class="panel">
         <h2>Devolutivas das famílias — motivos</h2>
-        <p class="note">Distribuição dos motivos relatados pelas famílias na coluna "Devolutiva da família".</p>
+        <p class="note">Distribuição dos motivos relatados pelas famílias. Clique numa barra para filtrar a lista abaixo.</p>
         <div id="chartMotivos"></div>
       </div>
     </div>
 
     <div class="panel wide">
       <h2>Devolutivas das famílias</h2>
-      <p class="note">Texto da coluna "Devolutiva da família" da planilha, já vinculado ao aluno e ao bimestre. Categorização de motivo automática.</p>
+      <p class="note">Texto da coluna "Devolutiva da família" da planilha, categorizado automaticamente.</p>
+      <div class="controls" id="logFilters" style="margin-bottom:10px"></div>
       <div class="controls">
         <div class="search">🔎<input id="logSearch" placeholder="Buscar no texto, no nome ou na turma…"></div>
         <span class="mono" id="logCount" style="font-size:12px;color:var(--soft)"></span>
@@ -366,7 +367,7 @@ var ANOS_INI = ['PRIMEIROS','SEGUNDOS','TERCEIROS','QUARTOS','QUINTOS','QUINTOS 
 var LBL = {PRIMEIROS:'1º ano',SEGUNDOS:'2º ano',TERCEIROS:'3º ano',QUARTOS:'4º ano',QUINTOS:'5º ano','QUINTOS TARDE':'5º ano'};
 var COR = {navy:'#0B2545',navy2:'#14345E',navy3:'#1D4E89',soft:'#4C6789',line:'#C2CFDE',alert:'#B23A48',gold:'#C08A2E',green:'#2C7A5B'};
 var el=function(id){return document.getElementById(id);};
-var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logBusca:'', alFiltro:'todos', alBusca:'', saeBusca:'', ordCol:'inj', ordDir:-1};
+var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logMotivo:'', logBusca:'', alFiltro:'todos', alBusca:'', saeBusca:'', ordCol:'inj', ordDir:-1};
 
 function alunoKey(r){
   var cod = r.COD!=null? String(r.COD).replace(/[^0-9A-Za-z]/g,'') : '';
@@ -555,9 +556,14 @@ function barsH(dados, opts){
   var H=top+dados.length*rowH+6;
   var s=['<svg viewBox="0 0 '+W+' '+H+'" role="img">'];
   dados.forEach(function(d,i){ var y=top+i*rowH, bw=(d.val/mx)*(xmax-x0), cy=y+rowH/2;
+    var cursor = opts.isMotivo ? ' style="cursor:pointer" data-motivo="'+esc(d.lab)+'"' : '';
+    s.push('<g'+cursor+'>');
+    if(opts.isMotivo) s.push('<rect x="0" y="'+y+'" width="'+W+'" height="'+rowH+'" fill="transparent"/>');
     s.push('<text x="'+(x0-10)+'" y="'+(cy+4)+'" text-anchor="end" font-family="IBM Plex Sans" font-size="11" fill="#0B2545">'+esc(d.lab)+'</text>');
-    s.push('<rect x="'+x0+'" y="'+(y+5)+'" width="'+Math.max(bw,0).toFixed(1)+'" height="'+(rowH-12)+'" rx="3" fill="'+(d.cor||COR.navy2)+'"/>');
-    s.push('<text x="'+(x0+Math.max(bw,0)+7).toFixed(1)+'" y="'+(cy+4)+'" font-family="IBM Plex Mono" font-size="11.5" font-weight="500" fill="#4C6789">'+d.val+'</text>'); });
+    s.push('<rect x="'+x0+'" y="'+(y+5)+'" width="'+Math.max(bw,0).toFixed(1)+'" height="'+(rowH-12)+'" rx="3" fill="'+(opts.cor||d.cor||COR.navy2)+'"/>');
+    s.push('<text x="'+(x0+Math.max(bw,0)+7).toFixed(1)+'" y="'+(cy+4)+'" font-family="IBM Plex Mono" font-size="11.5" font-weight="500" fill="#4C6789">'+d.val+'</text>');
+    s.push('</g>');
+  });
   s.push('</svg>'); return s.join('');
 }
 
@@ -593,7 +599,7 @@ function renderCharts(){
     mc[m] = (mc[m]||0)+1; 
   });
   var mot=Object.keys(mc).map(function(k){return {lab:k,val:mc[k]};}).sort(function(a,b){return b.val-a.val;}).slice(0,8);
-  el('chartMotivos').innerHTML= mot.length? barsH(mot,{w:500,x0:180}) : '<p class="note">Nenhuma devolutiva registrada nesta seleção.</p>';
+  el('chartMotivos').innerHTML= mot.length? barsH(mot,{w:500,x0:180, isMotivo:true}) : '<p class="note">Nenhuma devolutiva registrada nesta seleção.</p>';
   
   renderCorrel();
 }
@@ -783,7 +789,24 @@ function renderAlertas(){
 function renderLog(){
   var full=selComentarios();
   var q=S.logBusca.toLowerCase();
+  var m=S.logMotivo;
+  
+  var mc={}; 
+  full.forEach(function(c){ 
+    var mo = c.motivo === 'Outro / não classificado' ? 'Sem retorno / não localizado' : c.motivo; 
+    mc[mo] = (mc[mo]||0)+1; 
+  });
+  
+  var motList = Object.keys(mc).sort(function(a,b){return mc[b]-mc[a];});
+  var htmlBtn = '<button class="fbtn '+(m?'':'on')+'" data-mf="">Todos</button>';
+  motList.forEach(function(k){
+     if(mc[k]>0) htmlBtn += '<button class="fbtn '+(m===k?'on':'')+'" data-mf="'+esc(k)+'">'+esc(k)+' ('+mc[k]+')</button>';
+  });
+  el('logFilters').innerHTML = htmlBtn;
+
   var list=full.filter(function(c){
+    var mo = c.motivo === 'Outro / não classificado' ? 'Sem retorno / não localizado' : c.motivo; 
+    if(m && mo !== m) return false;
     if(q && (c.texto||'').toLowerCase().indexOf(q)<0 && (c.nome||'').toLowerCase().indexOf(q)<0 && String(c.turma).toLowerCase().indexOf(q)<0) return false;
     return true;
   });
@@ -791,6 +814,7 @@ function renderLog(){
   el('logCount').textContent=list.length+' relato(s)';
   el('log').innerHTML = list.length? list.map(logItem).join('') : '<p class="note">Nenhuma devolutiva registrada nesta seleção. A professora preenche a coluna "Devolutiva da família" na planilha.</p>';
 }
+
 function logItem(c){
   var nome = '<span>'+esc(U.cap(c.nome))+'</span> <span class="logmeta">'+esc(c.turma)+'</span>';
   var tags=['<span class="tag motivo">'+esc(c.motivo)+'</span>','<span class="tag">'+c.bim+'º bim</span>'];
@@ -986,6 +1010,23 @@ el('tbodySae').addEventListener('click',function(ev){
   var link = ev.target.closest('.aluno-link');
   if (link) {
       window.abrirAluno(link.getAttribute('data-chave'));
+  }
+});
+
+el('chartMotivos').addEventListener('click', function(ev){
+  var g = ev.target.closest('g[data-motivo]');
+  if(g) {
+    S.logMotivo = g.getAttribute('data-motivo');
+    renderLog();
+    el('logFilters').scrollIntoView({behavior: 'smooth', block: 'center'});
+  }
+});
+
+el('logFilters').addEventListener('click', function(ev){
+  var b = ev.target.closest('button[data-mf]');
+  if(b) {
+    S.logMotivo = b.getAttribute('data-mf');
+    renderLog();
   }
 });
 
