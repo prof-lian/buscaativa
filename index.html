@@ -52,7 +52,7 @@ select.turma{font-family:'IBM Plex Sans';font-size:13px;padding:7px 10px;border-
 .kpi{background:#fff;padding:14px 16px}
 .kpi .l{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--soft);margin-bottom:6px}
 .kpi .v{font-family:'Fraunces',serif;font-size:27px;font-weight:600;display:flex;align-items:baseline;gap:6px}
-.kpi .v.alert{color:var(--alert)} .kpi .v.green{color:var(--green)}
+.kpi .v.alert{color:var(--alert)} .kpi .v.green{color:var(--green)} .kpi .v.gold{color:var(--gold)}
 .kpi .sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--soft);font-weight:400}
 @media(max-width:820px){.kpis,.kpis.cinco{grid-template-columns:repeat(2,1fr)}}
 
@@ -95,7 +95,7 @@ svg{display:block;max-width:100%;height:auto}
 .twrap{max-height:460px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{position:sticky;top:0;background:var(--navy);color:#fff;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.03em;padding:8px;font-weight:500}
-th.num,td.num{text-align:right;font-family:'IBM Plex Mono',monospace}
+th.num,td.num{text-align:center;font-family:'IBM Plex Mono',monospace} /* Alterado para centralizar */
 td{padding:7px 8px;border-bottom:1px solid var(--line)}
 tbody tr:nth-child(even){background:#F6F9FC}
 tbody tr:hover td{background:var(--paper-2)}
@@ -115,7 +115,6 @@ tbody tr:hover td{background:var(--paper-2)}
 .modal .row{display:flex;gap:8px;margin-top:6px}
 .modal .b1{flex:1;background:var(--navy);color:#fff;border:none;border-radius:6px;padding:10px;font-size:14px;font-weight:500;cursor:pointer}
 .modal .b2{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 14px;cursor:pointer;color:var(--soft)}
-.modal .err{color:var(--alert);font-size:12.5px;margin-top:8px;min-height:16px}
 
 @media(max-width:640px){
   body{font-size:13.5px}
@@ -144,8 +143,9 @@ tbody tr:hover td{background:var(--paper-2)}
   .kpi .l{font-size:9px}
   table{font-size:11.5px}
   th,td{padding:6px 5px}
-  /* Esconde atestados e devolutiva no celular pra focar no essencial */
+  /* Oculta colunas menos importantes no celular */
   #tabela th:nth-child(4),#tabela td:nth-child(4){display:none} 
+  #tabela th:nth-child(6),#tabela td:nth-child(6){display:none} 
   #tabela th:nth-child(7),#tabela td:nth-child(7){display:none} 
   .twrap{max-height:60vh}
   .controls{gap:6px}
@@ -261,6 +261,25 @@ tbody tr:hover td{background:var(--paper-2)}
     </div>
 
     <div class="panel wide">
+      <h2>Relatório SAE — Encaminhamentos e Retornos</h2>
+      <p class="note">Detalhamento dos alunos encaminhados à rede de proteção (SAE) e o status das respostas recebidas.</p>
+      <div id="kpiSae" style="margin-bottom:20px;"></div>
+      <div class="controls">
+        <div class="search">🔎<input id="saeSearch" placeholder="Buscar aluno na SAE..."></div>
+        <span class="mono" id="saeCount" style="font-size:12px;color:var(--soft)"></span>
+      </div>
+      <div class="twrap"><table style="width:100%">
+        <thead><tr>
+          <th style="width:30%">Nome</th>
+          <th style="text-align:center; width:10%">Turma</th>
+          <th class="num" style="width:10%">Injust.</th>
+          <th style="width:50%">Status / Retorno da SAE</th>
+        </tr></thead>
+        <tbody id="tbodySae"></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel wide">
       <h2>Lista de alunos</h2>
       <p class="note"><span id="lblLista"></span> — clique nos títulos das colunas para ordenar.</p>
       <div class="controls">
@@ -304,7 +323,7 @@ var ANOS_INI = ['PRIMEIROS','SEGUNDOS','TERCEIROS','QUARTOS','QUINTOS','QUINTOS 
 var LBL = {PRIMEIROS:'1º ano',SEGUNDOS:'2º ano',TERCEIROS:'3º ano',QUARTOS:'4º ano',QUINTOS:'5º ano','QUINTOS TARDE':'5º ano'};
 var COR = {navy:'#0B2545',navy2:'#14345E',navy3:'#1D4E89',soft:'#4C6789',line:'#C2CFDE',alert:'#B23A48',gold:'#C08A2E',green:'#2C7A5B'};
 var el=function(id){return document.getElementById(id);};
-var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logBusca:'', alFiltro:'todos', alBusca:'', ordCol:'inj', ordDir:-1};
+var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logBusca:'', alFiltro:'todos', alBusca:'', saeBusca:'', ordCol:'inj', ordDir:-1};
 
 function alunoKey(r){
   var cod = r.COD!=null? String(r.COD).replace(/[^0-9A-Za-z]/g,'') : '';
@@ -324,8 +343,6 @@ function temAcao(v) {
   var t = String(v||'').trim().toLowerCase();
   return (t && t !== '-' && t !== 'não' && t !== 'nao' && t !== 'falso');
 }
-
-// Rigoroso: para SAE só conta se iniciar com 'sim'
 function isSimStrict(v) {
   var t = String(v||'').trim().toLowerCase();
   return t.indexOf('sim') === 0;
@@ -593,6 +610,45 @@ function turmaChart(arr){
   s.push('</svg>'); return '<div style="overflow-x:auto">'+s.join('')+'</div>';
 }
 
+function renderSae(){
+  var g=selAlunos().filter(function(r){return vSae(r)>0;});
+  var q=(S.saeBusca||'').toLowerCase();
+  if(q) g=g.filter(function(r){return r.nome.toLowerCase().indexOf(q)>=0 || r.turma.toLowerCase().indexOf(q)>=0;});
+  g.sort(function(a,b){ return cmpTurma(a.turma,b.turma) || U.up(a.nome).localeCompare(U.up(b.nome)); });
+
+  var total=0, comRet=0;
+  selAlunos().forEach(function(r){ 
+      if(vSae(r)>0){ 
+          total++; 
+          if(vRet(r)>0) comRet++; 
+      }
+  });
+
+  el('kpiSae').innerHTML = 
+    '<div style="display:flex; gap:16px; flex-wrap:wrap">' +
+      '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Encaminhados à SAE</div><div class="v gold">'+total+'</div></div>' +
+      '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Com Retorno</div><div class="v green">'+comRet+'</div></div>' +
+      '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Aguardando Retorno</div><div class="v alert">'+(total-comRet)+'</div></div>' +
+    '</div>';
+
+  el('saeCount').textContent = g.length + ' alunos na SAE';
+  var tb=el('tbodySae'); tb.innerHTML='';
+  g.forEach(function(r){
+      var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
+      var rets = [];
+      bims.forEach(function(b){
+          var txt = String(r[b+'B_RET']||'').trim();
+          if(temAcao(txt)) rets.push(txt);
+      });
+      var statusSae = rets.length ? esc(rets.join(' | ')) : '<span style="color:var(--alert); font-weight:500">Aguardando retorno da SAE...</span>';
+      
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+esc(U.cap(r.nome))+'</td><td class="mono" style="text-align:center">'+esc(r.turma)+'</td>'+
+                   '<td class="num">'+n(vInj(r))+'</td><td>'+statusSae+'</td>';
+      tb.appendChild(tr);
+  });
+}
+
 function renderAlertas(){
   var g=selAlunos().filter(function(r){ return vInj(r)>=10; })
     .sort(function(a,b){return vInj(b)-vInj(a);}).slice(0,8);
@@ -654,16 +710,14 @@ function renderTabela(){
   
   function arrow(c){ return S.ordCol===c ? (S.ordDir<0?' ▼':' ▲') : ''; }
   
-  // Novos cabeçalhos unificados
   var head='<thead><tr>'+
       '<th data-sort="nome" style="cursor:pointer">Nome'+arrow('nome')+'</th>'+
-      '<th data-sort="turma" style="cursor:pointer">Turma'+arrow('turma')+'</th>'+
+      '<th data-sort="turma" style="cursor:pointer; text-align:center">Turma'+arrow('turma')+'</th>'+
       '<th class="num" data-sort="faltas" style="cursor:pointer">Faltas'+arrow('faltas')+'</th>'+
       '<th class="num" data-sort="atest" style="cursor:pointer">Atest.'+arrow('atest')+'</th>'+
       '<th class="num" data-sort="inj" style="cursor:pointer">Injust.'+arrow('inj')+'</th>'+
       '<th>Tratativas</th>'+
-      '<th style="text-align:center">Devol.</th>'+
-      '<th>Status</th>'+
+      '<th style="text-align:center; width:160px">Devol. da Família</th>'+
     '</tr></thead>';
     
   el('tabela').innerHTML=head+'<tbody id="tbody"></tbody>'+
@@ -672,27 +726,33 @@ function renderTabela(){
   var tb=el('tbody');
   
   g.slice(0,300).forEach(function(r){
-    // Tratativas unificadas
     var trat = [];
-    if (vBilhete(r) > 0) trat.push('Bilhete');
-    if (vSae(r) > 0) trat.push('SAE');
-    if (vBusca(r) > 0) trat.push('Ligação');
+    if (r.transf) {
+        trat.push('<span style="color:var(--alert);font-weight:600">TRANSFERIDO</span>');
+    } else {
+        if (vBilhete(r) > 0) trat.push('Bilhete');
+        if (vSae(r) > 0) trat.push('SAE');
+        if (vBusca(r) > 0) trat.push('Ligação');
+    }
     var txtTrat = trat.length ? trat.join(', ') : '—';
 
-    // Checagem se existe devolutiva
     var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
     var temDev = false;
     bims.forEach(function(b){ if((r[b+'B_DEV']||'').length>3) temDev = true; });
-    var iconDev = temDev 
-      ? '<span style="color:var(--green);font-size:14px;font-weight:bold" title="Família respondeu">✔</span>' 
-      : '<span style="color:var(--line-2);font-size:14px;font-weight:bold" title="Sem retorno familiar">✖</span>';
-
-    var st = vAlcancado(r) ? '<span class="pill g">✓ acomp.</span>' : '<span class="pill r">sem contato</span>';
+    var iconDev = '';
     
+    if (r.transf) {
+        iconDev = '<span style="color:var(--line-2)">—</span>';
+    } else {
+        iconDev = temDev 
+          ? '<span style="color:var(--green);font-size:16px;font-weight:bold" title="Família respondeu">✔</span>' 
+          : '<span style="color:var(--alert);font-size:16px;font-weight:bold" title="Sem retorno familiar">✖</span>';
+    }
+
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+esc(U.cap(r.nome))+'</td><td class="mono">'+esc(r.turma)+'</td>'+
+    tr.innerHTML='<td>'+esc(U.cap(r.nome))+'</td><td class="mono" style="text-align:center">'+esc(r.turma)+'</td>'+
       '<td class="num">'+n(vFaltas(r))+'</td><td class="num">'+n(vAtest(r))+'</td><td class="num">'+n(vInj(r))+'</td>'+
-      '<td>'+txtTrat+'</td><td style="text-align:center">'+iconDev+'</td><td>'+st+'</td>';
+      '<td>'+txtTrat+'</td><td style="text-align:center">'+iconDev+'</td>';
     tb.appendChild(tr);
   });
 }
@@ -724,7 +784,7 @@ function fillTurmas(){
   if(el('selTurma2')){ el('selTurma2').innerHTML=opts; el('selTurma2').value=S.turma; }
 }
 
-function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
+function renderAll(){ renderKpis(); renderCharts(); renderSae(); renderAlertas(); renderLog(); renderTabela(); renderFoot(); }
 
 function renderFoot(){
   el('foot').innerHTML = S.atualizadoEm ? 'Atualizado em ' + S.atualizadoEm : '';
@@ -735,6 +795,8 @@ el('btnRetry').addEventListener('click',load);
 el('btnPrint').addEventListener('click',function(){ window.print(); });
 el('logSearch').addEventListener('input',function(){ S.logBusca=this.value; renderLog(); });
 el('alSearch').addEventListener('input',function(){ S.alBusca=this.value; renderTabela(); });
+el('saeSearch').addEventListener('input',function(){ S.saeBusca=this.value; renderSae(); });
+
 Array.prototype.forEach.call(document.querySelectorAll('[data-af]'),function(b){ b.addEventListener('click',function(){
   S.alFiltro=b.getAttribute('data-af'); document.querySelectorAll('[data-af]').forEach(function(x){x.classList.toggle('on',x===b);}); renderTabela(); }); });
 
@@ -761,7 +823,6 @@ function renderBilhetes(q){
     var allDates = [];
     var bims = [1,2,3,4];
     
-    // Procura datas anotadas na coluna Reclassificação (histórico antigo) e nas colunas de Bilhete de todos os bimestres
     U.datesIn(r.RECLASS).forEach(function(d){ allDates.push(d); });
     bims.forEach(function(b){
        U.datesIn(r[b+'B_BIL']).forEach(function(d){ allDates.push(d); });
