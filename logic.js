@@ -22,13 +22,18 @@
     var f=parseFloat(s); return isNaN(f)?null:f;
   }
   
-  // Agora qualquer anotação diferente de "não" conta como tratativa realizada
   function isSim(v){ 
     var t=norm(v).toLowerCase(); 
     if(!t || t==='-' || t==='não' || t==='nao' || t==='falso') return false; 
     return true; 
   }
-  function isNao(v){ var t=low(v); return t.indexOf('não')===0 || t.indexOf('nao')===0; }
+  
+  // Função rigorosa pra uso restrito (ex: SAE)
+  function isSimStrict(v) {
+    var t = String(v||'').trim().toLowerCase();
+    return t.indexOf('sim') === 0;
+  }
+  
   function cap(s){ return norm(s).split(' ').map(function(w){return w.length>2? (w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()):w.toLowerCase();}).join(' '); }
 
   function datesIn(v){
@@ -70,12 +75,10 @@
         var seq={BUS:0,SAE:0,RET:0,DEV:0,BIL:0,FBIM:0,INJ:0,ATE:0};
         var ordBim=['1B','2B','3B','4B'];
         
-        // CÓDIGO CORRIGIDO: Sistema à prova de falhas para quando os cabeçalhos de bimestre somem na planilha
         function bimDe(bd, role) {
           var i = seq[role] || 0;
           var expected = ordBim[i] || '4B';
           if (bd && /^[1-4]B$/.test(bd)) {
-            // Se a banda diz "1B", mas já preenchemos a coluna do "1B" antes, ele pula automaticamente pro 2B
             if (!cols[bd] || cols[bd][role] == null) {
               return bd;
             }
@@ -112,6 +115,7 @@
           var nome=norm(row[meta.NOME]); if(!nome) continue;
           var rec={sheet:sheet, ano:LBL[sheet], seg:SEG[sheet], turma:turma, linha:r2+1, nome:nome, nomeChave:up(nome), cells:{}, notas:[]};
           ['COD','RECLASS','ASSIN','MATRIC','SITUACAO','SITU2'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
+          
           ['1B','2B','3B','4B'].forEach(function(bi){
             var cc=cols[bi]||{};
             var fbim = cc.FBIM!=null? num(row[cc.FBIM]) : null;
@@ -120,10 +124,17 @@
             var inj  = cc.INJ!=null?  num(row[cc.INJ])  : null;
             var duplo = (cc.FBIM!=null && cc.FCOL!=null);
             var faltas = fbim!=null? fbim : fcol;
+            
             var injust;
             if(inj!=null) injust = inj;
             else if(faltas!=null) injust = faltas-(ate||0);
             else injust = null;
+            
+            // TRAVA LÓGICA DE FALTAS: Injustificadas nunca podem ultrapassar o número de Faltas
+            if (injust != null && faltas != null) {
+                if (injust > faltas) injust = faltas;
+            }
+            
             rec[bi+'_f']=faltas; rec[bi+'_a']=ate;
             rec[bi+'_i']= injust!=null? Math.max(injust,0):null;
             rec[bi+'_acum']= duplo? fcol : null;
@@ -144,7 +155,7 @@
           rec.busca1=isSim(rec['1B_BUS']); rec.busca2=isSim(rec['2B_BUS']);
           rec.busca3=isSim(rec['3B_BUS']); rec.busca4=isSim(rec['4B_BUS']);
           rec.buscaAny=rec.busca1||rec.busca2||rec.busca3||rec.busca4;
-          rec.saeAny=[1,2,3,4].some(function(i){return isSim(rec[i+'B_SAE']);});
+          rec.saeAny=[1,2,3,4].some(function(i){return isSimStrict(rec[i+'B_SAE']);});
           rec.retAny=[1,2,3,4].some(function(i){var t=low(rec[i+'B_RET']);return isSim(rec[i+'B_RET'])||t.indexOf('mail')>=0;});
           var reclass=low(rec.RECLASS||''), ass=low(rec.ASSIN||'');
           rec.bilhete1=isSim(rec['1B_BIL'])||/bilhete/.test(low(rec['1B_BIL']));
