@@ -226,8 +226,8 @@ tbody tr:hover td{background:var(--paper-2)}
 
     <div class="grid">
       <div class="panel">
-        <h2>Contatos realizados por bimestre</h2>
-        <p class="note">Bilhetes, buscas ativas e encaminhamentos à SAE registrados em cada bimestre.</p>
+        <h2>Busca ativa realizada por bimestre</h2>
+        <p class="note">Bilhetes, ligações e encaminhamentos à SAE registrados em cada bimestre.</p>
         <div id="chartBim"></div>
       </div>
       <div class="panel">
@@ -576,7 +576,7 @@ function renderCharts(){
     return {lab:b+'º Bimestre', vals:[bi,bu,sa]};
   });
   el('chartBim').innerHTML=groupBars(grupos,
-    [{nome:'Bilhete',cor:COR.green},{nome:'Busca ativa',cor:COR.navy},{nome:'Encaminhamento SAE',cor:COR.gold}], {h:220});
+    [{nome:'Bilhete',cor:COR.green},{nome:'Ligações',cor:COR.navy},{nome:'Encaminhamento SAE',cor:COR.gold}], {h:220});
 
   var base = S.data.ini.filter(function(r){ return S.ano==='Todas'||LBL[r.sheet]===S.ano; });
   var turmas={}; base.forEach(function(r){ var t=r.turma; turmas[t]=turmas[t]||{n:0,ac:0}; turmas[t].n++; if(vAlcancado(r))turmas[t].ac++; });
@@ -659,9 +659,8 @@ function renderSae(){
   if(q) g=g.filter(function(r){return r.nome.toLowerCase().indexOf(q)>=0 || r.turma.toLowerCase().indexOf(q)>=0;});
   g.sort(function(a,b){ return cmpTurma(a.turma,b.turma) || U.up(a.nome).localeCompare(U.up(b.nome)); });
 
-  var total=0, comRet=0;
+  var total=0, comRet=0, robertaCount=0;
   
-  // Contadores para o novo detalhamento
   var mcTrat = {
       'Neuropediatra / Neuropsicólogo': 0,
       'Assistente Social': 0,
@@ -685,13 +684,19 @@ function renderSae(){
           total++; 
           if(vRet(r)>0) comRet++; 
       }
+      
+      if (r.RECLASS && /roberta/i.test(String(r.RECLASS))) robertaCount++;
+      
       var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
       bims.forEach(function(b){
+          [r[b+'B_SAE'], r[b+'B_RET'], r[b+'B_BUS'], r[b+'B_DEV'], r[b+'B_BIL']].forEach(function(txt) {
+              if (txt && /roberta/i.test(String(txt))) robertaCount++;
+          });
+          
           var txt = String(r[b+'B_RET']||'').trim();
           if(temAcao(txt) && txt.toLowerCase() !== 'sim') { 
               var tLow = txt.toLowerCase();
               
-              // Preenche a lista de "Situações Mencionadas" (Esquerda)
               if(/neuro/i.test(tLow)) mcTrat['Neuropediatra / Neuropsicólogo']++;
               if(/assistente social/i.test(tLow)) mcTrat['Assistente Social']++;
               if(/psic[óo]log/i.test(tLow)) mcTrat['Atendimento Psicológico']++;
@@ -699,7 +704,6 @@ function renderSae(){
               if(/m[eé]dic|pediatra|tratamento|sa[úu]de|imunidad/i.test(tLow)) mcTrat['Acompanhamento Médico / Tratamento']++;
               if(/\baee\b|aee\/ada/i.test(tLow)) mcTrat['Avaliação AEE / ADA']++;
 
-              // Preenche o gráfico (Direita)
               if(/psic[óo]log/i.test(tLow)) mcAcoes['Atend. Psicológico']++;
               if(/neuro|psiquiatr/i.test(tLow)) mcAcoes['Neuro / Psiquiatria']++;
               if(/conselho tutelar|medida protetiva/i.test(tLow)) mcAcoes['Conselho / Proteção']++;
@@ -715,14 +719,13 @@ function renderSae(){
       '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Encaminhados à SAE</div><div class="v gold">'+total+'</div></div>' +
       '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Com Retorno</div><div class="v green">'+comRet+'</div></div>' +
       '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Aguardando Retorno</div><div class="v alert">'+(total-comRet)+'</div></div>' +
+      '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Ação da Vice-Direção</div><div class="v" style="color:var(--navy-3)">'+robertaCount+'<span class="sub" style="margin-left:6px">Roberta</span></div></div>' +
     '</div>';
     
-  // Renderiza a lista de texto
   var arrTrat = Object.keys(mcTrat).filter(k => mcTrat[k] > 0).sort((a,b) => mcTrat[b]-mcTrat[a]);
   var htmlTrat = arrTrat.map(k => `<li class="aitem" style="padding:10px 0"><div class="aname" style="font-size:13px">${k}</div><span class="acount neutro">${mcTrat[k]} caso(s)</span></li>`).join('');
   el('listSaeTratativas').innerHTML = htmlTrat || '<p class="note">Nenhuma tratativa ou situação específica identificada nos textos.</p>';
 
-  // Renderiza o gráfico
   var actSae=Object.keys(mcAcoes).map(function(k){return {lab:k,val:mcAcoes[k]};}).filter(function(a){return a.val>0;}).sort(function(a,b){return b.val-a.val;});
   el('chartSaeDetalhe').innerHTML= actSae.length? barsH(actSae,{w:480,x0:160, cor:'#57C08A'}) : '<p class="note">Nenhum encaminhamento de saúde listado nos textos.</p>';
 
@@ -873,7 +876,6 @@ window.abrirAluno = function(chave) {
     el('detNome').textContent = U.cap(r.nome);
     el('detTurma').textContent = r.turma + (r.transf ? ' — TRANSFERIDO' : '');
     
-    // Sempre mostra o resumo global do aluno (o ano todo) no cabeçalho do dossiê
     el('detFaltas').textContent = 'Total de Faltas: ' + r.faltasTot;
     el('detInj').textContent = 'Injustificadas: ' + r.injTot;
     el('detAtest').textContent = 'Atestados: ' + r.atestTot;
@@ -884,7 +886,7 @@ window.abrirAluno = function(chave) {
         var bus = r[b+'B_BUS'], dev = r[b+'B_DEV'], sae = r[b+'B_SAE'], ret = r[b+'B_RET'], bil = r[b+'B_BIL'];
         
         var acts = [];
-        if (temAcao(bus)) acts.push('<b>Busca Ativa:</b> ' + esc(bus));
+        if (temAcao(bus)) acts.push('<b>Busca Ativa (Ligação):</b> ' + esc(bus));
         if (temAcao(bil)) {
             var dts = U.datesIn(bil).map(function(d){ return String(d[1]).padStart(2,'0')+'/'+MES[d[0]-1]; }).join(', ');
             acts.push('<b>Bilhete enviado:</b> ' + esc(bil) + (dts ? ' <i>(' + dts + ')</i>' : ''));
@@ -910,7 +912,6 @@ window.abrirAluno = function(chave) {
         }
     });
     
-    // Mostra reclassificação e anotações extras da planilha, se existirem
     if (temAcao(r.RECLASS)) {
          hist.push(`<div style="padding:14px; border:1px dashed var(--gold); border-radius:6px; background:#fffdf5">
                 <h4 style="font-size:13px; margin-bottom:6px; color:var(--gold)">Anotações Gerais / Reclassificação</h4>
@@ -969,7 +970,6 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-af]'),function(b){
 
 el('selTurma2').addEventListener('change',function(){ S.turma=this.value; if(el('selTurma'))el('selTurma').value=S.turma; renderAll(); });
 
-// Delegação de eventos na tabela (para ordenação e clique no nome do aluno)
 el('tabela').addEventListener('click',function(ev){
   var link = ev.target.closest('.aluno-link');
   if (link) {
@@ -982,7 +982,6 @@ el('tabela').addEventListener('click',function(ev){
   renderTabela();
 });
 
-// Delegação para abrir alunos pela tabela da SAE também
 el('tbodySae').addEventListener('click',function(ev){
   var link = ev.target.closest('.aluno-link');
   if (link) {
