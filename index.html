@@ -101,10 +101,6 @@ tbody tr:nth-child(even){background:#F6F9FC}
 tbody tr:hover td{background:var(--paper-2)}
 .pill{display:inline-flex;align-items:center;gap:4px;font-size:11px}
 .pill.g{color:var(--green)} .pill.r{color:var(--alert)}
-tr.filtros-col td{position:sticky;top:34px;background:#F1F5FA;padding:4px 6px;border-bottom:1px solid var(--line-2)}
-.colf{width:100%;min-width:52px;border:1px solid var(--line);border-radius:4px;padding:3px 6px;font-size:11px;font-family:'IBM Plex Sans';background:#fff;color:var(--navy)}
-.colf.num{text-align:right}
-select.colf{cursor:pointer}
 
 .loadscreen,.errscreen{max-width:560px;margin:80px auto;text-align:center;color:var(--soft)}
 .errscreen h2{color:var(--navy);font-size:22px;margin-bottom:8px}
@@ -148,8 +144,8 @@ select.colf{cursor:pointer}
   .kpi .l{font-size:9px}
   table{font-size:11.5px}
   th,td{padding:6px 5px}
+  /* Esconde atestados e devolutiva no celular pra focar no essencial */
   #tabela th:nth-child(4),#tabela td:nth-child(4){display:none} 
-  #tabela th:nth-child(6),#tabela td:nth-child(6){display:none} 
   #tabela th:nth-child(7),#tabela td:nth-child(7){display:none} 
   .twrap{max-height:60vh}
   .controls{gap:6px}
@@ -328,6 +324,13 @@ function temAcao(v) {
   var t = String(v||'').trim().toLowerCase();
   return (t && t !== '-' && t !== 'não' && t !== 'nao' && t !== 'falso');
 }
+
+// Rigoroso: para SAE só conta se iniciar com 'sim'
+function isSimStrict(v) {
+  var t = String(v||'').trim().toLowerCase();
+  return t.indexOf('sim') === 0;
+}
+
 function vBusca(r){ 
   var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
   var count = 0;
@@ -337,7 +340,7 @@ function vBusca(r){
 function vSae(r){ 
   var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
   var count = 0;
-  bims.forEach(function(b){ if(temAcao(r[b+'B_SAE'])) count++; });
+  bims.forEach(function(b){ if(isSimStrict(r[b+'B_SAE'])) count++; });
   return count;
 }
 function vRet(r){ 
@@ -397,7 +400,7 @@ function build(payload){
     (r.devolutivas||[]).forEach(function(d){
       relatos.push({ rec:r, nome:r.nome, turma:r.turma, ano:r.sheet, bim:d.bim,
         texto:d.texto, motivo:window.BuscaAtiva.classifyMotivo(d.texto),
-        resolvido: temAcao(r[d.bim+'B_SAE']) });
+        resolvido: isSimStrict(r[d.bim+'B_SAE']) });
     });
   });
   return { all:all, ini:ini, relatos:relatos, geradoEm:payload.geradoEm, planilha:payload.planilha };
@@ -408,7 +411,7 @@ function bimestresComDados(){
   [1,2,3,4].forEach(function(b){
     var tem = S.data.ini.some(function(r){
       return (r[b+'B_f']||0)>0 || (r[b+'B_i']||0)>0 || (r[b+'B_a']||0)>0 ||
-             temAcao(r[b+'B_BUS']) || temAcao(r[b+'B_SAE']) || temAcao(r[b+'B_RET']) ||
+             temAcao(r[b+'B_BUS']) || isSimStrict(r[b+'B_SAE']) || temAcao(r[b+'B_RET']) ||
              temAcao(r[b+'B_BIL']) || ((r[b+'B_DEV']||'').length>3);
     });
     if(tem) res.push(b);
@@ -508,7 +511,7 @@ function renderCharts(){
     g.forEach(function(r){ 
       if(temAcao(r[b+'B_BIL'])) bi++; 
       if(temAcao(r[b+'B_BUS'])||(r[b+'B_DEV']&&r[b+'B_DEV'].length>3)) bu++; 
-      if(temAcao(r[b+'B_SAE'])) sa++; 
+      if(isSimStrict(r[b+'B_SAE'])) sa++; 
     });
     return {lab:b+'º Bimestre', vals:[bi,bu,sa]};
   });
@@ -526,9 +529,7 @@ function renderCharts(){
   var mc={}; 
   selComentarios().forEach(function(c){ 
     var m = c.motivo;
-    if (m === 'Outro / não classificado') {
-        m = 'Sem retorno / não localizado';
-    }
+    if (m === 'Outro / não classificado') m = 'Sem retorno / não localizado';
     mc[m] = (mc[m]||0)+1; 
   });
   var mot=Object.keys(mc).map(function(k){return {lab:k,val:mc[k]};}).sort(function(a,b){return b.val-a.val;}).slice(0,8);
@@ -597,13 +598,9 @@ function renderAlertas(){
     .sort(function(a,b){return vInj(b)-vInj(a);}).slice(0,8);
   el('alertas').innerHTML = g.length? g.map(function(r){
     var trat = [];
-    var qtBil = vBilhete(r);
-    if(qtBil>0) trat.push(qtBil+' bilhete(s)');
-    var qtSae = vSae(r);
-    if(qtSae>0) trat.push(qtSae+' vez(es) na SAE');
-    var qtBusca = vBusca(r);
-    if(qtBusca>0) trat.push(qtBusca+' busca(s)');
-    
+    var qtBil = vBilhete(r); if(qtBil>0) trat.push(qtBil+' bilhete(s)');
+    var qtSae = vSae(r); if(qtSae>0) trat.push(qtSae+' vez(es) na SAE');
+    var qtBusca = vBusca(r); if(qtBusca>0) trat.push(qtBusca+' busca(s)');
     var desc = trat.length ? trat.join(' · ') : 'Sem contato registrado';
 
     return '<li class="aitem" style="display:block; padding:10px 0;">'+
@@ -643,6 +640,7 @@ function renderTabela(){
   else if(S.alFiltro==='bilhete') g=g.filter(function(r){return vBilhete(r)>0;});
   var q=S.alBusca.toLowerCase();
   if(q) g=g.filter(function(r){return r.nome.toLowerCase().indexOf(q)>=0;});
+  
   var oc=S.ordCol, dir=S.ordDir;
   g.sort(function(a,b){
     var x,y;
@@ -650,31 +648,51 @@ function renderTabela(){
     if(oc==='turma'){ return cmpTurma(a.turma,b.turma)*dir; }
     if(oc==='faltas'){ x=vFaltas(a); y=vFaltas(b); }
     else if(oc==='atest'){ x=vAtest(a); y=vAtest(b); }
-    else if(oc==='bilhete'){ x=vBilhete(a)?1:0; y=vBilhete(b)?1:0; }
     else { x=vInj(a); y=vInj(b); }
     return (x-y)*dir;
   });
+  
   function arrow(c){ return S.ordCol===c ? (S.ordDir<0?' ▼':' ▲') : ''; }
+  
+  // Novos cabeçalhos unificados
   var head='<thead><tr>'+
       '<th data-sort="nome" style="cursor:pointer">Nome'+arrow('nome')+'</th>'+
       '<th data-sort="turma" style="cursor:pointer">Turma'+arrow('turma')+'</th>'+
       '<th class="num" data-sort="faltas" style="cursor:pointer">Faltas'+arrow('faltas')+'</th>'+
       '<th class="num" data-sort="atest" style="cursor:pointer">Atest.'+arrow('atest')+'</th>'+
       '<th class="num" data-sort="inj" style="cursor:pointer">Injust.'+arrow('inj')+'</th>'+
-      '<th data-sort="bilhete" style="cursor:pointer">Bilhete'+arrow('bilhete')+'</th>'+
-      '<th>SAE</th><th>Status</th>'+
+      '<th>Tratativas</th>'+
+      '<th style="text-align:center">Devol.</th>'+
+      '<th>Status</th>'+
     '</tr></thead>';
+    
   el('tabela').innerHTML=head+'<tbody id="tbody"></tbody>'+
     (g.length>300?'<tbody><tr><td colspan="8" class="note">Mostrando 300 de '+g.length+'. Refine a busca.</td></tr></tbody>':'');
   el('tabCount').textContent=g.length+' alunos';
   var tb=el('tbody');
+  
   g.slice(0,300).forEach(function(r){
-    var sae = vSae(r)>0 ? (vRet(r)>0?'retorno':'aguard.') : '—';
-    var st = vAlcancado(r) ? '<span class="pill g">✓ acompanhado</span>' : '<span class="pill r">sem contato</span>';
+    // Tratativas unificadas
+    var trat = [];
+    if (vBilhete(r) > 0) trat.push('Bilhete');
+    if (vSae(r) > 0) trat.push('SAE');
+    if (vBusca(r) > 0) trat.push('Ligação');
+    var txtTrat = trat.length ? trat.join(', ') : '—';
+
+    // Checagem se existe devolutiva
+    var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
+    var temDev = false;
+    bims.forEach(function(b){ if((r[b+'B_DEV']||'').length>3) temDev = true; });
+    var iconDev = temDev 
+      ? '<span style="color:var(--green);font-size:14px;font-weight:bold" title="Família respondeu">✔</span>' 
+      : '<span style="color:var(--line-2);font-size:14px;font-weight:bold" title="Sem retorno familiar">✖</span>';
+
+    var st = vAlcancado(r) ? '<span class="pill g">✓ acomp.</span>' : '<span class="pill r">sem contato</span>';
+    
     var tr=document.createElement('tr');
     tr.innerHTML='<td>'+esc(U.cap(r.nome))+'</td><td class="mono">'+esc(r.turma)+'</td>'+
       '<td class="num">'+n(vFaltas(r))+'</td><td class="num">'+n(vAtest(r))+'</td><td class="num">'+n(vInj(r))+'</td>'+
-      '<td>'+(vBilhete(r)>0?'sim':'—')+'</td><td>'+sae+'</td><td>'+st+'</td>';
+      '<td>'+txtTrat+'</td><td style="text-align:center">'+iconDev+'</td><td>'+st+'</td>';
     tb.appendChild(tr);
   });
 }
@@ -740,8 +758,22 @@ function renderBilhetes(q){
   q=(q||'').toLowerCase();
   var g=(el('bilhModal')._all||[]).filter(function(r){ return !q || r.nome.toLowerCase().indexOf(q)>=0 || String(r.turma).toLowerCase().indexOf(q)>=0; });
   el('bilhList').innerHTML = g.length? g.map(function(r){
-    var ds=U.datesIn(r.RECLASS).map(function(d){return String(d[1]).padStart(2,'0')+'/'+MES[d[0]-1];});
-    var data = ds.length? ds.join(', ') : '<span style="color:var(--soft)">sem data anotada</span>';
+    var allDates = [];
+    var bims = [1,2,3,4];
+    
+    // Procura datas anotadas na coluna Reclassificação (histórico antigo) e nas colunas de Bilhete de todos os bimestres
+    U.datesIn(r.RECLASS).forEach(function(d){ allDates.push(d); });
+    bims.forEach(function(b){
+       U.datesIn(r[b+'B_BIL']).forEach(function(d){ allDates.push(d); });
+    });
+    
+    var strDates = [];
+    allDates.forEach(function(d){
+        var s = String(d[1]).padStart(2,'0')+'/'+MES[d[0]-1];
+        if(strDates.indexOf(s)<0) strDates.push(s);
+    });
+    
+    var data = strDates.length? strDates.join(', ') : '<span style="color:var(--soft)">sem data anotada</span>';
     return '<div class="logitem"><div class="loghead"><span class="logname">'+esc(U.cap(r.nome))+' <span class="logmeta">'+esc(r.turma)+'</span></span><span class="logmeta">'+data+'</span></div></div>';
   }).join('') : '<p class="note">Nenhum bilhete nesta seleção.</p>';
 }
