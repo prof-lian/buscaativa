@@ -67,11 +67,12 @@ svg{display:block;max-width:100%;height:auto}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--soft);margin-top:8px}
 .legend i{width:11px;height:11px;display:inline-block;margin-right:6px;vertical-align:-1px;border-radius:2px}
 
-.alist{list-style:none}
+.alist{list-style:none; padding:0; margin:0}
 .aitem{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
 .aitem:last-child{border:none}
-.aname{font-weight:500} .aturma{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--soft)}
+.aname{font-weight:500; color:var(--navy)} .aturma{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--soft)}
 .acount{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--alert);font-weight:500}
+.acount.neutro{color:var(--soft)}
 
 .controls{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
 .search{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:var(--paper);flex:1;min-width:170px}
@@ -102,7 +103,9 @@ tbody tr:hover td{background:var(--paper-2)}
 .pill{display:inline-flex;align-items:center;gap:4px;font-size:11px}
 .pill.g{color:var(--green)} .pill.r{color:var(--alert)}
 
-/* Estilos para textos expansíveis (SAE) */
+.aluno-link{color:var(--navy-3); font-weight:600; cursor:pointer; text-decoration:none; display:inline-block;}
+.aluno-link:hover{text-decoration:underline;}
+
 .sae-text { font-size:12.5px; color:var(--navy); line-height:1.5; }
 .sae-text.short { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
 .sae-toggle { background:none; border:none; color:var(--navy-3); font-size:11.5px; font-weight:600; cursor:pointer; padding:0; margin-top:6px; font-family:'IBM Plex Sans'; text-decoration:underline; }
@@ -114,7 +117,7 @@ tbody tr:hover td{background:var(--paper-2)}
 .foot{border-top:1px solid var(--line);margin-top:30px;padding-top:16px;font-size:11.5px;color:var(--soft)}
 
 .modal{position:fixed;inset:0;background:rgba(11,37,69,.55);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px}
-.modal .card{background:#fff;border-radius:10px;padding:26px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal .card{background:#fff;border-radius:10px;padding:26px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3); max-height:90vh; overflow-y:auto;}
 .modal h3{font-size:20px;margin-bottom:6px}
 .modal p{font-size:13px;color:var(--soft);margin-bottom:16px}
 .modal input{width:100%;border:1px solid var(--line);border-radius:6px;padding:9px 11px;font-size:14px;margin-bottom:10px;font-family:'IBM Plex Sans'}
@@ -267,7 +270,7 @@ tbody tr:hover td{background:var(--paper-2)}
 
     <div class="panel wide">
       <h2>Lista de alunos</h2>
-      <p class="note"><span id="lblLista"></span> — clique nos títulos das colunas para ordenar.</p>
+      <p class="note"><span id="lblLista"></span> — clique no nome do aluno para abrir o dossiê detalhado com todo o histórico.</p>
       <div class="controls">
         <div class="search">🔎<input id="alSearch" placeholder="Buscar aluno…"></div>
         <select class="turma" id="selTurma2" style="background:#fff;color:var(--navy);border-color:var(--line)"></select>
@@ -282,7 +285,6 @@ tbody tr:hover td{background:var(--paper-2)}
       <div class="twrap"><table id="tabela"></table></div>
     </div>
     
-    <!-- Novo Relatório SAE Movido para o final -->
     <div class="panel wide">
       <h2>Relatório SAE — Encaminhamentos e Retornos</h2>
       <p class="note">Detalhamento dos alunos encaminhados à rede de proteção (SAE), status das respostas e detalhamento de saúde/proteção baseados nos laudos.</p>
@@ -291,8 +293,8 @@ tbody tr:hover td{background:var(--paper-2)}
       
       <div class="grid" style="margin-bottom:26px; padding-bottom:24px; border-bottom:1px solid var(--line)">
         <div>
-          <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Motivos identificados nos retornos</h3>
-          <div id="chartSae"></div>
+          <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Situações Específicas Mencionadas</h3>
+          <ul class="alist" id="listSaeTratativas" style="padding-right:20px"></ul>
         </div>
         <div>
           <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Detalhamento: Saúde e Rede de Proteção</h3>
@@ -320,12 +322,34 @@ tbody tr:hover td{background:var(--paper-2)}
 </div>
 
 <div class="modal hidden" id="bilhModal">
-  <div class="card" style="max-width:560px">
+  <div class="card">
     <h3>Bilhetes enviados</h3>
     <p id="bilhSub"></p>
     <div class="controls"><div class="search">🔎<input id="bilhSearch" placeholder="Buscar aluno ou turma…"></div>
       <button class="btn" id="bilhPrint">Imprimir</button><button class="b2" id="bilhClose">Fechar</button></div>
     <div class="log" id="bilhList" style="max-height:52vh"></div>
+  </div>
+</div>
+
+<!-- Modal Dossiê do Aluno -->
+<div class="modal hidden" id="alunoModal">
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+       <div>
+          <h3 id="detNome" style="margin-bottom:2px; color:var(--navy)">Nome do Aluno</h3>
+          <div class="mono" id="detTurma" style="color:var(--soft); font-size:12px;">Turma</div>
+       </div>
+       <button class="b2" id="detClose" style="padding:6px 12px; font-size:12px; margin-left:12px">Fechar</button>
+    </div>
+    
+    <div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap">
+       <span class="tag" id="detFaltas">Faltas: 0</span>
+       <span class="tag rev" id="detInj">Injust: 0</span>
+       <span class="tag ok" id="detAtest">Atest: 0</span>
+    </div>
+    
+    <h4 style="font-size:14px; margin-bottom:12px; color:var(--navy); font-family:'IBM Plex Sans'">Histórico de Contatos e Devolutivas</h4>
+    <div id="detHist" style="display:flex; flex-direction:column; gap:12px;"></div>
   </div>
 </div>
 
@@ -636,7 +660,17 @@ function renderSae(){
   g.sort(function(a,b){ return cmpTurma(a.turma,b.turma) || U.up(a.nome).localeCompare(U.up(b.nome)); });
 
   var total=0, comRet=0;
-  var mcSae = {};
+  
+  // Contadores para o novo detalhamento
+  var mcTrat = {
+      'Neuropediatra / Neuropsicólogo': 0,
+      'Assistente Social': 0,
+      'Atendimento Psicológico': 0,
+      'Conselho Tutelar / Medida Protetiva': 0,
+      'Acompanhamento Médico / Tratamento': 0,
+      'Avaliação AEE / ADA': 0
+  };
+  
   var mcAcoes = {
       'Atend. Psicológico': 0,
       'Neuro / Psiquiatria': 0,
@@ -655,12 +689,18 @@ function renderSae(){
       bims.forEach(function(b){
           var txt = String(r[b+'B_RET']||'').trim();
           if(temAcao(txt) && txt.toLowerCase() !== 'sim') { 
-              var m = window.BuscaAtiva.classifyMotivo(txt);
-              if (m === 'Outro / não classificado') m = 'Orientação / Situação monitorada';
-              mcSae[m] = (mcSae[m]||0)+1;
-              
               var tLow = txt.toLowerCase();
-              if(/psicol/i.test(tLow)) mcAcoes['Atend. Psicológico']++;
+              
+              // Preenche a lista de "Situações Mencionadas" (Esquerda)
+              if(/neuro/i.test(tLow)) mcTrat['Neuropediatra / Neuropsicólogo']++;
+              if(/assistente social/i.test(tLow)) mcTrat['Assistente Social']++;
+              if(/psic[óo]log/i.test(tLow)) mcTrat['Atendimento Psicológico']++;
+              if(/conselho tutelar|medida protetiva/i.test(tLow)) mcTrat['Conselho Tutelar / Medida Protetiva']++;
+              if(/m[eé]dic|pediatra|tratamento|sa[úu]de|imunidad/i.test(tLow)) mcTrat['Acompanhamento Médico / Tratamento']++;
+              if(/\baee\b|aee\/ada/i.test(tLow)) mcTrat['Avaliação AEE / ADA']++;
+
+              // Preenche o gráfico (Direita)
+              if(/psic[óo]log/i.test(tLow)) mcAcoes['Atend. Psicológico']++;
               if(/neuro|psiquiatr/i.test(tLow)) mcAcoes['Neuro / Psiquiatria']++;
               if(/conselho tutelar|medida protetiva/i.test(tLow)) mcAcoes['Conselho / Proteção']++;
               if(/m[eé]dic|pediatra|tratamento|sa[úu]de|imunidad/i.test(tLow)) mcAcoes['Tratamento / Médico']++;
@@ -677,11 +717,14 @@ function renderSae(){
       '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Aguardando Retorno</div><div class="v alert">'+(total-comRet)+'</div></div>' +
     '</div>';
     
-  var motSae=Object.keys(mcSae).map(function(k){return {lab:k,val:mcSae[k]};}).sort(function(a,b){return b.val-a.val;}).slice(0,8);
-  var actSae=Object.keys(mcAcoes).map(function(k){return {lab:k,val:mcAcoes[k]};}).filter(function(a){return a.val>0;}).sort(function(a,b){return b.val-a.val;});
+  // Renderiza a lista de texto
+  var arrTrat = Object.keys(mcTrat).filter(k => mcTrat[k] > 0).sort((a,b) => mcTrat[b]-mcTrat[a]);
+  var htmlTrat = arrTrat.map(k => `<li class="aitem" style="padding:10px 0"><div class="aname" style="font-size:13px">${k}</div><span class="acount neutro">${mcTrat[k]} caso(s)</span></li>`).join('');
+  el('listSaeTratativas').innerHTML = htmlTrat || '<p class="note">Nenhuma tratativa ou situação específica identificada nos textos.</p>';
 
-  el('chartSae').innerHTML= motSae.length? barsH(motSae,{w:480,x0:200}) : '<p class="note">Nenhum retorno base registrado.</p>';
-  el('chartSaeDetalhe').innerHTML= actSae.length? barsH(actSae,{w:480,x0:180, cor:'#57C08A'}) : '<p class="note">Nenhum encaminhamento de saúde listado nos textos.</p>';
+  // Renderiza o gráfico
+  var actSae=Object.keys(mcAcoes).map(function(k){return {lab:k,val:mcAcoes[k]};}).filter(function(a){return a.val>0;}).sort(function(a,b){return b.val-a.val;});
+  el('chartSaeDetalhe').innerHTML= actSae.length? barsH(actSae,{w:480,x0:160, cor:'#57C08A'}) : '<p class="note">Nenhum encaminhamento de saúde listado nos textos.</p>';
 
   el('saeCount').textContent = g.length + ' alunos na SAE';
   var tb=el('tbodySae'); tb.innerHTML='';
@@ -708,7 +751,7 @@ function renderSae(){
       }
       
       var tr=document.createElement('tr');
-      tr.innerHTML='<td><div style="font-weight:500; font-size:13px">'+esc(U.cap(r.nome))+'</div></td><td class="mono" style="text-align:center">'+esc(r.turma)+'</td>'+
+      tr.innerHTML='<td><a class="aluno-link" data-chave="'+esc(r.nomeChave)+'">'+esc(U.cap(r.nome))+'</a></td><td class="mono" style="text-align:center">'+esc(r.turma)+'</td>'+
                    '<td class="num">'+n(vInj(r))+'</td><td style="padding:10px 8px">'+statusSae+'</td>';
       tb.appendChild(tr);
   });
@@ -815,12 +858,71 @@ function renderTabela(){
     }
 
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+esc(U.cap(r.nome))+'</td><td class="mono" style="text-align:center">'+esc(r.turma)+'</td>'+
+    tr.innerHTML='<td><a class="aluno-link" data-chave="'+esc(r.nomeChave)+'">'+esc(U.cap(r.nome))+'</a></td><td class="mono" style="text-align:center">'+esc(r.turma)+'</td>'+
       '<td class="num">'+n(vFaltas(r))+'</td><td class="num">'+n(vAtest(r))+'</td><td class="num">'+n(vInj(r))+'</td>'+
       '<td>'+txtTrat+'</td><td style="text-align:center">'+iconDev+'</td>';
     tb.appendChild(tr);
   });
 }
+
+// Abertura do Dossiê do Aluno
+window.abrirAluno = function(chave) {
+    var r = S.data.ini.find(function(x) { return x.nomeChave === chave; });
+    if(!r) return;
+    
+    el('detNome').textContent = U.cap(r.nome);
+    el('detTurma').textContent = r.turma + (r.transf ? ' — TRANSFERIDO' : '');
+    
+    // Sempre mostra o resumo global do aluno (o ano todo) no cabeçalho do dossiê
+    el('detFaltas').textContent = 'Total de Faltas: ' + r.faltasTot;
+    el('detInj').textContent = 'Injustificadas: ' + r.injTot;
+    el('detAtest').textContent = 'Atestados: ' + r.atestTot;
+
+    var hist = [];
+    [1,2,3,4].forEach(function(b){
+        var f = r[b+'B_f']||0, i = r[b+'B_i']||0, a = r[b+'B_a']||0;
+        var bus = r[b+'B_BUS'], dev = r[b+'B_DEV'], sae = r[b+'B_SAE'], ret = r[b+'B_RET'], bil = r[b+'B_BIL'];
+        
+        var acts = [];
+        if (temAcao(bus)) acts.push('<b>Busca Ativa:</b> ' + esc(bus));
+        if (temAcao(bil)) {
+            var dts = U.datesIn(bil).map(function(d){ return String(d[1]).padStart(2,'0')+'/'+MES[d[0]-1]; }).join(', ');
+            acts.push('<b>Bilhete enviado:</b> ' + esc(bil) + (dts ? ' <i>(' + dts + ')</i>' : ''));
+        }
+        if (temAcao(sae)) acts.push('<b>Encaminhado à SAE:</b> ' + esc(sae));
+        if (temAcao(ret)) acts.push('<b>Retorno da SAE:</b> ' + esc(ret));
+        if ((dev||'').length > 3) acts.push('<b>Devolutiva da Família:</b><br><span style="color:var(--soft); display:inline-block; margin-top:4px">' + esc(dev) + '</span>');
+        
+        if(f > 0 || acts.length > 0) {
+            var content = `<div style="margin-bottom:8px; font-size:12.5px; color:var(--soft)">Faltas registradas: <b style="color:var(--navy)">${f}</b> (Atestados: ${a} | Injustificadas: ${i})</div>`;
+            if (acts.length > 0) {
+                content += '<ul style="margin-left:18px; font-size:13px; color:var(--navy); padding-left:0">';
+                acts.forEach(function(act){ content += '<li style="margin-bottom:6px">' + act + '</li>'; });
+                content += '</ul>';
+            } else {
+                content += '<div style="font-size:12px; color:var(--alert); font-style:italic">Nenhuma tratativa ou justificativa registrada neste bimestre.</div>';
+            }
+            
+            hist.push(`<div style="padding:14px; border:1px solid var(--line); border-radius:6px; background:#fff">
+                <h4 style="font-size:13.5px; margin-bottom:10px; border-bottom:1px solid var(--line); padding-bottom:6px; color:var(--navy-2)">${b}º Bimestre</h4>
+                ${content}
+            </div>`);
+        }
+    });
+    
+    // Mostra reclassificação e anotações extras da planilha, se existirem
+    if (temAcao(r.RECLASS)) {
+         hist.push(`<div style="padding:14px; border:1px dashed var(--gold); border-radius:6px; background:#fffdf5">
+                <h4 style="font-size:13px; margin-bottom:6px; color:var(--gold)">Anotações Gerais / Reclassificação</h4>
+                <div style="font-size:13px; color:var(--navy)">${esc(r.RECLASS)}</div>
+            </div>`);
+    }
+
+    el('detHist').innerHTML = hist.length ? hist.join('') : '<p class="note">Nenhum histórico disponível para este aluno.</p>';
+    el('alunoModal').classList.remove('hidden');
+};
+
+el('detClose').addEventListener('click', function(){ el('alunoModal').classList.add('hidden'); });
 
 function initSelectors(){
   var anos=['Todas','1º ano','2º ano','3º ano','4º ano','5º ano'];
@@ -867,11 +969,25 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-af]'),function(b){
 
 el('selTurma2').addEventListener('change',function(){ S.turma=this.value; if(el('selTurma'))el('selTurma').value=S.turma; renderAll(); });
 
+// Delegação de eventos na tabela (para ordenação e clique no nome do aluno)
 el('tabela').addEventListener('click',function(ev){
+  var link = ev.target.closest('.aluno-link');
+  if (link) {
+      window.abrirAluno(link.getAttribute('data-chave'));
+      return;
+  }
   var th=ev.target.closest && ev.target.closest('th[data-sort]'); if(!th) return;
   var c=th.getAttribute('data-sort');
   if(S.ordCol===c) S.ordDir=-S.ordDir; else { S.ordCol=c; S.ordDir=(c==='nome'||c==='turma')?1:-1; }
   renderTabela();
+});
+
+// Delegação para abrir alunos pela tabela da SAE também
+el('tbodySae').addEventListener('click',function(ev){
+  var link = ev.target.closest('.aluno-link');
+  if (link) {
+      window.abrirAluno(link.getAttribute('data-chave'));
+  }
 });
 
 function abrirBilhetes(){
