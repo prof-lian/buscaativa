@@ -149,7 +149,6 @@ tbody tr:hover td{background:var(--paper-2)}
   .kpi .l{font-size:9px}
   table{font-size:11.5px}
   th,td{padding:6px 5px}
-  /* Oculta colunas menos importantes no celular */
   #tabela th:nth-child(4),#tabela td:nth-child(4){display:none} 
   #tabela th:nth-child(6),#tabela td:nth-child(6){display:none} 
   #tabela th:nth-child(7),#tabela td:nth-child(7){display:none} 
@@ -283,15 +282,22 @@ tbody tr:hover td{background:var(--paper-2)}
       <div class="twrap"><table id="tabela"></table></div>
     </div>
     
+    <!-- Novo Relatório SAE Movido para o final -->
     <div class="panel wide">
       <h2>Relatório SAE — Encaminhamentos e Retornos</h2>
-      <p class="note">Detalhamento dos alunos encaminhados à rede de proteção (SAE), status das respostas e categorias dos retornos.</p>
+      <p class="note">Detalhamento dos alunos encaminhados à rede de proteção (SAE), status das respostas e detalhamento de saúde/proteção baseados nos laudos.</p>
       
       <div id="kpiSae" style="margin-bottom:20px;"></div>
       
-      <div style="margin-bottom:26px; padding-bottom:24px; border-bottom:1px solid var(--line)">
-        <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Motivos identificados nos retornos da SAE</h3>
-        <div id="chartSae"></div>
+      <div class="grid" style="margin-bottom:26px; padding-bottom:24px; border-bottom:1px solid var(--line)">
+        <div>
+          <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Motivos identificados nos retornos</h3>
+          <div id="chartSae"></div>
+        </div>
+        <div>
+          <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Detalhamento: Saúde e Rede de Proteção</h3>
+          <div id="chartSaeDetalhe"></div>
+        </div>
       </div>
 
       <div class="controls">
@@ -631,6 +637,14 @@ function renderSae(){
 
   var total=0, comRet=0;
   var mcSae = {};
+  var mcAcoes = {
+      'Atend. Psicológico': 0,
+      'Neuro / Psiquiatria': 0,
+      'Conselho / Proteção': 0,
+      'Tratamento / Médico': 0,
+      'Avaliação AEE': 0,
+      'Atestado Entregue': 0
+  };
   
   selAlunos().forEach(function(r){ 
       if(vSae(r)>0){ 
@@ -644,6 +658,14 @@ function renderSae(){
               var m = window.BuscaAtiva.classifyMotivo(txt);
               if (m === 'Outro / não classificado') m = 'Orientação / Situação monitorada';
               mcSae[m] = (mcSae[m]||0)+1;
+              
+              var tLow = txt.toLowerCase();
+              if(/psicol/i.test(tLow)) mcAcoes['Atend. Psicológico']++;
+              if(/neuro|psiquiatr/i.test(tLow)) mcAcoes['Neuro / Psiquiatria']++;
+              if(/conselho tutelar|medida protetiva/i.test(tLow)) mcAcoes['Conselho / Proteção']++;
+              if(/m[eé]dic|pediatra|tratamento|sa[úu]de|imunidad/i.test(tLow)) mcAcoes['Tratamento / Médico']++;
+              if(/\baee\b|aee\/ada/i.test(tLow)) mcAcoes['Avaliação AEE']++;
+              if(/atestad/i.test(tLow)) mcAcoes['Atestado Entregue']++;
           }
       });
   });
@@ -656,7 +678,10 @@ function renderSae(){
     '</div>';
     
   var motSae=Object.keys(mcSae).map(function(k){return {lab:k,val:mcSae[k]};}).sort(function(a,b){return b.val-a.val;}).slice(0,8);
-  el('chartSae').innerHTML= motSae.length? barsH(motSae,{w:500,x0:210}) : '<p class="note">Nenhum detalhamento categorizado nesta seleção.</p>';
+  var actSae=Object.keys(mcAcoes).map(function(k){return {lab:k,val:mcAcoes[k]};}).filter(function(a){return a.val>0;}).sort(function(a,b){return b.val-a.val;});
+
+  el('chartSae').innerHTML= motSae.length? barsH(motSae,{w:480,x0:200}) : '<p class="note">Nenhum retorno base registrado.</p>';
+  el('chartSaeDetalhe').innerHTML= actSae.length? barsH(actSae,{w:480,x0:180, cor:'#57C08A'}) : '<p class="note">Nenhum encaminhamento de saúde listado nos textos.</p>';
 
   el('saeCount').textContent = g.length + ' alunos na SAE';
   var tb=el('tbodySae'); tb.innerHTML='';
@@ -672,7 +697,6 @@ function renderSae(){
       if(rets.length) {
           var fullText = rets.join('\n\n');
           var escText = esc(fullText).replace(/\n/g,'<br>');
-          // Se for muito grande, exibe uma prévia com botão "Ler tudo"
           if (fullText.length > 160) {
               statusSae = '<div><div class="sae-text short" id="sae-t-'+i+'">'+escText+'</div>' + 
                           '<button class="sae-toggle" onclick="var t=document.getElementById(\'sae-t-'+i+'\'); if(t.classList.contains(\'short\')){t.classList.remove(\'short\');this.innerText=\'Ocultar\';}else{t.classList.add(\'short\');this.innerText=\'Ler tudo\';}">Ler tudo</button></div>';
