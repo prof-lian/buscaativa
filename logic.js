@@ -105,15 +105,12 @@
           else if(/^(qt\.?\s*)?(de\s+)?faltas/.test(h)){ set(bd||'','FCOL',c3); }
         }
         if(meta.NOME==null) continue;
-        var apos=meta.NOME+1;
-        var conhecidas={}; conhecidas[meta.COD]=1; conhecidas[meta.RECLASS]=1; conhecidas[meta.ASSIN]=1; conhecidas[meta.MATRIC]=1; conhecidas[meta.SITUACAO]=1;
-        if(!conhecidas[apos]) meta.SITU2=apos;
         
         for(var r2=hr+1;r2<=end;r2++){
           var row=V[r2]; if(!row) continue;
           var nome=norm(row[meta.NOME]); if(!nome) continue;
           var rec={sheet:sheet, ano:LBL[sheet], seg:SEG[sheet], turma:turma, linha:r2+1, nome:nome, nomeChave:up(nome), cells:{}, notas:[]};
-          ['COD','RECLASS','ASSIN','MATRIC','SITUACAO','SITU2'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
+          ['COD','RECLASS','ASSIN','MATRIC','SITUACAO'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
           
           ['1B','2B','3B','4B'].forEach(function(bi){
             var cc=cols[bi]||{};
@@ -124,8 +121,6 @@
             var duplo = (cc.FBIM!=null && cc.FCOL!=null);
             var faltas = fbim!=null? fbim : fcol;
             
-            // CORREÇÃO: Se Faltas estiver vazio mas a professora preencheu Injustificadas/Atestado,
-            // o sistema deduz inteligentemente as faltas totais.
             if (faltas == null && (inj != null || ate != null)) {
                 faltas = (inj || 0) + (ate || 0);
             }
@@ -135,7 +130,6 @@
             else if(faltas!=null) injust = faltas-(ate||0);
             else injust = null;
             
-            // TRAVA LÓGICA DE FALTAS: Injustificadas nunca podem ultrapassar as Faltas
             if (injust != null && faltas != null) {
                 if (injust > faltas) {
                     faltas = injust + (ate || 0);
@@ -170,7 +164,13 @@
           rec.bilhete3=isSim(rec['3B_BIL'])||/bilhete/.test(low(rec['3B_BIL']));
           rec.bilhete4=isSim(rec['4B_BIL'])||/bilhete/.test(low(rec['4B_BIL']));
           rec.bilhete=rec.bilhete1||rec.bilhete2||rec.bilhete3||rec.bilhete4||/bilhete/.test(reclass);
-          rec.transf=/transferid|domiciliar/.test(reclass) || /transferid|domiciliar/.test(low(rec.SITUACAO||'')) || /transferid|domiciliar/.test(low(rec.SITU2||''));
+          
+          var earlyRowText = row.slice(0, 10).join(' ').toLowerCase();
+          
+          // Separação Transferido vs Domiciliar
+          rec.transf = /transferid[oa]/.test(earlyRowText);
+          rec.domiciliar = /domiciliar/.test(earlyRowText);
+
           rec.laudo=/laudo/.test(reclass);
           rec.termo=/assinad/.test(ass)||ass.indexOf('sim')===0||/assinad/.test(reclass);
           
@@ -228,6 +228,7 @@
     ['Questão familiar', /fam[ií]li|m[ãa]e|\bpai\b|av[óo]|respons[áa]vel|irm[ãa]o|separa[çc]|guarda|conselho tutelar/i],
     ['Contato realizado', /contato realizad|conversad|orientad|compareceu|reuni[ãa]o|ciente|assinou|compromisso/i]
   ];
+  
   function classifyMotivo(texto){
     for(var i=0;i<MOTIVOS.length;i++){ if(MOTIVOS[i][1].test(texto)) return MOTIVOS[i][0]; }
     return 'Outro / não classificado';
@@ -269,6 +270,7 @@
       alunosRet: cnt(function(o){return o.retAny;}),
       termos: cnt(function(o){return o.termo;}),
       transf: cnt(function(o){return o.transf;}),
+      domiciliar: cnt(function(o){return o.domiciliar;}),
       laudos: cnt(function(o){return o.laudo;}),
       alcancados: cnt(function(o){return o.alcancado;}),
       npares: pares.length,
@@ -324,7 +326,7 @@
       return {nome:cap(o.nome), turma:norm(o.turma).replace(/\s+/g,''), ano:o.ano,
         i1:o['1B_i'], i2:o['2B_i'], f1:o['1B_f'], f2:o['2B_f'],
         busca:o.buscaAny, bilhete:o.bilhete, sae:o.saeAny, termo:o.termo, ret:o.retAny,
-        transf:o.transf, laudo:o.laudo, contatos:o.contatos, qtdComentarios:o.qtdComentarios,
+        transf:o.transf, domiciliar:o.domiciliar, laudo:o.laudo, contatos:o.contatos, qtdComentarios:o.qtdComentarios,
         comentarios:o.comentarios.map(function(c){return {texto:c.texto, motivo:classifyMotivo(c.texto),
           fonte:c.fonte, celula:c.celula, autor:c.autor, data:c.data, resolvido:c.resolvido};})};
     });
