@@ -94,6 +94,7 @@
           else if(h.indexOf('reclassifica')===0) meta.RECLASS=c3;
           else if(h.indexOf('assinatura')===0) meta.ASSIN=c3;
           else if(h.indexOf('data matr')===0) meta.MATRIC=c3;
+          else if(h.indexOf('órgão')>=0 || h.indexOf('orgao')>=0 || h.indexOf('externo')>=0 || h.indexOf('acompanha')>=0){ meta.ORGAO=c3; }
           else if(h.indexOf('busca ativa')===0){ set(bimDe(bd,'BUS'),'BUS',c3); seq.BUS++; }
           else if(h.indexOf('devolutiv')===0){ set(bimDe(bd,'DEV'),'DEV',c3); seq.DEV++; }
           else if(h.indexOf('encaminhado')===0){ set(bimDe(bd,'SAE'),'SAE',c3); seq.SAE++; }
@@ -105,33 +106,46 @@
           else if(/^(qt\.?\s*)?(de\s+)?faltas/.test(h)){ set(bd||'','FCOL',c3); }
         }
         if(meta.NOME==null) continue;
+        var apos=meta.NOME+1;
+        var conhecidas={}; conhecidas[meta.COD]=1; conhecidas[meta.RECLASS]=1; conhecidas[meta.ASSIN]=1; conhecidas[meta.MATRIC]=1; conhecidas[meta.SITUACAO]=1; conhecidas[meta.ORGAO]=1;
+        if(!conhecidas[apos]) meta.SITU2=apos;
         
         for(var r2=hr+1;r2<=end;r2++){
           var row=V[r2]; if(!row) continue;
           var nome=norm(row[meta.NOME]); if(!nome) continue;
           var rec={sheet:sheet, ano:LBL[sheet], seg:SEG[sheet], turma:turma, linha:r2+1, nome:nome, nomeChave:up(nome), cells:{}, notas:[]};
           
-          ['COD','RECLASS','ASSIN','MATRIC','SITUACAO'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
+          ['COD','RECLASS','ASSIN','MATRIC','SITUACAO','ORGAO'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
           
           ['1B','2B','3B','4B'].forEach(function(bi){
             var cc=cols[bi]||{};
             var fbim = cc.FBIM!=null? num(row[cc.FBIM]) : null;
             var fcol = cc.FCOL!=null? num(row[cc.FCOL]) : null;
             var ate  = cc.ATE!=null?  num(row[cc.ATE])  : null;
-            
+            var inj  = cc.INJ!=null?  num(row[cc.INJ])  : null;
+            var duplo = (cc.FBIM!=null && cc.FCOL!=null);
             var faltas = fbim!=null? fbim : fcol;
             
-            // VERDADE MATEMÁTICA: Forçamos a conta exata para corrigir erros de digitação (Caso Helena)
-            var injustReal = 0;
-            if (faltas != null) {
-                injustReal = Math.max(0, faltas - (ate || 0));
+            // VERDADE MATEMÁTICA: Auto preenche as faltas se houver inj/atestado mas as faltas estiverem vazias
+            if (faltas == null && (inj != null || ate != null)) {
+                faltas = (inj || 0) + (ate || 0);
             }
             
-            rec[bi+'_f']=faltas; 
-            rec[bi+'_a']=ate;
-            rec[bi+'_i']=faltas != null ? injustReal : null;
-            rec[bi+'_acum']= (cc.FBIM!=null && cc.FCOL!=null)? fcol : null;
+            var injust;
+            if(inj!=null) injust = inj;
+            else if(faltas!=null) injust = faltas-(ate||0);
+            else injust = null;
             
+            // TRAVA LÓGICA DE FALTAS: Injustificadas nunca podem ultrapassar as Faltas
+            if (injust != null && faltas != null) {
+                if (injust > faltas) {
+                    faltas = injust + (ate || 0);
+                }
+            }
+            
+            rec[bi+'_f']=faltas; rec[bi+'_a']=ate;
+            rec[bi+'_i']= injust!=null? Math.max(injust,0):null;
+            rec[bi+'_acum']= duplo? fcol : null;
             rec[bi+'_BUS']= cc.BUS!=null? norm(row[cc.BUS]):'';
             rec[bi+'_SAE']= cc.SAE!=null? norm(row[cc.SAE]):'';
             rec[bi+'_RET']= cc.RET!=null? norm(row[cc.RET]):'';
@@ -159,10 +173,13 @@
           rec.bilhete4=isSim(rec['4B_BIL'])||/bilhete/.test(low(rec['4B_BIL']));
           rec.bilhete=rec.bilhete1||rec.bilhete2||rec.bilhete3||rec.bilhete4||/bilhete/.test(reclass);
           
-          // CAPTURA ESTENDIDA DE TRANSFERIDOS: Vasculha até a 20ª coluna procurando a palavra
-          var earlyRowText = row.slice(0, 20).join(' ').toLowerCase();
-          rec.transf = /transferid[oa]/.test(earlyRowText);
-          rec.domiciliar = /domiciliar/.test(earlyRowText);
+          // CAPTURA ESTENDIDA DE TRANSFERIDOS: Vasculha até as colunas de Órgão Externo, Reclassificação e Situação
+          var earlyRowText = row.slice(0, 30).join(' ').toLowerCase();
+          var isTransfGeneral = /transferid[oa]/.test(earlyRowText);
+          var isDomiciliarGeneral = /domiciliar/.test(earlyRowText);
+          
+          rec.transf = isTransfGeneral;
+          rec.domiciliar = isDomiciliarGeneral;
 
           rec.laudo=/laudo/.test(reclass);
           rec.termo=/assinad/.test(ass)||ass.indexOf('sim')===0||/assinad/.test(reclass);
@@ -173,13 +190,13 @@
               var d = rec[i+'B_DEV']; 
               var b = rec[i+'B_BUS'];
               
-              // Adiciona os textos da coluna Devolutiva
               if(d && d.length > 3) {
                   rec.devolutivas.push({bim:i, texto:d}); 
               }
               
-              // Se a professora digitou o recado na coluna de Busca Ativa por engano, nós salvamos também!
-              if(b && b.length > 15 && b.toLowerCase() !== 'busca ativa') {
+              // Remove limitação de caracteres. Qualquer anotação descritiva na coluna de "Busca Ativa" 
+              // que não seja apenas a palavra "Sim", vira Devolutiva da Família para não perder dados.
+              if(b && b.length > 5 && b.toLowerCase() !== 'busca ativa' && b.toLowerCase() !== 'sim' && b.toLowerCase() !== 'não') {
                   rec.devolutivas.push({bim:i, texto:b});
               }
           });
