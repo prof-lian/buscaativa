@@ -96,7 +96,8 @@
           else if(h.indexOf('data matr')===0) meta.MATRIC=c3;
           else if(h.indexOf('órgão')>=0 || h.indexOf('orgao')>=0 || h.indexOf('externo')>=0 || h.indexOf('acompanha')>=0){ meta.ORGAO=c3; }
           else if(h.indexOf('busca ativa')===0){ set(bimDe(bd,'BUS'),'BUS',c3); seq.BUS++; }
-          else if(h.indexOf('devolutiv')===0){ set(bimDe(bd,'DEV'),'DEV',c3); seq.DEV++; }
+          // CORREÇÃO: "decolutiv" no lugar de "devolutiv" para caçar erros de digitação humanos na planilha
+          else if(h.indexOf('devolutiv')===0 || h.indexOf('decolutiv')===0){ set(bimDe(bd,'DEV'),'DEV',c3); seq.DEV++; }
           else if(h.indexOf('encaminhado')===0){ set(bimDe(bd,'SAE'),'SAE',c3); seq.SAE++; }
           else if(h.indexOf('retorno')===0){ set(bimDe(bd,'RET'),'RET',c3); seq.RET++; }
           else if(h.indexOf('bilhete')===0){ set(bimDe(bd,'BIL'),'BIL',c3); seq.BIL++; }
@@ -194,7 +195,7 @@
                   rec.devolutivas.push({bim:i, texto:d}); 
               }
               
-              // Remove limitação de caracteres. Qualquer anotação descritiva na coluna de "Busca Ativa" 
+              // Remove limitação de 15 caracteres. Qualquer anotação descritiva na coluna de "Busca Ativa" 
               // que não seja apenas a palavra "Sim", vira Devolutiva da Família para não perder dados.
               if(b && b.length > 5 && b.toLowerCase() !== 'busca ativa' && b.toLowerCase() !== 'sim' && b.toLowerCase() !== 'não') {
                   rec.devolutivas.push({bim:i, texto:b});
