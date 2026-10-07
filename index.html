@@ -266,7 +266,7 @@ tbody tr:hover td{background:var(--paper-2)}
       <div class="legend"><span><i style="background:var(--line-2)"></i>Alunos monitorados</span><span><i style="background:var(--navy)"></i>Com acompanhamento</span></div>
     </div>
     
-    <!-- Novo Quadro: Diário de Busca Ativa -->
+    <!-- Quadro: Diário de Busca Ativa -->
     <div class="panel wide">
       <h2>Diário de Busca Ativa</h2>
       <p class="note">Acompanhe 100% das ações listadas no contador global (ligações, bilhetes e SAE). Filtre por período ou tipo de ação para auditar o trabalho.</p>
@@ -783,7 +783,14 @@ function renderDiarioAcoes() {
       if(!seen.has(k)) { seen.add(k); uniq.push(a); }
   });
   acoes = uniq;
-  acoes.sort(function(a, b){ return a.sortKey - b.sortKey; });
+  
+  // Ordenação cronológica decrescente (mais recentes primeiro)
+  // Ações "Sem data anotada" (99999) vão para o final
+  acoes.sort(function(a, b){ 
+      if (a.sortKey === 99999 && b.sortKey !== 99999) return 1;
+      if (b.sortKey === 99999 && a.sortKey !== 99999) return -1;
+      return b.sortKey - a.sortKey; 
+  });
 
   // Parsing seguro do seletor de datas
   var dsVal = el('selDateStart').value;
