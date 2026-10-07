@@ -96,8 +96,7 @@
           else if(h.indexOf('data matr')===0) meta.MATRIC=c3;
           else if(h.indexOf('órgão')>=0 || h.indexOf('orgao')>=0 || h.indexOf('externo')>=0 || h.indexOf('acompanha')>=0){ meta.ORGAO=c3; }
           else if(h.indexOf('busca ativa')===0){ set(bimDe(bd,'BUS'),'BUS',c3); seq.BUS++; }
-          // CORREÇÃO: "decolutiv" no lugar de "devolutiv" para caçar erros de digitação humanos na planilha
-          else if(h.indexOf('devolutiv')===0 || h.indexOf('decolutiv')===0){ set(bimDe(bd,'DEV'),'DEV',c3); seq.DEV++; }
+          else if(h.indexOf('devolutiv')===0 || h.indexOf('decolutiv')===0 || h.indexOf('evolutiv')===0){ set(bimDe(bd,'DEV'),'DEV',c3); seq.DEV++; }
           else if(h.indexOf('encaminhado')===0){ set(bimDe(bd,'SAE'),'SAE',c3); seq.SAE++; }
           else if(h.indexOf('retorno')===0){ set(bimDe(bd,'RET'),'RET',c3); seq.RET++; }
           else if(h.indexOf('bilhete')===0){ set(bimDe(bd,'BIL'),'BIL',c3); seq.BIL++; }
@@ -107,9 +106,6 @@
           else if(/^(qt\.?\s*)?(de\s+)?faltas/.test(h)){ set(bd||'','FCOL',c3); }
         }
         if(meta.NOME==null) continue;
-        var apos=meta.NOME+1;
-        var conhecidas={}; conhecidas[meta.COD]=1; conhecidas[meta.RECLASS]=1; conhecidas[meta.ASSIN]=1; conhecidas[meta.MATRIC]=1; conhecidas[meta.SITUACAO]=1; conhecidas[meta.ORGAO]=1;
-        if(!conhecidas[apos]) meta.SITU2=apos;
         
         for(var r2=hr+1;r2<=end;r2++){
           var row=V[r2]; if(!row) continue;
@@ -127,25 +123,21 @@
             var duplo = (cc.FBIM!=null && cc.FCOL!=null);
             var faltas = fbim!=null? fbim : fcol;
             
-            // VERDADE MATEMÁTICA: Auto preenche as faltas se houver inj/atestado mas as faltas estiverem vazias
+            // DEDUÇÃO DE FALTAS: Se faltas estiver vazio mas atestado/injust possuir valor, ele descobre as faltas
             if (faltas == null && (inj != null || ate != null)) {
                 faltas = (inj || 0) + (ate || 0);
             }
             
-            var injust;
-            if(inj!=null) injust = inj;
-            else if(faltas!=null) injust = faltas-(ate||0);
-            else injust = null;
-            
-            // TRAVA LÓGICA DE FALTAS: Injustificadas nunca podem ultrapassar as Faltas
-            if (injust != null && faltas != null) {
-                if (injust > faltas) {
-                    faltas = injust + (ate || 0);
-                }
+            // VERDADE MATEMÁTICA ABSOLUTA: Ignora a coluna de "Injustificadas". 
+            // Injustificada é sempre Faltas menos Atestado. Ponto final.
+            var injustReal = null;
+            if (faltas != null) {
+                injustReal = Math.max(0, faltas - (ate || 0));
             }
             
-            rec[bi+'_f']=faltas; rec[bi+'_a']=ate;
-            rec[bi+'_i']= injust!=null? Math.max(injust,0):null;
+            rec[bi+'_f']=faltas; 
+            rec[bi+'_a']=ate;
+            rec[bi+'_i']=injustReal;
             rec[bi+'_acum']= duplo? fcol : null;
             rec[bi+'_BUS']= cc.BUS!=null? norm(row[cc.BUS]):'';
             rec[bi+'_SAE']= cc.SAE!=null? norm(row[cc.SAE]):'';
@@ -174,7 +166,7 @@
           rec.bilhete4=isSim(rec['4B_BIL'])||/bilhete/.test(low(rec['4B_BIL']));
           rec.bilhete=rec.bilhete1||rec.bilhete2||rec.bilhete3||rec.bilhete4||/bilhete/.test(reclass);
           
-          // CAPTURA ESTENDIDA DE TRANSFERIDOS: Vasculha até as colunas de Órgão Externo, Reclassificação e Situação
+          // CAPTURA ESTENDIDA DE TRANSFERIDOS: Vasculha até as colunas de Órgão Externo, Reclassificação e Situação (primeiras 30 colunas)
           var earlyRowText = row.slice(0, 30).join(' ').toLowerCase();
           var isTransfGeneral = /transferid[oa]/.test(earlyRowText);
           var isDomiciliarGeneral = /domiciliar/.test(earlyRowText);
@@ -196,7 +188,7 @@
               }
               
               // Remove limitação de 15 caracteres. Qualquer anotação descritiva na coluna de "Busca Ativa" 
-              // que não seja apenas a palavra "Sim", vira Devolutiva da Família para não perder dados.
+              // que não seja apenas "Sim" ou "Busca Ativa", vira Devolutiva da Família para não perder dados.
               if(b && b.length > 5 && b.toLowerCase() !== 'busca ativa' && b.toLowerCase() !== 'sim' && b.toLowerCase() !== 'não') {
                   rec.devolutivas.push({bim:i, texto:b});
               }
