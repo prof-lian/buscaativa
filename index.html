@@ -148,6 +148,9 @@ tbody tr:hover td{background:var(--paper-2)}
   .panel .note{font-size:11.5px}
   .section{margin-bottom:18px}
   .grid{gap:14px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpis.cinco{grid-template-columns:repeat(2,1fr)}
+  .kpis.cinco .kpi:first-child{grid-column:1 / -1}
   .kpi{padding:11px 13px}
   .kpi .v{font-size:22px}
   .kpi .l{font-size:9px}
@@ -897,7 +900,6 @@ function renderTabela(){
   });
 }
 
-// Abertura do Dossiê do Aluno
 window.abrirAluno = function(chave) {
     var r = S.data.ini.find(function(x) { return x.nomeChave === chave; });
     if(!r) return;
@@ -915,13 +917,10 @@ window.abrirAluno = function(chave) {
         var bus = r[b+'B_BUS'], dev = r[b+'B_DEV'], sae = r[b+'B_SAE'], ret = r[b+'B_RET'], bil = r[b+'B_BIL'];
         
         var acts = [];
-        if (temAcao(bus)) acts.push('<b>Busca Ativa (Ligação):</b> ' + esc(bus));
-        if (temAcao(bil)) {
-            var dts = U.datesIn(bil).map(function(d){ return String(d[1]).padStart(2,'0')+'/'+MES[d[0]-1]; }).join(', ');
-            acts.push('<b>Bilhete enviado:</b> ' + esc(bil) + (dts ? ' <i>(' + dts + ')</i>' : ''));
-        }
-        if (temAcao(sae)) acts.push('<b>Encaminhado à SAE:</b> ' + esc(sae));
-        if (temAcao(ret)) acts.push('<b>Retorno da SAE:</b> ' + esc(ret));
+        if (temAcao(bus)) acts.push('<b>Busca Ativa (Ligação):</b> <span style="color:var(--soft)">' + esc(bus) + '</span>');
+        if (temAcao(bil)) acts.push('<b>Bilhete enviado:</b> <span style="color:var(--soft)">' + esc(bil) + '</span>');
+        if (temAcao(sae)) acts.push('<b>Encaminhado à SAE:</b> <span style="color:var(--soft)">' + esc(sae) + '</span>');
+        if (temAcao(ret)) acts.push('<b>Retorno da SAE:</b> <span style="color:var(--soft)">' + esc(ret) + '</span>');
         if ((dev||'').length > 3) acts.push('<b>Devolutiva da Família:</b><br><span style="color:var(--soft); display:inline-block; margin-top:4px">' + esc(dev) + '</span>');
         
         if(f > 0 || acts.length > 0) {
@@ -999,7 +998,6 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-af]'),function(b){
 
 el('selTurma2').addEventListener('change',function(){ S.turma=this.value; if(el('selTurma'))el('selTurma').value=S.turma; renderAll(); });
 
-// Delegação de eventos na tabela (para ordenação e clique no nome do aluno)
 el('tabela').addEventListener('click',function(ev){
   var link = ev.target.closest('.aluno-link');
   if (link) {
@@ -1012,7 +1010,6 @@ el('tabela').addEventListener('click',function(ev){
   renderTabela();
 });
 
-// Delegação para abrir alunos pela tabela da SAE também
 el('tbodySae').addEventListener('click',function(ev){
   var link = ev.target.closest('.aluno-link');
   if (link) {
@@ -1075,5 +1072,3 @@ setInterval(function(){ if(!document.hidden){ load(); } }, 180000);
 load();
 })();
 </script>
-</body>
-</html>
