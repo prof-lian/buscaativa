@@ -248,6 +248,26 @@ tbody tr:hover td{background:var(--paper-2)}
       <div id="chartTurmas"></div>
       <div class="legend"><span><i style="background:var(--line-2)"></i>Alunos monitorados</span><span><i style="background:var(--navy)"></i>Com acompanhamento</span></div>
     </div>
+    
+    <!-- Novo Diário Diário de Ações -->
+    <div class="panel wide">
+      <h2>Diário de Busca Ativa (Filtro por Data)</h2>
+      <p class="note">Histórico cronológico das ações. Digite um dia e mês (ex: <strong>05/03</strong> ou <strong>12/04</strong>) para ver a lista exata de ligações e bilhetes processados na data.</p>
+      <div class="controls">
+        <div class="search">📅<input id="dateSearch" placeholder="Filtrar por data (ex: 05/03) ou aluno..." style="width:200px"></div>
+        <span class="mono" id="dateActionCount" style="font-size:12px;color:var(--soft)"></span>
+      </div>
+      <div class="twrap"><table style="width:100%">
+        <thead><tr>
+          <th style="width:10%">Data</th>
+          <th style="width:25%">Nome</th>
+          <th style="text-align:center; width:10%">Turma</th>
+          <th style="width:15%">Ação</th>
+          <th style="width:40%">Anotação Original</th>
+        </tr></thead>
+        <tbody id="tbodyAcoesData"></tbody>
+      </table></div>
+    </div>
 
     <div class="grid">
       <div class="panel">
@@ -371,7 +391,7 @@ var ANOS_INI = ['PRIMEIROS','SEGUNDOS','TERCEIROS','QUARTOS','QUINTOS','QUINTOS 
 var LBL = {PRIMEIROS:'1º ano',SEGUNDOS:'2º ano',TERCEIROS:'3º ano',QUARTOS:'4º ano',QUINTOS:'5º ano','QUINTOS TARDE':'5º ano'};
 var COR = {navy:'#0B2545',navy2:'#14345E',navy3:'#1D4E89',soft:'#4C6789',line:'#C2CFDE',alert:'#B23A48',gold:'#C08A2E',green:'#2C7A5B'};
 var el=function(id){return document.getElementById(id);};
-var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logMotivo:'', logBusca:'', alFiltro:'todos', alBusca:'', saeBusca:'', ordCol:'inj', ordDir:-1};
+var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logMotivo:'', logBusca:'', alFiltro:'todos', alBusca:'', saeBusca:'', dataFiltro:'', ordCol:'inj', ordDir:-1};
 
 function alunoKey(r){
   var cod = r.COD!=null? String(r.COD).replace(/[^0-9A-Za-z]/g,'') : '';
@@ -663,6 +683,87 @@ function turmaChart(arr){
     s.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(base+14)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#0B2545">'+esc(a.turma)+'</text>'); });
   s.push('<line x1="'+x0+'" y1="'+base+'" x2="'+(W-10)+'" y2="'+base+'" stroke="#0B2545" stroke-width="1.2"/>');
   s.push('</svg>'); return '<div style="overflow-x:auto">'+s.join('')+'</div>';
+}
+
+function renderDiarioAcoes() {
+  var g = selAlunos();
+  var acoes = [];
+  var bims = S.bim === 'ambos' ? [1,2,3,4] : [Number(S.bim)];
+
+  g.forEach(function(r){
+      var extrair = function(texto, tipo) {
+          if(!texto || !temAcao(texto)) return;
+          var dts = U.datesIn(texto);
+          if(dts.length > 0) {
+              dts.forEach(function(d){
+                  var strData = String(d[1]).padStart(2,'0') + '/' + String(d[0]).padStart(2,'0');
+                  acoes.push({
+                      data: strData, mes: d[0], dia: d[1],
+                      nome: r.nome, chave: r.nomeChave, turma: r.turma,
+                      tipo: tipo, texto: texto
+                  });
+              });
+          } else if (tipo === 'Bilhete' && r.RECLASS && /bilhete/i.test(r.RECLASS)) {
+              var dReclass = U.datesIn(r.RECLASS);
+              dReclass.forEach(function(d){
+                  var strData = String(d[1]).padStart(2,'0') + '/' + String(d[0]).padStart(2,'0');
+                  acoes.push({
+                      data: strData, mes: d[0], dia: d[1],
+                      nome: r.nome, chave: r.nomeChave, turma: r.turma,
+                      tipo: 'Bilhete', texto: r.RECLASS
+                  });
+              });
+          }
+      };
+
+      bims.forEach(function(b){
+          extrair(r[b+'B_BUS'], 'Ligação');
+          extrair(r[b+'B_BIL'], 'Bilhete');
+          extrair(r[b+'B_SAE'], 'SAE');
+      });
+  });
+
+  var uniq = [];
+  var seen = new Set();
+  acoes.forEach(function(a){
+      var k = a.data + '|' + a.chave + '|' + a.tipo;
+      if(!seen.has(k)) { seen.add(k); uniq.push(a); }
+  });
+  acoes = uniq;
+
+  acoes.sort(function(a, b){
+      if(b.mes !== a.mes) return b.mes - a.mes;
+      return b.dia - a.dia;
+  });
+
+  var q = (S.dataFiltro || '').toLowerCase().trim();
+  if(q) {
+      acoes = acoes.filter(function(a){
+          return a.data.indexOf(q) >= 0 || a.nome.toLowerCase().indexOf(q) >= 0 || a.turma.toLowerCase().indexOf(q) >= 0;
+      });
+  }
+
+  el('dateActionCount').textContent = acoes.length + ' ação(ões) registrada(s)';
+  var tb = el('tbodyAcoesData');
+  tb.innerHTML = '';
+
+  if (acoes.length === 0) {
+     tb.innerHTML = '<tr><td colspan="5" class="note" style="text-align:center; padding:16px">Nenhuma ação encontrada. (Obs: O sistema extrai as ações que possuem data anotada, ex: "12/04")</td></tr>';
+     return;
+  }
+
+  acoes.forEach(function(a){
+      var cor = a.tipo === 'Bilhete' ? 'var(--green)' : (a.tipo === 'SAE' ? 'var(--gold)' : 'var(--navy-3)');
+      var bg = a.tipo === 'Bilhete' ? 'var(--green-soft)' : (a.tipo === 'SAE' ? '#F5EEDD' : '#E7EDF4');
+      
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td class="mono" style="font-weight:600; color:'+cor+'">' + a.data + '</td>' +
+                     '<td><a class="aluno-link" data-chave="'+esc(a.chave)+'">'+esc(U.cap(a.nome))+'</a></td>' +
+                     '<td class="mono" style="text-align:center">'+esc(a.turma)+'</td>' +
+                     '<td><span class="tag" style="background:'+bg+'; color:'+cor+'">'+esc(a.tipo)+'</span></td>' +
+                     '<td style="font-size:12px; color:var(--soft)">'+esc(a.texto)+'</td>';
+      tb.appendChild(tr);
+  });
 }
 
 function renderSae(){
@@ -980,7 +1081,7 @@ function fillTurmas(){
   if(el('selTurma2')){ el('selTurma2').innerHTML=opts; el('selTurma2').value=S.turma; }
 }
 
-function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderSae(); renderFoot(); }
+function renderAll(){ renderKpis(); renderCharts(); renderDiarioAcoes(); renderAlertas(); renderLog(); renderTabela(); renderSae(); renderFoot(); }
 
 function renderFoot(){
   el('foot').innerHTML = S.atualizadoEm ? 'Atualizado em ' + S.atualizadoEm : '';
@@ -992,12 +1093,14 @@ el('btnPrint').addEventListener('click',function(){ window.print(); });
 el('logSearch').addEventListener('input',function(){ S.logBusca=this.value; renderLog(); });
 el('alSearch').addEventListener('input',function(){ S.alBusca=this.value; renderTabela(); });
 el('saeSearch').addEventListener('input',function(){ S.saeBusca=this.value; renderSae(); });
+el('dateSearch').addEventListener('input',function(){ S.dataFiltro=this.value; renderDiarioAcoes(); });
 
 Array.prototype.forEach.call(document.querySelectorAll('[data-af]'),function(b){ b.addEventListener('click',function(){
   S.alFiltro=b.getAttribute('data-af'); document.querySelectorAll('[data-af]').forEach(function(x){x.classList.toggle('on',x===b);}); renderTabela(); }); });
 
 el('selTurma2').addEventListener('change',function(){ S.turma=this.value; if(el('selTurma'))el('selTurma').value=S.turma; renderAll(); });
 
+// Delegação de eventos na tabela (para ordenação e clique no nome do aluno)
 el('tabela').addEventListener('click',function(ev){
   var link = ev.target.closest('.aluno-link');
   if (link) {
@@ -1010,11 +1113,16 @@ el('tabela').addEventListener('click',function(ev){
   renderTabela();
 });
 
+// Delegação para abrir alunos pela tabela da SAE
 el('tbodySae').addEventListener('click',function(ev){
   var link = ev.target.closest('.aluno-link');
-  if (link) {
-      window.abrirAluno(link.getAttribute('data-chave'));
-  }
+  if (link) window.abrirAluno(link.getAttribute('data-chave'));
+});
+
+// Delegação para abrir alunos pela tabela do Diário de Ações
+el('tbodyAcoesData').addEventListener('click',function(ev){
+  var link = ev.target.closest('.aluno-link');
+  if (link) window.abrirAluno(link.getAttribute('data-chave'));
 });
 
 el('chartMotivos').addEventListener('click', function(ev){
