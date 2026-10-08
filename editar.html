@@ -122,6 +122,7 @@ textarea{min-height:84px;resize:vertical}
     <button class="tab" data-tab="dev" type="button">Devolutivas</button>
     <button class="tab" data-tab="sit" type="button">Situação<span class="lg"> dos alunos</span></button>
     <button class="tab" data-tab="sae" type="button"><span class="lg">Relatório </span>SAE<span class="n" id="nSae"></span></button>
+    <button class="tab hidden" data-tab="edt" id="tabEdt" type="button">Editores</button>
   </nav>
 </header>
 
@@ -194,6 +195,27 @@ textarea{min-height:84px;resize:vertical}
       <span id="cntSae"></span>
     </div>
     <div id="listaSae"></div>
+  </section>
+
+  <!-- EDITORES (só administradores) -->
+  <section id="pEdt" class="hidden">
+    <div class="sec">Adicionar editor</div>
+    <div class="card">
+      <form id="fEdt" class="ctrls" style="grid-template-columns:2fr 1.3fr auto;align-items:end;padding:0">
+        <div><label for="eEmail">E-mail da pessoa</label><input type="email" id="eEmail" placeholder="nome@edu.uberabadigital.com.br" required></div>
+        <div><label for="eSenha">Senha provisória</label><input type="text" id="eSenha" placeholder="mínimo 6 caracteres" minlength="6" required autocomplete="off"></div>
+        <div><button class="btn pri" type="submit" id="bAddEdt">Adicionar</button></div>
+      </form>
+      <div class="msg" id="edtErro"></div>
+      <div id="edtOk" class="hidden" style="margin-top:12px">
+        <div class="st ok" id="edtOkTit"></div>
+        <textarea id="edtMsg" readonly style="min-height:120px;margin-top:6px;font-size:13px"></textarea>
+        <button type="button" class="chip" id="bCopiar" style="margin-top:6px">Copiar mensagem</button>
+      </div>
+    </div>
+    <div class="sec">Quem pode editar</div>
+    <div class="lista" id="listaEdt"><div class="load">Carregando…</div></div>
+    <p class="hint" style="margin-top:8px">Os marcados como "fixo" estão no código do Apps Script ou são editores da planilha; para tirá-los, mexa lá. Remover alguém aqui tira a permissão de editar, mas a conta de login continua existindo no Firebase (Authentication > Users).</p>
   </section>
 </div>
 <div class="wrap" id="msgGeral"></div>
@@ -443,6 +465,13 @@ function falha(t){ $('msgGeral').innerHTML='<div class="erro">'+esc(t)+'</div>';
 /* ===== dados ===== */
 function ouvirPlanilha(){
   $('tabs').classList.remove('hidden');
+  var mk=String(S.user.email).toLowerCase().replace(/\./g,',');
+  db.ref('admins/'+mk).once('value').then(function(s){
+    S.admin=(s.val()===true); $('tabEdt').classList.toggle('hidden',!S.admin);
+    if(!S.admin) return;
+    db.ref('editores').on('value',function(x){ S.edPub=x.val()||{}; if(S.tab==='edt') renderEdt(); });
+    db.ref('editores_extra').on('value',function(x){ S.edExtra=x.val()||{}; if(S.tab==='edt') renderEdt(); });
+  }).catch(function(){});
   db.ref('busca_ativa/geradoEm').on('value',function(s){
     var g=s.val();
     if(g===S.geradoEm && Object.keys(S.dados).length) return;
@@ -479,7 +508,7 @@ function carregarTudo(){
     $('saeBim').innerHTML='<option value="">Todos</option>'+bimsTodos.bims.map(function(x){return '<option value="'+x+'">'+BIM_LBL[x]+'</option>';}).join('');
     $('saeBim').value=S.saeBim;
     montarFiltros();
-    var lt=lsGet('tab'); irTab(['dev','sit','sae'].indexOf(lt)>=0?lt:S.tab);
+    var lt=lsGet('tab'); irTab(['dev','sit','sae','edt'].indexOf(lt)>=0?lt:S.tab);
     if(S.geradoEm) $('sub').textContent=S.user.email+' · planilha lida em '+new Date(S.geradoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
   }).catch(function(e){ falha('Erro ao ler o Firebase: '+(e.message||e)); });
 }
@@ -652,16 +681,88 @@ function pendGlobal(){
   return n;
 }
 
+/* ===== aba Editores (só administradores) ===== */
+function chaveEmail(e){ return String(e).toLowerCase().trim().replace(/\./g,','); }
+function renderEdt(){
+  var pub=S.edPub||{}, ext=S.edExtra||{}, todos={};
+  Object.keys(pub).forEach(function(k){ todos[k]={email:k.replace(/,/g,'.'), pub:true}; });
+  Object.keys(ext).forEach(function(k){ var e=ext[k]||{}; todos[k]=todos[k]||{email:e.email, pub:false}; todos[k].extra=e; });
+  var ks=Object.keys(todos).sort(function(a,b){ return todos[a].email.localeCompare(todos[b].email); });
+  if(!ks.length){ $('listaEdt').innerHTML='<div class="vazio">Ninguém ainda.</div>'; return; }
+  $('listaEdt').innerHTML=ks.map(function(k){
+    var t=todos[k], tags=[];
+    if(t.extra){
+      tags.push(t.pub? '<span class="tag ok">liberado</span>' : '<span class="tag d">liberando… (até 1 min)</span>');
+      tags.push('<button type="button" class="chip" data-rmedt="'+esc(k)+'">Remover</button>');
+    } else tags.push('<span class="tag">fixo</span>');
+    var sub=t.extra? 'adicionado por '+esc(t.extra.por||'?')+(t.extra.em?' em '+new Date(t.extra.em).toLocaleDateString('pt-BR'):'') : 'no código do Apps Script ou editor da planilha';
+    return '<div class="sitrow"><div class="nm">'+esc(t.email)+'<small>'+sub+'</small></div><div class="tags">'+tags.join('')+'</div></div>';
+  }).join('');
+}
+function appSec(){
+  var a=firebase.apps.filter(function(x){return x.name==='sec';})[0];
+  return a || firebase.initializeApp(FIREBASE_CONFIG,'sec');
+}
+$('fEdt').onsubmit=function(ev){
+  ev.preventDefault();
+  var email=$('eEmail').value.trim().toLowerCase(), senha=$('eSenha').value;
+  $('edtErro').textContent=''; $('edtOk').classList.add('hidden');
+  if(senha.length<6){ $('edtErro').textContent='A senha precisa ter pelo menos 6 caracteres.'; return; }
+  $('bAddEdt').disabled=true; $('bAddEdt').textContent='Criando…';
+  var sa=appSec().auth(), jaExistia=false;
+  sa.setPersistence(firebase.auth.Auth.Persistence.NONE)
+    .then(function(){ return sa.createUserWithEmailAndPassword(email, senha); })
+    .then(function(c){ sa.languageCode='pt'; return c.user.sendEmailVerification().catch(function(){}); })
+    .catch(function(e){ if(e && e.code==='auth/email-already-in-use'){ jaExistia=true; return; } throw e; })
+    .then(function(){ return sa.signOut().catch(function(){}); })
+    .then(function(){ return db.ref('editores_extra/'+chaveEmail(email)).set({email:email, por:String(S.user.email).toLowerCase(), em:Date.now()}); })
+    .then(function(){
+      var link=location.href.split('?')[0].split('#')[0];
+      $('edtOkTit').textContent= jaExistia
+        ? '✓ '+email+' liberado. Essa pessoa já tinha conta: ela entra com a senha que já usa (ou clica em "Esqueci minha senha"). A senha digitada aqui foi ignorada.'
+        : '✓ Conta criada para '+email+'. Fica liberada para editar em até 1 minuto.';
+      $('edtMsg').value= jaExistia
+        ? 'Olá! Você já pode editar a Busca Ativa pelo site:\n'+link+'\n\nEntre com o seu e-mail ('+email+') e a senha que você já usa. Se não lembrar, clique em "Esqueci minha senha".'
+        : 'Olá! Você foi cadastrado(a) para editar a Busca Ativa.\n\nSite: '+link+'\nE-mail: '+email+'\nSenha provisória: '+senha+'\n\nNo primeiro acesso, o site pede para confirmar o e-mail: abra a mensagem que chegou (veja também o spam), clique no link e volte ao site. Para trocar a senha, use "Esqueci minha senha" na tela de login.';
+      $('edtOk').classList.remove('hidden');
+      $('eEmail').value=''; $('eSenha').value='';
+    })
+    .catch(function(e){ $('edtErro').textContent=traduzEdt(e); })
+    .then(function(){ $('bAddEdt').disabled=false; $('bAddEdt').textContent='Adicionar'; });
+};
+function traduzEdt(e){
+  var c=e&&e.code||'';
+  if(c==='auth/invalid-email') return 'E-mail inválido.';
+  if(c==='auth/weak-password') return 'Senha fraca: use pelo menos 6 caracteres.';
+  if(c==='auth/operation-not-allowed') return 'O login por e-mail/senha não está ativado no Firebase (Authentication > Sign-in method).';
+  if(/PERMISSION_DENIED/i.test(e&&e.message||'')) return 'Sem permissão para adicionar editores. Confira se as regras novas do Firebase foram publicadas e se o seu e-mail está em ADMINS no Apps Script.';
+  return (e&&e.message)||String(e);
+}
+$('bCopiar').onclick=function(){
+  var t=$('edtMsg'); t.select();
+  (navigator.clipboard? navigator.clipboard.writeText(t.value) : Promise.reject()).then(function(){ toast('Mensagem copiada.'); })
+    .catch(function(){ try{ document.execCommand('copy'); toast('Mensagem copiada.'); }catch(_){ toast('Selecione o texto e copie manualmente.'); } });
+};
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-rmedt]'); if(!b) return;
+  var k=b.getAttribute('data-rmedt'), em=k.replace(/,/g,'.');
+  if(!confirm('Tirar a permissão de edição de '+em+'?')) return;
+  db.ref('editores_extra/'+k).remove().then(function(){ toast(em+' removido. Perde o acesso em até 1 minuto.'); })
+    .catch(function(e){ toast(traduzEdt(e),6000); });
+});
+
 /* ===== navegação ===== */
 function irTab(t){
+  if(t==='edt' && !S.admin) t='dev';
   S.tab=t; lsSet('tab',t);
   [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===t); });
-  $('pDev').classList.toggle('hidden',t!=='dev'); $('pSit').classList.toggle('hidden',t!=='sit'); $('pSae').classList.toggle('hidden',t!=='sae');
+  if(t==='edt' && !S.admin) t='dev';
+  $('pDev').classList.toggle('hidden',t!=='dev'); $('pSit').classList.toggle('hidden',t!=='sit'); $('pSae').classList.toggle('hidden',t!=='sae'); $('pEdt').classList.toggle('hidden',t!=='edt');
   render();
 }
 function render(){
   if(!Object.keys(S.dados).length) return;
-  if(S.tab==='dev') renderDev(); else if(S.tab==='sit') renderSit(); else renderSae();
+  if(S.tab==='dev') renderDev(); else if(S.tab==='sit') renderSit(); else if(S.tab==='sae') renderSae(); else renderEdt();
   $('nSae').textContent= pendGlobal() || '';
   atualizarBarra();
 }
