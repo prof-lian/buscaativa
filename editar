@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Busca Ativa · Edição</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+:root{
+  --navy:#13223f; --navy2:#1d3158; --ink:#1b2333; --muted:#667085; --line:#e3e6ec;
+  --bg:#f4f5f8; --card:#fff; --gold:#c9a227; --green:#1f8a5b; --alert:#c2412d; --dirty:#fff6dc; --fila:#eaf1fb;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "IBM Plex Sans",system-ui,sans-serif}
+header{background:var(--navy);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+header h1{font:600 20px "Fraunces",serif;margin:0}
+header .sub{font-size:12px;opacity:.75;margin-top:2px}
+header button{font-family:inherit;font-size:12px;background:transparent;color:#fff;border:1px solid #ffffff55;border-radius:8px;padding:6px 10px;cursor:pointer}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px 120px}
+.ctrls{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:8px;border-bottom:1px solid var(--line)}
+.ctrls label{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);display:block;margin-bottom:3px}
+select,input[type=search],input[type=text],input[type=email],input[type=password],textarea{width:100%;font:inherit;border:1px solid #cfd4dc;border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink)}
+textarea{min-height:64px;resize:vertical}
+.opts{grid-column:1/-1;display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);align-items:center}
+.opts label{text-transform:none!important;letter-spacing:0!important;margin:0!important;font-size:13px!important}
+.opts .cnt{margin-left:auto}
+.aluno{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:12px 0;padding:14px}
+.aluno.dirty{border-color:var(--gold);box-shadow:0 0 0 2px #c9a22733}
+.aluno.transf{opacity:.6}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.nome{font-weight:600}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;background:#eceff4;color:var(--muted);margin-left:6px}
+.badge.t{background:#fde8e4;color:var(--alert)}
+.stats{font-size:13px;color:var(--muted)}
+.stats b{color:var(--ink)}
+.stats b.hi{color:var(--alert)}
+.info{font-size:12px;color:var(--muted);margin-top:2px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:10px}
+.f{min-width:0}
+.f.wide{grid-column:1/-1}
+.f label{font-size:12px;font-weight:600;color:var(--navy2);display:flex;justify-content:space-between;gap:6px;margin-bottom:3px}
+.chips{display:flex;gap:4px}
+.chip{font-size:11px;font-weight:500;font-family:inherit;border:1px solid #cfd4dc;background:#fff;border-radius:99px;padding:1px 8px;cursor:pointer;color:var(--navy2)}
+.chip:hover{background:#eef1f6}
+.f.changed input,.f.changed textarea{background:var(--dirty);border-color:var(--gold)}
+.f.fila input,.f.fila textarea{background:var(--fila);border-color:#8fb0e0}
+.f.conf input,.f.conf textarea{border-color:var(--alert);background:#fdeeea}
+.st{font-size:12px;margin-top:3px;color:var(--navy2)}
+.st.ok{color:var(--green)}
+.msg{font-size:12px;margin-top:3px;color:var(--alert)}
+.msg button{font:inherit;font-size:12px;border:0;background:none;color:var(--navy2);text-decoration:underline;cursor:pointer;padding:0 0 0 4px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--navy);color:#fff;padding:12px 16px;display:none;z-index:10}
+.bar.on{display:block}
+.bar .in{max-width:980px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.bar .in span{flex:1}
+.btn{font-size:14px;font-weight:600;font-family:inherit;border:0;border-radius:8px;padding:9px 16px;cursor:pointer}
+.btn.pri{background:var(--gold);color:var(--navy)}
+.btn.sec{background:transparent;color:#fff;border:1px solid #ffffff55}
+.btn:disabled{opacity:.5;cursor:default}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:76px;background:#222;color:#fff;padding:9px 14px;border-radius:8px;font-size:13px;display:none;z-index:20;max-width:92vw}
+.vazio,.load{padding:40px 0;text-align:center;color:var(--muted)}
+.erro{background:#fde8e4;color:var(--alert);padding:14px;border-radius:10px;margin-top:16px}
+.login{max-width:420px;margin:60px auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center}
+.login h2{font:600 22px "Fraunces",serif;margin:0 0 8px;color:var(--navy)}
+.login p{color:var(--muted);font-size:14px}
+.hidden{display:none!important}
+@media (max-width:640px){
+  .ctrls{grid-template-columns:1fr 1fr;position:static}
+  .fields{grid-template-columns:1fr}
+  header h1{font-size:18px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Busca Ativa · Edição</h1><div class="sub" id="sub">Conectando…</div></div>
+  <button id="bSair" class="hidden" type="button">Sair</button>
+</header>
+
+<div id="telaLogin" class="login hidden">
+  <h2>Entrar</h2>
+  <p>Use o e-mail e a senha que o Lian cadastrou para você.</p>
+  <form id="fLogin" style="text-align:left;display:grid;gap:10px;margin-top:14px">
+    <input type="email" id="lEmail" placeholder="E-mail" autocomplete="username" required>
+    <input type="password" id="lSenha" placeholder="Senha" autocomplete="current-password" required>
+    <button class="btn pri" type="submit">Entrar</button>
+  </form>
+  <p style="margin:12px 0 0"><button type="button" class="chip" id="bEsqueci">Esqueci minha senha</button></p>
+  <div class="msg" id="loginErro" style="margin-top:12px"></div>
+  <div class="st" id="loginInfo" style="margin-top:12px"></div>
+</div>
+
+<div id="telaVerif" class="login hidden">
+  <h2>Confirme seu e-mail</h2>
+  <p>Enviamos um link de confirmação para <b id="vEmail"></b>. Abra o e-mail (veja também a caixa de spam), clique no link e depois volte aqui.</p>
+  <button class="btn pri" id="bJaConfirmei" type="button">Já confirmei</button>
+  <p style="margin:12px 0 0"><button type="button" class="chip" id="bReenviar">Reenviar e-mail</button></p>
+  <div class="msg" id="verifErro" style="margin-top:12px"></div>
+</div>
+
+<div class="wrap hidden" id="app">
+  <div class="ctrls">
+    <div><label for="sAno">Ano</label><select id="sAno"></select></div>
+    <div><label for="sTurma">Turma</label><select id="sTurma"></select></div>
+    <div><label for="sBim">Bimestre</label><select id="sBim"></select></div>
+    <div><label for="q">Buscar aluno</label><input id="q" type="search" placeholder="Nome…"></div>
+    <div class="opts">
+      <label><input type="checkbox" id="cTransf" checked> Ocultar transferidos</label>
+      <label><input type="checkbox" id="cFaltas"> Só quem tem falta injustificada</label>
+      <span class="cnt" id="cnt"></span>
+    </div>
+  </div>
+  <div id="lista"><div class="load">Carregando…</div></div>
+</div>
+<div class="wrap" id="msgGeral"></div>
+
+<div class="bar" id="bar"><div class="in">
+  <span id="barTxt"></span>
+  <button class="btn sec" id="bDesc" type="button">Descartar</button>
+  <button class="btn pri" id="bSalvar" type="button">Salvar</button>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== CONFIGURAÇÃO DO FIREBASE =====
+   Firebase console > Configurações do projeto > Geral > Seus apps > App da Web > firebaseConfig.
+   A apiKey não é secreta (quem protege são as regras do banco). */
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAVEQBKsDHEswTz8oGHbaa3ZBl2Fah8rkY",
+  authDomain: "buscaativa-jgg.firebaseapp.com",
+  databaseURL: "https://buscaativa-jgg-default-rtdb.firebaseio.com",
+  projectId: "buscaativa-jgg",
+  storageBucket: "buscaativa-jgg.firebasestorage.app",
+  messagingSenderId: "419151255262",
+  appId: "1:419151255262:web:48e835ebd2eadc2c9a144f"
+};
+var ED_ROLES_EDIT = ['BIL','BUS','SAE','RET','DEV'];
+var ABAS = ['PRIMEIROS','SEGUNDOS','TERCEIROS','QUARTOS','QUINTOS TARDE'];
+
+/* ===== leitor de colunas (cópia exata do Apps Script) ===== */
+function edNorm_(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
+function edLow_(s) { return edNorm_(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+function edRole_(h) {
+  if (!h) return null;
+  if (h.indexOf('busca ativa') === 0) return 'BUS';
+  if (h.indexOf('devolutiv') === 0) return 'DEV';
+  if (h.indexOf('encaminhado') === 0) return 'SAE';
+  if (h.indexOf('retorno') === 0) return 'RET';
+  if (h.indexOf('bilhete') === 0) return 'BIL';
+  if (h.indexOf('faltas injust') >= 0) return 'INJ';
+  if (/^(qt\.?\s*)?(de\s+)?atestado/.test(h)) return 'ATE';
+  if (/^(qt\.?\s*)?(de\s+)?faltas?\b/.test(h)) return 'FAL';
+  return null;
+}
+function edMapaAba_(V) {
+  var hrs = [];
+  for (var r = 0; r < V.length; r++) {
+    var row = V[r] || [];
+    for (var c = 0; c < Math.min(row.length, 12); c++) {
+      if (edLow_(row[c]) === 'nome') { hrs.push(r); break; }
+    }
+  }
+  var turmas = [];
+  for (var b = 0; b < hrs.length; b++) {
+    var hr = hrs[b];
+    var end = (b + 1 < hrs.length) ? hrs[b + 1] - 2 : V.length - 1;
+    var turma = '';
+    for (var rr = hr - 1; rr >= Math.max(0, hr - 2); rr--) {
+      var t = edNorm_(V[rr] && V[rr][0]);
+      if (t) { turma = t; break; }
+    }
+    if (!turma || hr < 1) continue;
+
+    /* Bimestres: a faixa de titulos acima do cabecalho esta incompleta em
+       varias turmas, entao cada bimestre e detectado pelo ciclo de colunas
+       (comeca em "Qt. Faltas"). O titulo, quando existe, define o numero;
+       quando falta, vale o bimestre anterior + 1. */
+    var title = V[hr - 1] || [], head = V[hr] || [];
+    var nomeCol = -1, infoCols = [], groups = [], g = null, prevRole = null;
+    for (var c = 0; c < head.length; c++) {
+      var tv = edLow_(title[c]), lab = null;
+      if (tv.indexOf('total') === 0) break;
+      if (tv.indexOf('bimestre') >= 0) { var m = tv.match(/(\d)/); if (m) lab = +m[1]; }
+      var h = edLow_(head[c]);
+      if (h === 'nome') { nomeCol = c; continue; }
+      var role = edRole_(h);
+      if (!role) {
+        if (!g && nomeCol >= 0 && h.indexOf('data matr') !== 0) infoCols.push(c);
+        if (lab != null && g && g.lab == null) g.lab = lab;
+        prevRole = null;
+        continue;
+      }
+      var nova = !g ||
+        (lab != null && g.lab != null && lab !== g.lab) ||
+        (role === 'FAL' && prevRole !== 'FAL') ||
+        (role !== 'FAL' && g.cols[role] != null);
+      if (nova) { g = { lab: null, cols: {}, falPrio: false }; groups.push(g); }
+      if (lab != null && g.lab == null) g.lab = lab;
+      if (role === 'FAL') {
+        var prio = /\d\s*[o\u00ba\u00b0]?\s*bim/.test(h);
+        if (!(g.cols.FAL != null && g.falPrio && !prio)) { g.cols.FAL = c; g.falPrio = prio; }
+      } else {
+        g.cols[role] = c;
+      }
+      prevRole = role;
+    }
+    var cols = {}, ord = ['1B', '2B', '3B', '4B'], prevBim = 0;
+    groups.forEach(function (gr) {
+      var n = gr.lab || (prevBim + 1);
+      prevBim = n;
+      if (n >= 1 && n <= 4) cols[n + 'B'] = gr.cols;
+    });
+    if (nomeCol < 0) continue;
+
+    var alunos = [];
+    for (var r2 = hr + 1; r2 <= end; r2++) {
+      var lin = V[r2]; if (!lin) continue;
+      var nome = edNorm_(lin[nomeCol]); if (!nome) continue;
+      if (edLow_(nome) === 'nome') continue;
+      var info = infoCols.map(function (ci) { return edNorm_(lin[ci]); }).filter(String).join(' | ');
+      var al = { r: r2 + 1, nome: nome, info: info,
+        transf: /transferid|tranferid|domiciliar/i.test(info), b: {} };
+      ord.forEach(function (bi) {
+        var cc = cols[bi]; if (!cc) return;
+        var o = {};
+        ['FAL', 'ATE', 'INJ'].forEach(function (k) { if (cc[k] != null) o[k] = edNorm_(lin[cc[k]]); });
+        ED_ROLES_EDIT.forEach(function (k) { if (cc[k] != null) o[k] = { c: cc[k] + 1, v: String(lin[cc[k]] == null ? '' : lin[cc[k]]) }; });
+        al.b[bi] = o;
+      });
+      alunos.push(al);
+    }
+    if (alunos.length) turmas.push({ turma: turma.replace(/\s+/g, ''), alunos: alunos });
+  }
+  return turmas;
+}
+
+
+var CAMPOS = [
+  {k:'BIL', lbl:'Bilhete', chips:['sim','nao']},
+  {k:'BUS', lbl:'Busca ativa', chips:['sim','nao']},
+  {k:'SAE', lbl:'Encaminhado à SAE', chips:['sim','nao']},
+  {k:'RET', lbl:'Retorno da SAE', chips:['nao']},
+  {k:'DEV', lbl:'Devolutiva da família', chips:['data','nao'], wide:true}
+];
+var ANO_LBL = {'PRIMEIROS':'1º ano','SEGUNDOS':'2º ano','TERCEIROS':'3º ano','QUARTOS':'4º ano','QUINTOS TARDE':'5º ano'};
+var BIM_LBL = {'1B':'1º bimestre','2B':'2º bimestre','3B':'3º bimestre','4B':'4º bimestre'};
+
+var S = {dados:{}, aba:'', turma:'', bim:'', q:'', ocultarTransf:true, soFaltas:false,
+         draft:{}, fila:{}, conf:{}, erro:{}, ok:{}, idx:{}, user:null, geradoEm:null, salvando:false};
+var db, auth;
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function low(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim(); }
+function toast(t,ms){ var el=$('toast'); el.textContent=t; el.style.display='block'; clearTimeout(toast._t); toast._t=setTimeout(function(){el.style.display='none';},ms||3000); }
+function hoje(){ var d=new Date(); return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2); }
+function lsGet(k){ try{return localStorage.getItem('ed_'+k);}catch(e){return null;} }
+function lsSet(k,v){ try{localStorage.setItem('ed_'+k,v);}catch(e){} }
+function fid(aba,r,c){ return aba+'|'+r+'|'+c; }
+function fbKey(id){ return id.replace(/\|/g,'_').replace(/[\s.#$\[\]\/]/g,'_'); }
+/* valor bruto do Firebase -> como aparece na planilha */
+function fmt(v){
+  var s=String(v==null?'':v);
+  var m=/^(\d{4})-(\d{2})-(\d{2})T[\d:.]+Z$/.exec(s);
+  if(m){ var d=new Date(s); return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); }
+  return s;
+}
+function orig(id){ return fmt(S.idx[id].f.v); }
+function valor(id){ if(id in S.draft) return S.draft[id]; if(id in S.fila) return S.fila[id].novo; return orig(id); }
+function sujos(){ return Object.keys(S.draft); }
+
+/* ===== login ===== */
+function iniciar(){
+  if(FIREBASE_CONFIG.apiKey.indexOf('COLE_')===0){ falha('Falta colar a apiKey do Firebase no topo do editar.html.'); return; }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  auth=firebase.auth(); db=firebase.database();
+  auth.languageCode='pt';
+  $('fLogin').onsubmit=function(ev){
+    ev.preventDefault(); $('loginErro').textContent=''; $('loginInfo').textContent='';
+    auth.signInWithEmailAndPassword($('lEmail').value.trim(), $('lSenha').value)
+      .catch(function(e){ $('loginErro').textContent=traduz(e); });
+  };
+  $('bEsqueci').onclick=function(){
+    var em=$('lEmail').value.trim(); $('loginErro').textContent=''; $('loginInfo').textContent='';
+    if(!em){ $('loginErro').textContent='Digite seu e-mail no campo acima e clique de novo.'; return; }
+    auth.sendPasswordResetEmail(em).then(function(){ $('loginInfo').textContent='Se esse e-mail estiver cadastrado, chegou um link para criar uma nova senha (veja o spam também).'; })
+      .catch(function(e){ $('loginErro').textContent=traduz(e); });
+  };
+  $('bReenviar').onclick=function(){
+    auth.currentUser.sendEmailVerification().then(function(){ $('verifErro').textContent=''; toast('E-mail reenviado.'); })
+      .catch(function(e){ $('verifErro').textContent=traduz(e); });
+  };
+  $('bJaConfirmei').onclick=function(){
+    var u=auth.currentUser;
+    u.reload().then(function(){ return u.getIdToken(true); }).then(function(){
+      if(!auth.currentUser.emailVerified){ $('verifErro').textContent='Ainda não aparece como confirmado. Clique no link do e-mail e tente de novo.'; return; }
+      entrou(auth.currentUser);
+    }).catch(function(e){ $('verifErro').textContent=traduz(e); });
+  };
+  $('bSair').onclick=function(){ if(sujos().length && !confirm('Há alterações não salvas. Sair mesmo assim?')) return; auth.signOut(); };
+  auth.onAuthStateChanged(function(u){
+    S.user=u; $('msgGeral').innerHTML='';
+    $('telaVerif').classList.add('hidden');
+    if(!u){ $('telaLogin').classList.remove('hidden'); $('app').classList.add('hidden'); $('bSair').classList.add('hidden'); $('sub').textContent='Faça login para editar'; return; }
+    $('telaLogin').classList.add('hidden'); $('bSair').classList.remove('hidden');
+    if(!u.emailVerified){
+      $('vEmail').textContent=u.email; $('telaVerif').classList.remove('hidden'); $('app').classList.add('hidden');
+      $('sub').textContent='Conectado como '+u.email+' · falta confirmar o e-mail';
+      if(!S.verifEnviado){ S.verifEnviado=true; u.sendEmailVerification().catch(function(){}); }
+      return;
+    }
+    entrou(u);
+  });
+}
+function entrou(u){
+    S.user=u; $('telaVerif').classList.add('hidden');
+    $('sub').textContent='Conectado como '+u.email;
+    var k=String(u.email).toLowerCase().replace(/\./g,',');
+    db.ref('editores/'+k).once('value').then(function(s){
+      if(s.val()!==true) throw new Error('A conta '+u.email+' ainda não está liberada para editar. Peça ao Lian para incluir este e-mail.');
+      $('app').classList.remove('hidden');
+      ouvirPlanilha();
+    }).catch(function(e){ falha(e.message||e); });
+}
+function traduz(e){
+  var c=e&&e.code||'';
+  if(c==='auth/invalid-credential'||c==='auth/wrong-password'||c==='auth/user-not-found'||c==='auth/invalid-login-credentials') return 'E-mail ou senha incorretos.';
+  if(c==='auth/invalid-email') return 'E-mail inválido.';
+  if(c==='auth/too-many-requests') return 'Muitas tentativas. Espere alguns minutos e tente de novo.';
+  if(c==='auth/user-disabled') return 'Esta conta foi desativada.';
+  if(c==='auth/network-request-failed') return 'Sem conexão com a internet.';
+  if(c==='auth/unauthorized-domain') return 'Este endereço não está autorizado no Firebase (Authentication > Configurações > Domínios autorizados).';
+  return (e&&e.message)||String(e);
+}
+function falha(t){ $('msgGeral').innerHTML='<div class="erro">'+esc(t)+'</div>'; $('app').classList.add('hidden'); }
+
+/* ===== dados: lê o mesmo nó do painel e recarrega quando a planilha sincroniza ===== */
+function ouvirPlanilha(){
+  db.ref('busca_ativa/geradoEm').on('value',function(s){
+    var g=s.val();
+    if(g===S.geradoEm && Object.keys(S.dados).length) return;
+    S.geradoEm=g; carregarTudo();
+  });
+}
+function carregarTudo(){
+  db.ref('busca_ativa/sheets').once('value').then(function(s){
+    var sheets=s.val()||[]; if(!Array.isArray(sheets)) sheets=Object.keys(sheets).map(function(k){return sheets[k];});
+    var novo={}, idx={};
+    sheets.forEach(function(sh){
+      if(!sh || ABAS.indexOf(sh.name)<0) return;
+      var V=(sh.values||[]).map(function(r){ return Array.isArray(r)? r : (r? Object.keys(r).reduce(function(a,k){a[+k]=r[k];return a;},[]) : []); });
+      for(var i=0;i<V.length;i++){ if(!V[i]) V[i]=[]; for(var j=0;j<V[i].length;j++){ if(V[i][j]==null) V[i][j]=''; } }
+      var turmas=edMapaAba_(V);
+      novo[sh.name]={aba:sh.name, turmas:turmas};
+      turmas.forEach(function(t){ t.alunos.forEach(function(al){ Object.keys(al.b).forEach(function(bi){
+        CAMPOS.forEach(function(C){ var f=al.b[bi][C.k]; if(f) idx[fid(sh.name,al.r,f.c)]={aba:sh.name,turma:t.turma,al:al,bim:bi,campo:C.k,f:f}; });
+      }); }); });
+    });
+    // rascunho cujo campo sumiu (estrutura mudou) vira erro visível
+    Object.keys(S.draft).forEach(function(id){ if(!idx[id]){ delete S.draft[id]; toast('Uma alteração foi descartada: a estrutura da planilha mudou.',6000); } });
+    S.dados=novo; S.idx=idx;
+    var abas=ABAS.filter(function(a){return novo[a];});
+    if(!abas.length){ falha('Não encontrei as abas dos anos iniciais no Firebase. Rode "sincronizar" na planilha.'); return; }
+    $('sAno').innerHTML=abas.map(function(a){return '<option value="'+esc(a)+'">'+esc(ANO_LBL[a]||a)+'</option>';}).join('');
+    if(abas.indexOf(S.aba)<0){ var la=lsGet('aba'); S.aba=abas.indexOf(la)>=0?la:abas[0]; }
+    $('sAno').value=S.aba;
+    montarFiltros(); render();
+    if(S.geradoEm) $('sub').textContent='Conectado como '+S.user.email+' · planilha lida em '+new Date(S.geradoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }).catch(function(e){ falha('Erro ao ler o Firebase: '+(e.message||e)); });
+}
+function bimsDe(d){
+  var tem={}, comDado={};
+  d.turmas.forEach(function(t){ t.alunos.forEach(function(al){ Object.keys(al.b).forEach(function(bi){
+    tem[bi]=1; var o=al.b[bi];
+    if(o.FAL||o.INJ||CAMPOS.some(function(C){return o[C.k]&&o[C.k].v;})) comDado[bi]=1;
+  }); }); });
+  var bims=['1B','2B','3B','4B'].filter(function(b){return tem[b];});
+  return {bims:bims, padrao:bims.filter(function(b){return comDado[b];}).pop()||bims[0]};
+}
+function montarFiltros(){
+  var d=S.dados[S.aba]; if(!d) return;
+  var ts=d.turmas.map(function(t){return t.turma;});
+  if(ts.indexOf(S.turma)<0){ var lt=lsGet('turma'); S.turma=(ts.indexOf(lt)>=0)?lt:ts[0]; }
+  $('sTurma').innerHTML=ts.map(function(t){return '<option>'+esc(t)+'</option>';}).join('');
+  $('sTurma').value=S.turma;
+  var b=bimsDe(d);
+  if(b.bims.indexOf(S.bim)<0){ var lb=lsGet('bim'); S.bim=(b.bims.indexOf(lb)>=0)?lb:b.padrao; }
+  $('sBim').innerHTML=b.bims.map(function(x){return '<option value="'+x+'">'+BIM_LBL[x]+'</option>';}).join('');
+  $('sBim').value=S.bim;
+}
+
+/* ===== tela ===== */
+function render(){
+  var d=S.dados[S.aba]; if(!d) return;
+  var t=d.turmas.filter(function(x){return x.turma===S.turma;})[0];
+  if(!t){ $('lista').innerHTML='<div class="vazio">Turma não encontrada.</div>'; return; }
+  var q=low(S.q);
+  var lista=t.alunos.filter(function(al){
+    if(S.ocultarTransf && al.transf) return false;
+    if(q && low(al.nome).indexOf(q)<0) return false;
+    var o=al.b[S.bim]||{};
+    if(S.soFaltas && !(parseFloat(String(o.INJ||'').replace(',','.'))>0)) return false;
+    return true;
+  });
+  $('cnt').textContent=lista.length+' de '+t.alunos.length+' alunos';
+  $('lista').innerHTML= lista.length? lista.map(cardAluno).join('') : '<div class="vazio">Nenhum aluno com esses filtros.</div>';
+  atualizarBarra();
+}
+function cardAluno(al){
+  var o=al.b[S.bim]||{}, sujo=false;
+  var inj=parseFloat(String(o.INJ||'').replace(',','.'));
+  var stats=[];
+  if(o.FAL!=null) stats.push('Faltas <b>'+esc(o.FAL||'0')+'</b>');
+  if(o.ATE!=null) stats.push('Atest. <b>'+esc(o.ATE||'0')+'</b>');
+  if(o.INJ!=null) stats.push('Injust. <b class="'+(inj>=10?'hi':'')+'">'+esc(o.INJ||'0')+'</b>');
+  var campos=CAMPOS.filter(function(C){return o[C.k];}).map(function(C){
+    var f=o[C.k], id=fid(S.aba,al.r,f.c), v=valor(id), ch=(id in S.draft), na=(id in S.fila);
+    if(ch) sujo=true;
+    var cls='f'+(C.wide?' wide':'')+(ch?' changed':'')+(na&&!ch?' fila':'')+(S.conf[id]!=null?' conf':'');
+    var chips=C.chips.map(function(c){
+      var t={sim:'Sim, hoje',nao:'Não',data:'+ data de hoje'}[c];
+      return '<button type="button" class="chip" data-chip="'+c+'" data-id="'+esc(id)+'">'+t+'</button>';
+    }).join('');
+    var inp= C.wide ? '<textarea data-id="'+esc(id)+'">'+esc(v)+'</textarea>' : '<input type="text" data-id="'+esc(id)+'" value="'+esc(v)+'">';
+    var msg='';
+    if(S.conf[id]!=null) msg='<div class="msg">A planilha foi alterada por outra pessoa: "'+esc(S.conf[id]||'(vazio)')+'". Salve de novo para sobrescrever ou'+
+      '<button type="button" data-usar="'+esc(id)+'">usar o da planilha</button></div>';
+    else if(S.erro[id]) msg='<div class="msg">'+esc(S.erro[id])+'</div>';
+    else if(na && !ch) msg='<div class="st">Na fila · vai para a planilha em até 1 minuto</div>';
+    else if(S.ok[id]) msg='<div class="st ok">✓ Gravado na planilha</div>';
+    return '<div class="'+cls+'" data-fbox="'+esc(id)+'"><label>'+C.lbl+'<span class="chips">'+chips+'</span></label>'+inp+msg+'</div>';
+  }).join('');
+  if(!campos) campos='<div class="info">Sem colunas de acompanhamento neste bimestre.</div>';
+  return '<div class="aluno'+(sujo?' dirty':'')+(al.transf?' transf':'')+'">'+
+    '<div class="top"><div class="nome">'+esc(al.nome)+(al.transf?'<span class="badge t">Transferido</span>':'')+
+    '<span class="badge">linha '+al.r+'</span></div><div class="stats">'+stats.join(' · ')+'</div></div>'+
+    (al.info?'<div class="info">'+esc(al.info)+'</div>':'')+'<div class="fields">'+campos+'</div></div>';
+}
+function atualizarBarra(){
+  var n=sujos().length, nf=Object.keys(S.fila).length;
+  $('bar').classList.toggle('on', n>0 || S.salvando);
+  $('barTxt').textContent= S.salvando? 'Enviando…' : (n+(n===1?' alteração não salva':' alterações não salvas'))+(nf?' · '+nf+' na fila':'');
+  $('bSalvar').disabled=S.salvando; $('bDesc').disabled=S.salvando;
+}
+function marcar(id){
+  var box=document.querySelector('[data-fbox="'+CSS.escape(id)+'"]'); if(!box) return;
+  box.classList.toggle('changed', id in S.draft);
+  var card=box.closest('.aluno'); card.classList.toggle('dirty', !!card.querySelector('.f.changed'));
+  atualizarBarra();
+}
+function setDraft(id,v){
+  var base=(id in S.fila)? S.fila[id].novo : orig(id);
+  if(v===base && S.conf[id]==null) delete S.draft[id]; else S.draft[id]=v;
+  delete S.erro[id]; delete S.ok[id];
+}
+
+document.addEventListener('input',function(e){
+  var id=e.target.getAttribute('data-id'); if(!id || e.target.classList.contains('chip')) return;
+  setDraft(id,e.target.value); marcar(id);
+});
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-chip]');
+  if(b){
+    var id=b.getAttribute('data-id'), c=b.getAttribute('data-chip'), v=valor(id), lv=low(v), h=hoje(), nv;
+    var vazioOuNao=!lv || lv.indexOf('nao')===0;
+    if(c==='nao') nv='NÃO';
+    else if(c==='sim') nv= vazioOuNao? 'SIM '+h : (v.indexOf(h)>=0? v : v.replace(/\s+$/,'')+' E '+h);
+    else nv= vazioOuNao? h+': ' : v.replace(/\s+$/,'')+'\n'+h+': ';
+    setDraft(id,nv);
+    var el=document.querySelector('[data-id="'+CSS.escape(id)+'"]:not(.chip)');
+    if(el){ el.value=nv; if(c==='data'){ el.focus(); el.setSelectionRange(nv.length,nv.length); } }
+    marcar(id); return;
+  }
+  var u=e.target.closest('[data-usar]');
+  if(u){ var id2=u.getAttribute('data-usar'); S.idx[id2].f.v=S.conf[id2]; delete S.draft[id2]; delete S.conf[id2]; render(); }
+});
+$('sAno').onchange=function(){ S.aba=this.value; lsSet('aba',S.aba); S.turma=''; montarFiltros(); render(); };
+$('sTurma').onchange=function(){ S.turma=this.value; lsSet('turma',S.turma); render(); window.scrollTo(0,0); };
+$('sBim').onchange=function(){ S.bim=this.value; lsSet('bim',S.bim); render(); };
+$('q').oninput=function(){ S.q=this.value; render(); };
+$('cTransf').onchange=function(){ S.ocultarTransf=this.checked; render(); };
+$('cFaltas').onchange=function(){ S.soFaltas=this.checked; render(); };
+$('bDesc').onclick=function(){ if(!confirm('Descartar todas as alterações não salvas?')) return; S.draft={}; S.conf={}; S.erro={}; render(); };
+$('bSalvar').onclick=salvar;
+window.addEventListener('beforeunload',function(e){ if(sujos().length){ e.preventDefault(); e.returnValue=''; } });
+
+/* ===== salvar: grava no Firebase; o Apps Script puxa para a planilha ===== */
+function salvar(){
+  var ids=sujos(); if(!ids.length || S.salvando) return;
+  S.salvando=true; atualizarBarra();
+  var email=String(S.user.email).toLowerCase();
+  Promise.all(ids.map(function(id){
+    var x=S.idx[id], novo=S.draft[id], key=fbKey(id), ts=Date.now();
+    var forcar=S.conf[id]!=null;
+    var item={aba:x.aba, linha:x.al.r, col:x.f.c, nome:x.al.nome, turma:x.turma, campo:x.campo, bim:x.bim,
+              antes:String(x.f.v==null?'':x.f.v), novo:novo, email:email, ts:ts, forcar:forcar};
+    return db.ref('edicoes_pendentes/'+key).set(item).then(function(){
+      S.fila[id]={novo:novo, ts:ts, key:key};
+      delete S.draft[id]; delete S.conf[id]; delete S.erro[id];
+      acompanhar(id);
+      return true;
+    }).catch(function(e){ S.erro[id]='Não foi enviado: '+(e.message||e); return false; });
+  })).then(function(r){
+    S.salvando=false; render();
+    var ok=r.filter(Boolean).length, err=r.length-ok;
+    toast(ok+' enviada'+(ok===1?'':'s')+'. Chega na planilha em até 1 minuto.'+(err?' '+err+' com erro.':''), err?6000:3500);
+  });
+}
+function acompanhar(id){
+  var p=S.fila[id], ref=db.ref('edicoes_resultado/'+p.key);
+  var cb=ref.on('value',function(s){
+    var r=s.val(); if(!r || !S.fila[id] || r.tsPedido!==S.fila[id].ts) return;
+    ref.off('value',cb);
+    var novo=S.fila[id].novo; delete S.fila[id];
+    if(r.status==='ok'){ S.ok[id]=1; if(S.idx[id]) S.idx[id].f.v=r.valor; }
+    else if(r.status==='conflito'){ S.conf[id]=r.atual; S.draft[id]=novo; }
+    else { S.erro[id]=r.msg||'Erro ao gravar na planilha.'; S.draft[id]=novo; }
+    render();
+    toast(r.status==='ok'?'Gravado na planilha.':(r.status==='conflito'?'Conflito: alguém mudou essa célula na planilha.':'Erro: '+(r.msg||'')), r.status==='ok'?2500:6000);
+  });
+}
+
+iniciar();
+</script>
+</body>
+</html>
