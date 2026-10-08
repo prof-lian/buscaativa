@@ -165,7 +165,10 @@
             if(/^(TRANSFERID|TRANFERID)/.test(sv)) rec.situacao='TRANSFERIDO';
             else if(/^DOMICIL/.test(sv)) rec.situacao='DOMICILIAR';
           }
-          rec.transf=!!rec.situacao;
+          // transf = qualquer situação (como sempre foi, p/ não mudar os filtros do painel);
+          // domiciliar separado p/ o KPI "Atd. Domiciliar" do index.html (antes ficava sempre 0)
+          rec.transf=rec.situacao==='TRANSFERIDO';
+          rec.domiciliar=rec.situacao==='DOMICILIAR';
           rec.laudo=/laudo/.test(reclass);
           rec.termo=/assinad/.test(ass)||ass.indexOf('sim')===0||/assinad/.test(reclass);
           // devolutivas (texto do relato) por bimestre
