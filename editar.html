@@ -466,12 +466,17 @@ function falha(t){ $('msgGeral').innerHTML='<div class="erro">'+esc(t)+'</div>';
 function ouvirPlanilha(){
   $('tabs').classList.remove('hidden');
   var mk=String(S.user.email).toLowerCase().replace(/\./g,',');
-  db.ref('admins/'+mk).once('value').then(function(s){
-    S.admin=(s.val()===true); $('tabEdt').classList.toggle('hidden',!S.admin);
-    if(!S.admin) return;
+  // escuta (não só lê uma vez): quando o Apps Script publicar os admins, a aba aparece sozinha
+  db.ref('admins/'+mk).on('value',function(s){
+    var era=S.admin; S.admin=(s.val()===true); $('tabEdt').classList.toggle('hidden',!S.admin);
+    if(!S.admin || era) return;
     db.ref('editores').on('value',function(x){ S.edPub=x.val()||{}; if(S.tab==='edt') renderEdt(); });
-    db.ref('editores_extra').on('value',function(x){ S.edExtra=x.val()||{}; if(S.tab==='edt') renderEdt(); });
-  }).catch(function(){});
+    db.ref('editores_extra').on('value',function(x){ S.edExtra=x.val()||{}; if(S.tab==='edt') renderEdt(); },
+      function(e){ console.warn('editores_extra:',e); toast('Sem permissão para ler editores_extra: publique as regras novas do Firebase.',8000); });
+  },function(e){
+    console.warn('admins:',e);
+    toast('Aba Editores indisponível: as regras do Firebase ainda são as antigas (falta o nó "admins"). Publique o regras-firebase.json novo.',9000);
+  });
   db.ref('busca_ativa/geradoEm').on('value',function(s){
     var g=s.val();
     if(g===S.geradoEm && Object.keys(S.dados).length) return;
