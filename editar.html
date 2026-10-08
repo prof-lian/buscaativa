@@ -101,6 +101,18 @@ textarea{min-height:84px;resize:vertical}
 .login h2{font:600 22px "Fraunces",serif;margin:0 0 8px;color:var(--navy)}
 .login p{color:var(--muted);font-size:14px}
 .hidden{display:none!important}
+/* tabela Faltosos (cópia da Lista de alunos do painel) */
+.twrap{max-height:70vh;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+#tabFal{width:100%;border-collapse:collapse;font-size:13.5px}
+#tabFal th{position:sticky;top:0;background:var(--navy);color:#fff;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:9px 10px;font-weight:500;cursor:pointer;white-space:nowrap;z-index:1}
+#tabFal th.num,#tabFal td.num{text-align:center;font-variant-numeric:tabular-nums}
+#tabFal td{padding:8px 10px;border-bottom:1px solid var(--line)}
+#tabFal tbody tr:nth-child(even){background:#f7f9fc}
+#tabFal tbody tr:hover td{background:#eef2f8}
+#tabFal td.inj{font-weight:600}
+#tabFal td.inj.hi{color:var(--alert)}
+.seg#segFal{flex-wrap:wrap}
+@media (max-width:640px){ #tabFal th:nth-child(4),#tabFal td:nth-child(4),#tabFal th:nth-child(6),#tabFal td:nth-child(6),#tabFal th:nth-child(7),#tabFal td:nth-child(7){display:none} #tabFal{font-size:12.5px} #tabFal td,#tabFal th{padding:7px 6px} }
 /* ficha do aluno */
 .modal{position:fixed;inset:0;background:rgba(19,34,63,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:28px 16px 90px;overflow-y:auto}
 .mcard{background:var(--bg);border-radius:14px;max-width:860px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
@@ -144,7 +156,7 @@ textarea.auto{overflow:hidden}
     <button class="out hidden" id="bSair" type="button">Sair</button>
   </div>
   <nav class="tabs hidden" id="tabs">
-    <button class="tab" data-tab="dev" type="button">Devolutivas</button>
+    <button class="tab" data-tab="dev" type="button">Faltosos</button>
     <button class="tab" data-tab="sit" type="button">Situação<span class="lg"> dos alunos</span></button>
     <button class="tab" data-tab="sae" type="button"><span class="lg">Relatório </span>SAE<span class="n" id="nSae"></span></button>
     <button class="tab hidden" data-tab="edt" id="tabEdt" type="button">Editores</button>
@@ -173,7 +185,7 @@ textarea.auto{overflow:hidden}
 </div>
 
 <div class="wrap hidden" id="app">
-  <!-- DEVOLUTIVAS -->
+  <!-- FALTOSOS -->
   <section id="pDev">
     <div class="ctrls">
       <div><label for="sAno">Ano</label><select id="sAno"></select></div>
@@ -181,14 +193,19 @@ textarea.auto{overflow:hidden}
       <div><label for="sBim">Bimestre</label><select id="sBim"></select></div>
       <div><label for="q">Buscar aluno</label><input id="q" type="search" placeholder="Nome…"></div>
     </div>
+    <div class="sec" style="margin-top:6px">Faltosos</div>
+    <p class="hint" style="margin-top:0"><span id="lblFal"></span><span>Clique no nome para abrir a ficha e editar.</span></p>
     <div class="hint">
-      <span class="seg" id="segDev">
-        <button type="button" data-f="atencao">Com faltas ou acompanhamento</button>
-        <button type="button" data-f="todos">Todos</button>
+      <span class="seg" id="segFal">
+        <button type="button" data-af="todos">Todos</button>
+        <button type="button" data-af="com">Com acompanhamento</button>
+        <button type="button" data-af="sem">Sem contato</button>
+        <button type="button" data-af="graves">10+ faltas</button>
+        <button type="button" data-af="bilhete">Com bilhete</button>
       </span>
       <span id="cntDev"></span>
     </div>
-    <div class="lista" id="listaDev"><div class="load">Carregando…</div></div>
+    <div class="twrap"><table id="tabFal"></table></div>
   </section>
 
   <!-- SITUAÇÃO -->
@@ -399,7 +416,7 @@ var ANO_LBL = {'PRIMEIROS':'1º ano','SEGUNDOS':'2º ano','TERCEIROS':'3º ano',
 var BIM_LBL = {'1B':'1º bimestre','2B':'2º bimestre','3B':'3º bimestre','4B':'4º bimestre'};
 var CAMPO_LBL = {BIL:'Bilhete', BUS:'Busca ativa', SAE:'Encaminhado à SAE', RET:'Retorno da SAE', DEV:'Devolutiva da família', SIT:'Situação'};
 
-var S = {dados:{}, idx:{}, tab:'dev', aba:'', turma:'', bim:'', q:'', fDev:'atencao', aberto:null,
+var S = {dados:{}, idx:{}, tab:'dev', aba:'', turma:'', bim:'', q:'', alFiltro:'todos', ordCol:'faltas', ordDir:-1, aberto:null,
          qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
          draft:{}, fila:{}, conf:{}, erro:{}, ok:{}, user:null, geradoEm:null, salvando:false};
 var db, auth;
@@ -537,9 +554,9 @@ function carregarTudo(){
     S.dados=novo; S.idx=idx; S.alKey=alKey;
     var abas=ABAS.filter(function(a){return novo[a];});
     if(!abas.length){ falha('Não encontrei as abas dos anos iniciais no Firebase. Rode "sincronizar" na planilha.'); return; }
-    $('sAno').innerHTML=abas.map(function(a){return '<option value="'+esc(a)+'">'+esc(ANO_LBL[a]||a)+'</option>';}).join('');
+    $('sAno').innerHTML='<option value="">Todos os anos</option>'+abas.map(function(a){return '<option value="'+esc(a)+'">'+esc(ANO_LBL[a]||a)+'</option>';}).join('');
     $('saeAno').innerHTML='<option value="">Todos os anos</option>'+abas.map(function(a){return '<option value="'+esc(a)+'">'+esc(ANO_LBL[a]||a)+'</option>';}).join('');
-    if(abas.indexOf(S.aba)<0){ var la=lsGet('aba'); S.aba=abas.indexOf(la)>=0?la:abas[0]; }
+    if(S.aba && abas.indexOf(S.aba)<0) S.aba='';
     $('sAno').value=S.aba; $('saeAno').value=S.saeAno;
     var bimsTodos=bimsDe(abas.map(function(a){return novo[a];}));
     $('saeBim').innerHTML='<option value="">Todos</option>'+bimsTodos.bims.map(function(x){return '<option value="'+x+'">'+BIM_LBL[x]+'</option>';}).join('');
@@ -563,15 +580,19 @@ function bimsDe(ds){
   var bims=['1B','2B','3B','4B'].filter(function(b){return tem[b];});
   return {bims:bims, padrao:bims.filter(function(b){return comDado[b];}).pop()||bims[0]};
 }
+function cmpTurma(a,b){
+  var f=function(t){ var m=String(t).match(/(\d+)\s*º?\s*([A-Za-z]?)/); return (m?+m[1]:99)*100+((m&&m[2]?m[2].toUpperCase():'Z').charCodeAt(0)); };
+  return f(a)-f(b) || String(a).localeCompare(String(b));
+}
 function montarFiltros(){
-  var d=S.dados[S.aba]; if(!d) return;
-  var ts=d.turmas.map(function(t){return t.turma;});
-  if(ts.indexOf(S.turma)<0){ var lt=lsGet('turma'); S.turma=(ts.indexOf(lt)>=0)?lt:ts[0]; }
-  $('sTurma').innerHTML=ts.map(function(t){return '<option>'+esc(t)+'</option>';}).join('');
+  var ts=[]; ABAS.forEach(function(a){ if(S.aba && a!==S.aba) return; var d=S.dados[a]; if(!d) return; d.turmas.forEach(function(t){ if(ts.indexOf(t.turma)<0) ts.push(t.turma); }); });
+  ts.sort(cmpTurma);
+  if(S.turma && ts.indexOf(S.turma)<0) S.turma='';
+  $('sTurma').innerHTML='<option value="">Todas as turmas'+(S.aba?' do '+ANO_LBL[S.aba]:'')+'</option>'+ts.map(function(t){return '<option>'+esc(t)+'</option>';}).join('');
   $('sTurma').value=S.turma;
-  var b=bimsDe([d]);
-  if(b.bims.indexOf(S.bim)<0){ var lb=lsGet('bim'); S.bim=(b.bims.indexOf(lb)>=0)?lb:b.padrao; }
-  $('sBim').innerHTML=b.bims.map(function(x){return '<option value="'+x+'">'+BIM_LBL[x]+'</option>';}).join('');
+  var b=bimsDe(ABAS.filter(function(a){return S.dados[a];}).map(function(a){return S.dados[a];}));
+  if(S.bim && b.bims.indexOf(S.bim)<0) S.bim='';
+  $('sBim').innerHTML='<option value="">Ano todo</option>'+b.bims.map(function(x){return '<option value="'+x+'">'+BIM_LBL[x]+'</option>';}).join('');
   $('sBim').value=S.bim;
 }
 
@@ -604,44 +625,63 @@ function sitDe(al){
   return /^(transferid|tranferid)/.test(t)?'T':(/^domicil/.test(t)?'D':'A');
 }
 
-/* ===== aba Devolutivas ===== */
+/* ===== aba Faltosos (cópia da "Lista de alunos" do painel, mas clicável para editar) ===== */
 function alunoDirty(al){ return sujos().some(function(id){ var x=S.idx[id]; return x && x.al===al; }); }
-function renderDev(){
-  var d=S.dados[S.aba]; if(!d) return;
-  var t=d.turmas.filter(function(x){return x.turma===S.turma;})[0];
-  if(!t){ $('listaDev').innerHTML='<div class="vazio">Turma não encontrada.</div>'; return; }
-  var q=low(S.q), bi=S.bim;
-  var ativos=t.alunos.filter(function(al){ return sitDe(al)!=='T'; });
-  var lista=ativos.filter(function(al){
-    if(q && low(al.nome).indexOf(q)<0) return false;
-    if(S.fDev==='todos' || q || S.aberto===al.aba+'|'+al.r || alunoDirty(al)) return true;
-    var o=al.b[bi]||{};
-    return num(o.INJ)>0 || ED_ROLES_EDIT.some(function(k){ return o[k] && temAcao(o[k].v); });
+function bimsSel(){ return S.bim? [S.bim] : ['1B','2B','3B','4B']; }
+function vals(al){
+  var f=0,a=0,i=0, bil=0, sae=0, bus=0, dev=false;
+  bimsSel().forEach(function(bi){
+    var o=al.b[bi]; if(!o) return;
+    var ff=num(o.FAL), aa=num(o.ATE), ii=(o.INJ!=null && String(o.INJ).trim()!=='')? num(o.INJ) : Math.max(ff-aa,0);
+    f+=ff; a+=aa; i+=Math.max(ii,0);
+    var v=function(k){ var id=fieldId(al,bi,k); return id? valor(id) : ''; };
+    if(temAcao(v('BIL'))) bil++;
+    if(/^sim/.test(low(v('SAE')))) sae++;
+    var dv=v('DEV'); if(temAcao(v('BUS')) || (temAcao(dv) && dv.length>3)) bus++;
+    if(temAcao(dv) && dv.length>3) dev=true;
   });
-  [].forEach.call($('segDev').children,function(b){ b.classList.toggle('on', b.getAttribute('data-f')===S.fDev); });
-  $('cntDev').textContent=lista.length+' de '+ativos.length+' alunos'+(S.fDev==='atencao'&&!q?' · com faltas injustificadas ou acompanhamento':'');
-  if(!lista.length){ $('listaDev').innerHTML='<div class="vazio">'+(S.fDev==='atencao'?'Nenhum aluno com faltas injustificadas ou acompanhamento neste bimestre. Clique em "Todos" para ver a turma inteira.':'Nenhum aluno encontrado.')+'</div>'; return; }
-  $('listaDev').innerHTML=lista.map(function(al){
-    var k=al.aba+'|'+al.r, aberto=(S.aberto===k), o=al.b[bi]||{};
-    var tags=[];
-    if(num(o.INJ)>0) tags.push('<span class="tag'+(num(o.INJ)>=10?' hi':'')+'">'+num(o.INJ)+' injust.</span>');
-    if(sitDe(al)==='D') tags.push('<span class="tag d">Domiciliar</span>');
-    [['BIL','Bilhete'],['BUS','Busca'],['SAE','SAE']].forEach(function(p){ var id=fieldId(al,bi,p[0]); if(id && temAcao(valor(id))) tags.push('<span class="tag ok x">'+p[1]+' ✓</span>'); });
-    var did=fieldId(al,bi,'DEV');
-    if(did && temAcao(valor(did)) && valor(did).length>3) tags.push('<span class="tag ok">Devolutiva ✓</span>');
-    if(alunoDirty(al)) tags.push('<span class="tag dirty">não salvo</span>');
-    var det='';
-    if(false){
-      var fs=[];
-      if(did) fs.push(campo(did,'Devolutiva da família',{wide:true,chips:['data'],ph:'Ex.: 08/10: conversei com a mãe, disse que a criança estava doente e volta segunda.'}));
-      else fs.push('<div class="f wide st">Este bimestre não tem coluna de devolutiva na planilha.</div>');
-      [['BIL','Bilhete'],['BUS','Busca ativa'],['SAE','Encaminhado à SAE']].forEach(function(p){ var id=fieldId(al,bi,p[0]); if(id) fs.push(campo(id,p[1],{chips:['sim','nao']})); });
-      det='<div class="det"><div class="fields">'+fs.join('')+'</div></div>';
-    }
-    return '<div class="row" data-ficha="'+esc(k)+'" title="Abrir ficha completa"><div class="nm">'+esc(al.nome)+
-      (o.FAL!=null?'<small>Faltas '+esc(o.FAL||'0')+' · Atestados '+esc(o.ATE||'0')+'</small>':'')+
-      '</div><div class="tags">'+tags.join('')+'</div><span class="chev">›</span></div>';
-  }).join('');
+  return {f:f,a:a,i:i,bil:bil,sae:sae,bus:bus,dev:dev,acomp:(bil+sae+bus)>0};
+}
+function renderDev(){
+  var lista=todosAlunos(S.aba).filter(function(al){ return !S.turma || al.turma===S.turma; });
+  var lbl=(S.turma?'Turma '+S.turma:(S.aba?ANO_LBL[S.aba]+', todas as turmas':'Todos os anos e turmas'))+' · '+(S.bim?BIM_LBL[S.bim]:'ano todo');
+  $('lblFal').textContent=lbl;
+  var linhas=lista.map(function(al){ return {al:al, v:vals(al), st:sitDe(al)}; });
+  var q=low(S.q);
+  linhas=linhas.filter(function(x){
+    if(q && low(x.al.nome).indexOf(q)<0) return false;
+    if(S.alFiltro==='com') return x.v.acomp;
+    if(S.alFiltro==='sem') return !x.v.acomp;
+    if(S.alFiltro==='graves') return x.v.i>=10;
+    if(S.alFiltro==='bilhete') return x.v.bil>0;
+    return true;
+  });
+  var oc=S.ordCol, dir=S.ordDir;
+  linhas.sort(function(A,B){
+    if(oc==='nome') return low(A.al.nome).localeCompare(low(B.al.nome))*dir;
+    if(oc==='turma') return (cmpTurma(A.al.turma,B.al.turma)||low(A.al.nome).localeCompare(low(B.al.nome)))*dir;
+    var x=oc==='atest'?A.v.a:(oc==='inj'?A.v.i:A.v.f), y=oc==='atest'?B.v.a:(oc==='inj'?B.v.i:B.v.f);
+    return (x-y)*dir || (B.v.i-A.v.i) || low(A.al.nome).localeCompare(low(B.al.nome));
+  });
+  [].forEach.call($('segFal').children,function(b){ b.classList.toggle('on', b.getAttribute('data-af')===S.alFiltro); });
+  $('cntDev').textContent=linhas.length+' alunos';
+  var ar=function(c){ return S.ordCol===c? (S.ordDir<0?' ▼':' ▲') : ''; };
+  var head='<thead><tr><th data-sort="nome">Nome'+ar('nome')+'</th><th data-sort="turma" style="text-align:center">Turma'+ar('turma')+'</th>'+
+    '<th class="num" data-sort="faltas">Faltas'+ar('faltas')+'</th><th class="num" data-sort="atest">Atest.'+ar('atest')+'</th>'+
+    '<th class="num" data-sort="inj">Injust.'+ar('inj')+'</th><th>Tratativas</th><th style="text-align:center">Devol. da família</th></tr></thead>';
+  if(!linhas.length){ $('tabFal').innerHTML=head+'<tbody><tr><td colspan="7" class="vazio">Nenhum aluno com esses filtros.</td></tr></tbody>'; return; }
+  $('tabFal').innerHTML=head+'<tbody>'+linhas.map(function(x){
+    var al=x.al, v=x.v, trat=[];
+    if(x.st==='T') trat.push('<span style="color:var(--alert);font-weight:600">TRANSFERIDO</span>');
+    else if(x.st==='D') trat.push('<span style="color:var(--gold);font-weight:600">DOMICILIAR</span>');
+    else { if(v.bil) trat.push('Bilhete'); if(v.sae) trat.push('SAE'); if(v.bus) trat.push('Ligação'); }
+    var dev= x.st!=='A' ? '<span style="color:#c2cfde">—</span>'
+      : (v.dev? '<span style="color:var(--green);font-size:16px;font-weight:bold" title="Família respondeu">✔</span>'
+              : '<span style="color:var(--alert);font-size:16px;font-weight:bold" title="Sem retorno familiar">✖</span>');
+    return '<tr><td><span class="nmlink" data-ficha="'+esc(al.aba+'|'+al.r)+'">'+esc(al.nome)+'</span>'+(alunoDirty(al)?' <span class="tag dirty">não salvo</span>':'')+'</td>'+
+      '<td style="text-align:center">'+esc(al.turma)+'</td><td class="num">'+v.f+'</td><td class="num">'+v.a+'</td>'+
+      '<td class="num inj'+(v.i>=10?' hi':'')+'">'+v.i+'</td><td>'+(trat.join(', ')||'—')+'</td><td style="text-align:center">'+dev+'</td></tr>';
+  }).join('')+'</tbody>';
 }
 
 /* ===== aba Situação ===== */
@@ -888,16 +928,17 @@ document.addEventListener('click',function(e){
   if(ss){ var sid=ss.parentNode.getAttribute('data-sit'); setDraft(sid, novoValorSit(sid, ss.getAttribute('data-v'))); render(); return; }
   var u=e.target.closest('[data-usar]');
   if(u){ var id2=u.getAttribute('data-usar'); S.idx[id2].f.v=S.conf[id2]; delete S.draft[id2]; delete S.conf[id2]; render(); return; }
-  var sd=e.target.closest('#segDev button'); if(sd){ S.fDev=sd.getAttribute('data-f'); render(); return; }
+  var sf=e.target.closest('#segFal button'); if(sf){ S.alFiltro=sf.getAttribute('data-af'); render(); return; }
+  var th=e.target.closest('#tabFal th[data-sort]'); if(th){ var c=th.getAttribute('data-sort'); if(S.ordCol===c) S.ordDir=-S.ordDir; else { S.ordCol=c; S.ordDir=(c==='nome'||c==='turma')?1:-1; } render(); return; }
   var sa=e.target.closest('#segSae button'); if(sa){ S.fSae=sa.getAttribute('data-f'); render(); return; }
   var fk=e.target.closest('[data-ficha]'); if(fk){ abrirFicha(fk.getAttribute('data-ficha')); return; }
   var ab=e.target.closest('[data-abrir]');
   if(ab && !e.target.closest('.det')){ var k=ab.getAttribute('data-abrir'); S.aberto=(S.aberto===k?null:k); render();
     if(S.aberto){ var ta=ab.nextElementSibling && ab.nextElementSibling.querySelector('textarea'); if(ta && !ta.value) ta.focus(); } }
 });
-$('sAno').onchange=function(){ S.aba=this.value; lsSet('aba',S.aba); S.turma=''; S.aberto=null; montarFiltros(); render(); };
-$('sTurma').onchange=function(){ S.turma=this.value; lsSet('turma',S.turma); S.aberto=null; render(); window.scrollTo(0,0); };
-$('sBim').onchange=function(){ S.bim=this.value; lsSet('bim',S.bim); render(); };
+$('sAno').onchange=function(){ S.aba=this.value; S.turma=''; montarFiltros(); render(); };
+$('sTurma').onchange=function(){ S.turma=this.value; render(); };
+$('sBim').onchange=function(){ S.bim=this.value; render(); };
 $('q').oninput=function(){ S.q=this.value; render(); };
 $('qSit').oninput=function(){ S.qSit=this.value; render(); };
 $('saeAno').onchange=function(){ S.saeAno=this.value; render(); };
