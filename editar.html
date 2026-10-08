@@ -101,6 +101,31 @@ textarea{min-height:84px;resize:vertical}
 .login h2{font:600 22px "Fraunces",serif;margin:0 0 8px;color:var(--navy)}
 .login p{color:var(--muted);font-size:14px}
 .hidden{display:none!important}
+/* ficha do aluno */
+.modal{position:fixed;inset:0;background:rgba(19,34,63,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:28px 16px 90px;overflow-y:auto}
+.mcard{background:var(--bg);border-radius:14px;max-width:860px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.mhead{background:var(--navy);color:#fff;border-radius:14px 14px 0 0;padding:18px 20px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;position:sticky;top:-28px;z-index:2}
+.mhead h3{font:600 21px "Fraunces",serif;margin:0}
+.mhead .sub{font-size:12px;opacity:.75;margin-top:2px}
+.mhead button{font-family:inherit;font-size:13px;background:transparent;color:#fff;border:1px solid #ffffff55;border-radius:8px;padding:6px 12px;cursor:pointer}
+.mbody{padding:16px 20px 22px}
+.mtags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.mtags .tag{font-size:12px;padding:3px 10px}
+.msit{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.msit b{font-size:13px;color:var(--navy2)}
+.minfo{font-size:13px;color:var(--muted);background:#fffdf5;border:1px dashed var(--gold);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.bimcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.bimcard.atual{border-color:var(--navy2);box-shadow:0 0 0 2px #1d315822}
+.bimcard h4{font:600 16px "Fraunces",serif;color:var(--navy);margin:0;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.bimcard h4 small{font:400 12.5px "IBM Plex Sans",sans-serif;color:var(--muted)}
+.bimcard h4 small b{color:var(--ink)}
+.bimcard .fields{grid-template-columns:repeat(3,1fr)}
+.bimcard .vazio2{font-size:12px;color:var(--muted);font-style:italic;margin-top:4px}
+.nmlink{cursor:pointer;color:var(--navy2);text-decoration:underline;text-decoration-color:#1d315840;text-underline-offset:3px}
+.nmlink:hover{text-decoration-color:var(--navy2)}
+textarea.auto{overflow:hidden}
+.bar{z-index:60}
+@media (max-width:640px){ .modal{padding:0} .mcard{border-radius:0;min-height:100%} .mhead{border-radius:0;top:0} .bimcard .fields{grid-template-columns:1fr} }
 @media (max-width:640px){
   .ctrls{grid-template-columns:1fr 1fr}
   .fields{grid-template-columns:1fr}
@@ -219,6 +244,13 @@ textarea{min-height:84px;resize:vertical}
   </section>
 </div>
 <div class="wrap" id="msgGeral"></div>
+
+<div class="modal hidden" id="ficha" role="dialog" aria-modal="true">
+  <div class="mcard">
+    <div class="mhead"><div><h3 id="fNome"></h3><div class="sub" id="fSub"></div></div><button type="button" id="fFechar">Fechar</button></div>
+    <div class="mbody" id="fCorpo"></div>
+  </div>
+</div>
 
 <div class="bar" id="bar"><div class="in">
   <span id="barTxt"></span>
@@ -486,7 +518,7 @@ function ouvirPlanilha(){
 function carregarTudo(){
   db.ref('busca_ativa/sheets').once('value').then(function(s){
     var sheets=s.val()||[]; if(!Array.isArray(sheets)) sheets=Object.keys(sheets).map(function(k){return sheets[k];});
-    var novo={}, idx={};
+    var novo={}, idx={}, alKey={};
     sheets.forEach(function(sh){
       if(!sh || ABAS.indexOf(sh.name)<0) return;
       var V=(sh.values||[]).map(function(r){ return Array.isArray(r)? r : (r? Object.keys(r).reduce(function(a,k){a[+k]=r[k];return a;},[]) : []); });
@@ -494,7 +526,7 @@ function carregarTudo(){
       var turmas=edMapaAba_(V);
       novo[sh.name]={aba:sh.name, turmas:turmas};
       turmas.forEach(function(t){ t.alunos.forEach(function(al){
-        al.aba=sh.name; al.turma=t.turma;
+        al.aba=sh.name; al.turma=t.turma; alKey[sh.name+'|'+al.r]=al;
         if(al.sit) idx[fid(sh.name,al.r,al.sit.c)]={aba:sh.name,turma:t.turma,al:al,bim:'',campo:'SIT',f:al.sit};
         Object.keys(al.b).forEach(function(bi){
           ED_ROLES_EDIT.forEach(function(k){ var f=al.b[bi][k]; if(f) idx[fid(sh.name,al.r,f.c)]={aba:sh.name,turma:t.turma,al:al,bim:bi,campo:k,f:f}; });
@@ -502,7 +534,7 @@ function carregarTudo(){
       }); });
     });
     Object.keys(S.draft).forEach(function(id){ if(!idx[id]){ delete S.draft[id]; toast('Uma alteração foi descartada: a estrutura da planilha mudou.',6000); } });
-    S.dados=novo; S.idx=idx;
+    S.dados=novo; S.idx=idx; S.alKey=alKey;
     var abas=ABAS.filter(function(a){return novo[a];});
     if(!abas.length){ falha('Não encontrei as abas dos anos iniciais no Firebase. Rode "sincronizar" na planilha.'); return; }
     $('sAno').innerHTML=abas.map(function(a){return '<option value="'+esc(a)+'">'+esc(ANO_LBL[a]||a)+'</option>';}).join('');
@@ -552,7 +584,7 @@ function campo(id, lbl, opts){
     var t={sim:'Sim, hoje',nao:'Não',data:'+ data de hoje'}[c];
     return '<button type="button" class="chip" data-chip="'+c+'" data-id="'+esc(id)+'">'+t+'</button>';
   }).join('');
-  var inp= opts.wide ? '<textarea data-id="'+esc(id)+'" placeholder="'+esc(opts.ph||'')+'">'+esc(v)+'</textarea>' : '<input type="text" data-id="'+esc(id)+'" value="'+esc(v)+'">';
+  var inp= opts.wide ? '<textarea'+(opts.auto?' class="auto"':'')+' data-id="'+esc(id)+'" placeholder="'+esc(opts.ph||'')+'">'+esc(v)+'</textarea>' : '<input type="text" data-id="'+esc(id)+'" value="'+esc(v)+'">';
   return '<div class="'+cls+'" data-fbox="'+esc(id)+'"><label>'+esc(lbl)+'<span class="chips">'+chips+'</span></label>'+inp+statusMsg(id)+'</div>';
 }
 function statusMsg(id){
@@ -599,16 +631,16 @@ function renderDev(){
     if(did && temAcao(valor(did)) && valor(did).length>3) tags.push('<span class="tag ok">Devolutiva ✓</span>');
     if(alunoDirty(al)) tags.push('<span class="tag dirty">não salvo</span>');
     var det='';
-    if(aberto){
+    if(false){
       var fs=[];
       if(did) fs.push(campo(did,'Devolutiva da família',{wide:true,chips:['data'],ph:'Ex.: 08/10: conversei com a mãe, disse que a criança estava doente e volta segunda.'}));
       else fs.push('<div class="f wide st">Este bimestre não tem coluna de devolutiva na planilha.</div>');
       [['BIL','Bilhete'],['BUS','Busca ativa'],['SAE','Encaminhado à SAE']].forEach(function(p){ var id=fieldId(al,bi,p[0]); if(id) fs.push(campo(id,p[1],{chips:['sim','nao']})); });
       det='<div class="det"><div class="fields">'+fs.join('')+'</div></div>';
     }
-    return '<div class="row'+(aberto?' open':'')+'" data-abrir="'+esc(k)+'"><div class="nm">'+esc(al.nome)+
+    return '<div class="row" data-ficha="'+esc(k)+'" title="Abrir ficha completa"><div class="nm">'+esc(al.nome)+
       (o.FAL!=null?'<small>Faltas '+esc(o.FAL||'0')+' · Atestados '+esc(o.ATE||'0')+'</small>':'')+
-      '</div><div class="tags">'+tags.join('')+'</div><span class="chev">'+(aberto?'▾':'▸')+'</span></div>'+det;
+      '</div><div class="tags">'+tags.join('')+'</div><span class="chev">›</span></div>';
   }).join('');
 }
 
@@ -623,7 +655,7 @@ function segSit(al){
 }
 function linhaSit(al){
   var id=sitId(al);
-  return '<div class="sitrow" data-fbox="'+esc(id||'')+'"><div class="nm">'+esc(al.nome)+'<small>'+esc(al.turma)+' · '+esc(ANO_LBL[al.aba])+
+  return '<div class="sitrow" data-fbox="'+esc(id||'')+'"><div class="nm"><span class="nmlink" data-ficha="'+esc(al.aba+'|'+al.r)+'">'+esc(al.nome)+'</span><small>'+esc(al.turma)+' · '+esc(ANO_LBL[al.aba])+
     (id && temAcao(orig(id))?' · planilha: "'+esc(orig(id))+'"':'')+'</small></div>'+
     (id && (id in S.draft)?'<span class="tag dirty">não salvo</span>':'')+segSit(al)+(id?statusMsg(id):'')+'</div>';
 }
@@ -671,7 +703,7 @@ function renderSae(){
   if(!lista.length){ $('listaSae').innerHTML='<div class="card vazio">'+(S.fSae==='pend'?'Nenhum encaminhamento aguardando retorno. ✓':'Nenhum encaminhamento à SAE com esses filtros.')+'</div>'; return; }
   $('listaSae').innerHTML=lista.map(function(it){
     var al=it.al, s=sitDe(al);
-    return '<div class="card"><div class="top"><div class="nm">'+esc(al.nome)+'</div><div class="tags">'+
+    return '<div class="card"><div class="top"><div class="nm"><span class="nmlink" data-ficha="'+esc(al.aba+'|'+al.r)+'">'+esc(al.nome)+'</span></div><div class="tags">'+
       '<span class="tag">'+esc(al.turma)+'</span><span class="tag">'+bimNum(it.bi)+'</span>'+
       (s==='T'?'<span class="tag hi">Transferido</span>':'')+(s==='D'?'<span class="tag d">Domiciliar</span>':'')+'</div></div>'+
       '<div class="enc">Encaminhamento: <b>'+esc(orig(it.sid))+'</b></div>'+
@@ -685,6 +717,46 @@ function pendGlobal(){
     var sid=fieldId(al,bi,'SAE'), rid=fieldId(al,bi,'RET'); if(sid && temAcao(orig(sid)) && (!rid || !temAcao(orig(rid)))) n++; }); });
   return n;
 }
+
+/* ===== ficha completa do aluno (todos os bimestres, tudo editável) ===== */
+function abrirFicha(k){
+  if(!S.alKey || !S.alKey[k]) return;
+  S.fichaKey=k; renderFicha();
+  $('ficha').classList.remove('hidden'); document.body.style.overflow='hidden';
+  var at=$('fCorpo').querySelector('.bimcard.atual'); $('ficha').scrollTop=0;
+  if(at && S.tab==='dev') setTimeout(function(){ at.scrollIntoView({block:'start',behavior:'smooth'}); },60);
+}
+function fecharFicha(){ S.fichaKey=null; $('ficha').classList.add('hidden'); document.body.style.overflow=''; render(); }
+function renderFicha(){
+  var al=S.fichaKey && S.alKey && S.alKey[S.fichaKey]; if(!al){ if(S.fichaKey) fecharFicha(); return; }
+  var st=sitDe(al);
+  $('fNome').textContent=al.nome;
+  $('fSub').textContent=al.turma+' · '+(ANO_LBL[al.aba]||al.aba)+' · linha '+al.r+' da planilha'+(st==='T'?' · TRANSFERIDO':(st==='D'?' · DOMICILIAR':''));
+  var tf=0,ta=0,ti=0; Object.keys(al.b).forEach(function(bi){ var o=al.b[bi]; tf+=num(o.FAL); ta+=num(o.ATE); ti+=num(o.INJ); });
+  var h=[];
+  h.push('<div class="mtags"><span class="tag">Total de faltas: <b>'+tf+'</b></span><span class="tag hi">Injustificadas: '+ti+'</span><span class="tag ok">Atestados: '+ta+'</span></div>');
+  var sid=sitId(al);
+  h.push('<div class="msit"><b>Situação</b>'+segSit(al)+(sid?statusMsg(sid):'')+'</div>');
+  if(al.info) h.push('<div class="minfo"><b style="color:var(--gold)">Anotações gerais da planilha:</b> '+esc(al.info)+'</div>');
+  ['1B','2B','3B','4B'].forEach(function(bi){
+    var o=al.b[bi]; if(!o) return;
+    var temDado=num(o.FAL)||ED_ROLES_EDIT.some(function(k){ return o[k] && temAcao(valor(fid(al.aba,al.r,o[k].c))); });
+    var f=function(k,lbl,opts){ var id=fieldId(al,bi,k); return id? campo(id,lbl,opts) : ''; };
+    var curtos=f('BIL','Bilhete',{chips:['sim','nao']})+f('BUS','Busca ativa (ligação)',{chips:['sim','nao']})+f('SAE','Encaminhado à SAE',{chips:['sim','nao']});
+    var longos=f('DEV','Devolutiva da família',{wide:true,chips:['data'],ph:'O que a família disse…',auto:true})+f('RET','Retorno da SAE',{wide:true,chips:['data'],ph:'Retorno da SAE…',auto:true});
+    h.push('<div class="bimcard'+(bi===S.bim?' atual':'')+'" id="bim_'+bi+'"><h4>'+bi.charAt(0)+'º Bimestre'+
+      '<small>Faltas <b>'+esc(o.FAL||'0')+'</b> · Atestados <b>'+esc(o.ATE||'0')+'</b> · Injustificadas <b>'+esc(o.INJ||'0')+'</b></small></h4>'+
+      (temDado?'':'<div class="vazio2">Nada registrado neste bimestre ainda. Preencha abaixo se quiser.</div>')+
+      '<div class="fields">'+curtos+longos+'</div></div>');
+  });
+  $('fCorpo').innerHTML=h.join('');
+  autoAltura($('fCorpo'));
+}
+function autoAltura(raiz){ [].forEach.call(raiz.querySelectorAll('textarea.auto'),function(t){ t.style.height='auto'; t.style.height=Math.max(84,t.scrollHeight+2)+'px'; }); }
+$('fFechar').onclick=fecharFicha;
+$('ficha').addEventListener('click',function(e){ if(e.target===$('ficha')) fecharFicha(); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.fichaKey) fecharFicha(); });
+document.addEventListener('input',function(e){ if(e.target.classList && e.target.classList.contains('auto')){ e.target.style.height='auto'; e.target.style.height=Math.max(84,e.target.scrollHeight+2)+'px'; } });
 
 /* ===== aba Editores (só administradores) ===== */
 function chaveEmail(e){ return String(e).toLowerCase().trim().replace(/\./g,','); }
@@ -767,6 +839,12 @@ function irTab(t){
 }
 function render(){
   if(!Object.keys(S.dados).length) return;
+  var ae=document.activeElement, fId=ae&&ae.getAttribute&&ae.getAttribute('data-id'), selS=null, selE=null;
+  try{ selS=ae.selectionStart; selE=ae.selectionEnd; }catch(_){}
+  var fy=$('ficha').scrollTop;
+  if(S.fichaKey) renderFicha();
+  if(fId && !ae.classList.contains('chip')){ var n=document.querySelector('[data-id="'+CSS.escape(fId)+'"]:not(.chip)'); if(n && n!==ae){ n.focus(); try{ n.setSelectionRange(selS,selE); }catch(_){} } }
+  $('ficha').scrollTop=fy;
   if(S.tab==='dev') renderDev(); else if(S.tab==='sit') renderSit(); else if(S.tab==='sae') renderSae(); else renderEdt();
   $('nSae').textContent= pendGlobal() || '';
   atualizarBarra();
@@ -812,6 +890,7 @@ document.addEventListener('click',function(e){
   if(u){ var id2=u.getAttribute('data-usar'); S.idx[id2].f.v=S.conf[id2]; delete S.draft[id2]; delete S.conf[id2]; render(); return; }
   var sd=e.target.closest('#segDev button'); if(sd){ S.fDev=sd.getAttribute('data-f'); render(); return; }
   var sa=e.target.closest('#segSae button'); if(sa){ S.fSae=sa.getAttribute('data-f'); render(); return; }
+  var fk=e.target.closest('[data-ficha]'); if(fk){ abrirFicha(fk.getAttribute('data-ficha')); return; }
   var ab=e.target.closest('[data-abrir]');
   if(ab && !e.target.closest('.det')){ var k=ab.getAttribute('data-abrir'); S.aberto=(S.aberto===k?null:k); render();
     if(S.aberto){ var ta=ab.nextElementSibling && ab.nextElementSibling.querySelector('textarea'); if(ta && !ta.value) ta.focus(); } }
