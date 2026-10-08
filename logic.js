@@ -21,18 +21,8 @@
     if (s===''||s==='-'||s==='.') return null;
     var f=parseFloat(s); return isNaN(f)?null:f;
   }
-  
-  function isSim(v){ 
-    var t=norm(v).toLowerCase(); 
-    if(!t || t==='-' || t==='não' || t==='nao' || t==='falso') return false; 
-    return true; 
-  }
-  
-  function isSimStrict(v) {
-    var t = String(v||'').trim().toLowerCase();
-    return t.indexOf('sim') === 0;
-  }
-  
+  function isSim(v){ var t=low(v); return t.indexOf('sim')===0 || t.indexOf('realizad')===0; }
+  function isNao(v){ var t=low(v); return t.indexOf('não')===0 || t.indexOf('nao')===0; }
   function cap(s){ return norm(s).split(' ').map(function(w){return w.length>2? (w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()):w.toLowerCase();}).join(' '); }
 
   function datesIn(v){
@@ -44,10 +34,12 @@
     return out;
   }
 
+  // ---- parseia um payload em lista de registros de aluno + colunas de anotação por célula
   function parseStudents(payload){
     var recs=[];
     (payload.sheets||[]).forEach(function(sh){
       var sheet=sh.name, V=sh.values||[], notes=sh.notes||[];
+      // acha linhas de cabeçalho (célula == 'Nome')
       var headerRows=[];
       for(var r=0;r<V.length;r++){
         for(var c=0;c<(V[r]||[]).length;c++){
@@ -56,64 +48,73 @@
       }
       headerRows.push(V.length);
       for(var b=0;b<headerRows.length-1;b++){
-        var hr=headerRows[b], end=headerRows[b+1]-1; 
+        var hr=headerRows[b], end=headerRows[b+1]-1; // end = linha do título do próximo bloco
+        // turma: procura em coluna 0 subindo de hr-1
         var turma=null;
         for(var rr=hr-1; rr>=Math.max(0,hr-2); rr--){ if(norm(V[rr] && V[rr][0])){ turma=norm(V[rr][0]); break; } }
         if(!turma) continue;
-        
-        var band={}, cur=null, titleRow=V[hr-1]||[];
-        for(var c2=0;c2<titleRow.length;c2++){
-          var tv=up(titleRow[c2]);
-          if(tv.indexOf('BIMESTRE')>=0) cur=tv.charAt(0)+'B';
-          else if(tv.indexOf('TOTAL')>=0) cur='TOT';
-          band[c2]=cur;
+        // Bimestres: a faixa de títulos acima do cabeçalho ("1ºBIMESTRE"...) está
+        // INCOMPLETA em várias turmas (ex.: 1ºA não tem "3º BIMESTRE"; 2ºF só tem o 1º).
+        // Por isso cada bimestre é detectado pelo CICLO de colunas: um novo bimestre
+        // começa em "Qt. Faltas". O título, quando existe, define o número; quando
+        // falta, vale o bimestre anterior + 1. A faixa TOTAL encerra a leitura.
+        // (Mesma lógica do leitor edMapaAba_ do editar.html / Codigo-Edicoes.gs.)
+        var titleRow=V[hr-1]||[], head=V[hr]||[], cols={}, meta={}, infoCols=[];
+        var groups=[], g=null, prevRole=null;
+        function roleDe(h){
+          if(h.indexOf('busca ativa')===0) return 'BUS';
+          if(h.indexOf('devolutiv')===0) return 'DEV';
+          if(h.indexOf('encaminhado')===0) return 'SAE';
+          if(h.indexOf('retorno')===0) return 'RET';
+          if(h.indexOf('bilhete')===0) return 'BIL';
+          if(h.indexOf('faltas injust')>=0) return 'INJ';
+          if(/^(qt\.?\s*)?(de\s+)?atestado/.test(h)) return 'ATE';
+          if(/^(qt\.?\s*)?(de\s+)?faltas?\b/.test(h)) return 'FAL';
+          return null;
         }
-        
-        var head=V[hr]||[], cols={}, meta={};
-        function set(bd,role,c){ (cols[bd]=cols[bd]||{})[role]=c; }
-        var seq={BUS:0,SAE:0,RET:0,DEV:0,BIL:0,FBIM:0,INJ:0,ATE:0};
-        var ordBim=['1B','2B','3B','4B'];
-        
-        function bimDe(bd, role) {
-          var i = seq[role] || 0;
-          var expected = ordBim[i] || '4B';
-          if (bd && /^[1-4]B$/.test(bd)) {
-            if (!cols[bd] || cols[bd][role] == null) {
-              return bd;
-            }
-          }
-          if (bd === 'TOT') return 'TOT';
-          return expected;
-        }
-
         for(var c3=0;c3<head.length;c3++){
-          var h=low(head[c3]); if(!h) continue; var bd=band[c3]||'';
-          if(h==='nome') meta.NOME=c3;
-          else if(h==='código'||h==='codigo') meta.COD=c3;
-          else if(h.indexOf('situa')===0) meta.SITUACAO=c3;
-          else if(h.indexOf('reclassifica')===0) meta.RECLASS=c3;
-          else if(h.indexOf('assinatura')===0) meta.ASSIN=c3;
-          else if(h.indexOf('data matr')===0) meta.MATRIC=c3;
-          else if(h.indexOf('órgão')>=0 || h.indexOf('orgao')>=0 || h.indexOf('externo')>=0 || h.indexOf('acompanha')>=0){ meta.ORGAO=c3; }
-          else if(h.indexOf('busca ativa')===0){ set(bimDe(bd,'BUS'),'BUS',c3); seq.BUS++; }
-          else if(h.indexOf('devolutiv')===0 || h.indexOf('decolutiv')===0 || h.indexOf('evolutiv')===0){ set(bimDe(bd,'DEV'),'DEV',c3); seq.DEV++; }
-          else if(h.indexOf('encaminhado')===0){ set(bimDe(bd,'SAE'),'SAE',c3); seq.SAE++; }
-          else if(h.indexOf('retorno')===0){ set(bimDe(bd,'RET'),'RET',c3); seq.RET++; }
-          else if(h.indexOf('bilhete')===0){ set(bimDe(bd,'BIL'),'BIL',c3); seq.BIL++; }
-          else if(h.indexOf('qt. faltas injust')===0 || h.indexOf('faltas injust')===0){ set(bimDe(bd,'INJ'),'INJ',c3); seq.INJ++; }
-          else if(/^(qt\.?\s*)?(de\s+)?atestado/.test(h)){ set(bimDe(bd,'ATE'),'ATE',c3); seq.ATE++; }
-          else if(/^(qt\.?\s*)?faltas?\s*(no\s*)?\d\s*[°º]?\s*bim/.test(h)){ set(bimDe(bd,'FBIM'),'FBIM',c3); seq.FBIM++; }
-          else if(/^(qt\.?\s*)?(de\s+)?faltas/.test(h)){ set(bd||'','FCOL',c3); }
+          var tv=up(titleRow[c3]), lab=null;
+          if(tv.indexOf('TOTAL')===0) break;
+          if(tv.indexOf('BIMESTRE')>=0){ var mm=tv.match(/(\d)/); if(mm) lab=+mm[1]; }
+          var h=low(head[c3]);
+          var role=h? roleDe(h) : null;
+          if(!role){
+            if(!g){
+              if(h==='nome') meta.NOME=c3;
+              else if(h==='código'||h==='codigo') meta.COD=c3;
+              else if(h.indexOf('situa')===0||h.indexOf('status')===0) meta.SITUACAO=c3;
+              else if(h.indexOf('reclassifica')===0) meta.RECLASS=c3;
+              else if(h.indexOf('assinatura')===0) meta.ASSIN=c3;
+              else if(h.indexOf('data matr')===0) meta.MATRIC=c3;
+              if(meta.NOME!=null && c3>meta.NOME && h.indexOf('data matr')!==0) infoCols.push(c3);
+            } else if(lab!=null && g.lab==null) g.lab=lab;
+            prevRole=null; continue;
+          }
+          var nova = !g || (lab!=null && g.lab!=null && lab!==g.lab) ||
+                     (role==='FAL' && prevRole!=='FAL') || (role!=='FAL' && g.cols[role]!=null);
+          if(nova){ g={lab:null, cols:{}}; groups.push(g); }
+          if(lab!=null && g.lab==null) g.lab=lab;
+          if(role==='FAL'){
+            // "Qt. faltas 3º bimestre" = faltas do próprio bimestre (FBIM);
+            // outra coluna de faltas (ex.: "(relatório)") = FCOL
+            if(/^(qt\.?\s*)?faltas?\s*(no\s*)?\d\s*[°º]?\s*bim/.test(h)) g.cols.FBIM=c3; else g.cols.FCOL=c3;
+          } else g.cols[role]=c3;
+          prevRole=role;
         }
+        var prevBim=0;
+        groups.forEach(function(gr){ var n=gr.lab||(prevBim+1); prevBim=n; if(n>=1&&n<=4) cols[n+'B']=gr.cols; });
         if(meta.NOME==null) continue;
-        
+        // coluna logo após o Nome costuma ser Situação/Reclassificação (onde vai "TRANSFERIDO"),
+        // mesmo quando o cabeçalho está em branco. Captura como SITU2 se não for já conhecida.
+        var apos=meta.NOME+1;
+        var conhecidas={}; conhecidas[meta.COD]=1; conhecidas[meta.RECLASS]=1; conhecidas[meta.ASSIN]=1; conhecidas[meta.MATRIC]=1; conhecidas[meta.SITUACAO]=1;
+        if(!conhecidas[apos]) meta.SITU2=apos;
         for(var r2=hr+1;r2<=end;r2++){
           var row=V[r2]; if(!row) continue;
           var nome=norm(row[meta.NOME]); if(!nome) continue;
-          var rec={sheet:sheet, ano:LBL[sheet], seg:SEG[sheet], turma:turma, linha:r2+1, nome:nome, nomeChave:up(nome), cells:{}, notas:[]};
-          
-          ['COD','RECLASS','ASSIN','MATRIC','SITUACAO','ORGAO'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
-          
+          var rec={sheet:sheet, ano:LBL[sheet], seg:SEG[sheet], turma:turma, linha:r2+1, nome:nome, nomeChave:up(nome),
+                   cells:{}, notas:[]};
+          ['COD','RECLASS','ASSIN','MATRIC','SITUACAO','SITU2'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
           ['1B','2B','3B','4B'].forEach(function(bi){
             var cc=cols[bi]||{};
             var fbim = cc.FBIM!=null? num(row[cc.FBIM]) : null;
@@ -121,23 +122,13 @@
             var ate  = cc.ATE!=null?  num(row[cc.ATE])  : null;
             var inj  = cc.INJ!=null?  num(row[cc.INJ])  : null;
             var duplo = (cc.FBIM!=null && cc.FCOL!=null);
-            var faltas = fbim!=null? fbim : fcol;
-            
-            // DEDUÇÃO DE FALTAS: Se faltas estiver vazio mas atestado/injust possuir valor, ele descobre as faltas
-            if (faltas == null && (inj != null || ate != null)) {
-                faltas = (inj || 0) + (ate || 0);
-            }
-            
-            // VERDADE MATEMÁTICA ABSOLUTA: Ignora a coluna de "Injustificadas". 
-            // Injustificada é sempre Faltas menos Atestado. Ponto final.
-            var injustReal = null;
-            if (faltas != null) {
-                injustReal = Math.max(0, faltas - (ate || 0));
-            }
-            
-            rec[bi+'_f']=faltas; 
-            rec[bi+'_a']=ate;
-            rec[bi+'_i']=injustReal;
+            var faltas = fbim!=null? fbim : fcol;   // se há coluna do próprio bimestre, usa ela; senão a única
+            var injust;
+            if(inj!=null) injust = inj;             // coluna "Faltas injustificadas" existe -> ela manda
+            else if(faltas!=null) injust = faltas-(ate||0);
+            else injust = null;
+            rec[bi+'_f']=faltas; rec[bi+'_a']=ate;
+            rec[bi+'_i']= injust!=null? Math.max(injust,0):null;
             rec[bi+'_acum']= duplo? fcol : null;
             rec[bi+'_BUS']= cc.BUS!=null? norm(row[cc.BUS]):'';
             rec[bi+'_SAE']= cc.SAE!=null? norm(row[cc.SAE]):'';
@@ -145,58 +136,44 @@
             rec[bi+'_DEV']= cc.DEV!=null? norm(row[cc.DEV]):'';
             rec[bi+'_BIL']= cc.BIL!=null? norm(row[cc.BIL]):'';
           });
-          
+          // notas de célula desta linha -> anexa com o header da coluna
           if(notes && notes[r2]){
             for(var cn=0;cn<notes[r2].length;cn++){
               var nt=norm(notes[r2][cn]);
               if(nt){ rec.notas.push({coluna:norm(head[cn])||('col'+cn), texto:nt}); }
             }
           }
-          
+          // flags derivadas
           rec.busca1=isSim(rec['1B_BUS']); rec.busca2=isSim(rec['2B_BUS']);
           rec.busca3=isSim(rec['3B_BUS']); rec.busca4=isSim(rec['4B_BUS']);
           rec.buscaAny=rec.busca1||rec.busca2||rec.busca3||rec.busca4;
-          rec.saeAny=[1,2,3,4].some(function(i){return isSimStrict(rec[i+'B_SAE']);});
+          rec.saeAny=[1,2,3,4].some(function(i){return isSim(rec[i+'B_SAE']);});
           rec.retAny=[1,2,3,4].some(function(i){var t=low(rec[i+'B_RET']);return isSim(rec[i+'B_RET'])||t.indexOf('mail')>=0;});
-          
           var reclass=low(rec.RECLASS||''), ass=low(rec.ASSIN||'');
           rec.bilhete1=isSim(rec['1B_BIL'])||/bilhete/.test(low(rec['1B_BIL']));
           rec.bilhete2=isSim(rec['2B_BIL'])||/bilhete/.test(low(rec['2B_BIL']));
           rec.bilhete3=isSim(rec['3B_BIL'])||/bilhete/.test(low(rec['3B_BIL']));
           rec.bilhete4=isSim(rec['4B_BIL'])||/bilhete/.test(low(rec['4B_BIL']));
           rec.bilhete=rec.bilhete1||rec.bilhete2||rec.bilhete3||rec.bilhete4||/bilhete/.test(reclass);
-          
-          // CAPTURA ESTENDIDA DE TRANSFERIDOS: Vasculha até as colunas de Órgão Externo, Reclassificação e Situação (primeiras 30 colunas)
-          var earlyRowText = row.slice(0, 30).join(' ').toLowerCase();
-          var isTransfGeneral = /transferid[oa]/.test(earlyRowText);
-          var isDomiciliarGeneral = /domiciliar/.test(earlyRowText);
-          
-          rec.transf = isTransfGeneral;
-          rec.domiciliar = isDomiciliarGeneral;
-
+          // Situação: a planilha marca em colunas diferentes por turma (Situação/Status,
+          // coluna sem título, Reclassificação...). Vale qualquer célula de dados do aluno
+          // que COMECE com transferid/tranferid/domicil. ("contém" dava falso positivo,
+          // ex.: "UBS Beija Flor (visita domiciliar...)" em Acompanhamento Órgão Externo.)
+          rec.situacao='';
+          for(var si=0; si<infoCols.length && !rec.situacao; si++){
+            var sv=up(row[infoCols[si]]);
+            if(/^(TRANSFERID|TRANFERID)/.test(sv)) rec.situacao='TRANSFERIDO';
+            else if(/^DOMICIL/.test(sv)) rec.situacao='DOMICILIAR';
+          }
+          rec.transf=!!rec.situacao;
           rec.laudo=/laudo/.test(reclass);
           rec.termo=/assinad/.test(ass)||ass.indexOf('sim')===0||/assinad/.test(reclass);
-          
-          // CAPTURA INTELIGENTE DE RELATOS (Caso Rafael e Bernardo)
+          // devolutivas (texto do relato) por bimestre
           rec.devolutivas=[];
-          [1,2,3,4].forEach(function(i){ 
-              var d = rec[i+'B_DEV']; 
-              var b = rec[i+'B_BUS'];
-              
-              if(d && d.length > 3) {
-                  rec.devolutivas.push({bim:i, texto:d}); 
-              }
-              
-              // Remove limitação de 15 caracteres. Qualquer anotação descritiva na coluna de "Busca Ativa" 
-              // que não seja apenas "Sim" ou "Busca Ativa", vira Devolutiva da Família para não perder dados.
-              if(b && b.length > 5 && b.toLowerCase() !== 'busca ativa' && b.toLowerCase() !== 'sim' && b.toLowerCase() !== 'não') {
-                  rec.devolutivas.push({bim:i, texto:b});
-              }
-          });
-          
+          [1,2,3,4].forEach(function(i){ var d=rec[i+'B_DEV']; if(d && d.length>3) rec.devolutivas.push({bim:i, texto:d}); });
           rec.alcancado=rec.buscaAny||rec.bilhete||rec.saeAny;
           rec.contatos=[rec.busca1,rec.busca2,rec.busca3,rec.busca4,rec.bilhete,
-                        isSimStrict(rec['1B_SAE']),isSimStrict(rec['2B_SAE']),isSimStrict(rec['3B_SAE']),isSimStrict(rec['4B_SAE'])]
+                        isSim(rec['1B_SAE']),isSim(rec['2B_SAE']),isSim(rec['3B_SAE']),isSim(rec['4B_SAE'])]
                         .filter(Boolean).length;
           recs.push(rec);
         }
@@ -205,6 +182,7 @@
     return recs;
   }
 
+  // ---- vincula comentários (threaded) aos alunos por nome (quotedFileContent)
   function linkComments(recs, comments){
     var idx={};
     recs.forEach(function(r){ (idx[r.nomeChave]=idx[r.nomeChave]||[]).push(r); });
@@ -224,6 +202,7 @@
     return {vinculados:vinc, naoVinculados:naoVinc};
   }
 
+  // ---- notas de célula viram comentários vinculados (âncora perfeita)
   function notesAsComments(recs){
     var out=[];
     recs.forEach(function(r){
@@ -235,8 +214,11 @@
     return out;
   }
 
+  // ---- categoriza o motivo declarado a partir do texto
+  // Ordem importa: pistas específicas vêm antes da "questão familiar" genérica,
+  // senão "mãe"/"pai" capturam relatos que na verdade são de saúde, emoção etc.
   var MOTIVOS=[
-    ['Sem retorno / não localizado', /n[ãa]o atende|n[ãa]o localiz|n[úu]mero (errad|n[ãa]o)|sem retorno|n[ãa]o respond|caixa postal|desligad|correspond[êe]ncia volt|endere[çc]o n[ãa]o|chamou at[eé] cair|n[ãa]o existe/i],
+    ['Sem retorno / não localizado', /n[ãa]o atende|n[ãa]o localiz|n[úu]mero (errad|n[ãa]o)|sem retorno|n[ãa]o respond|caixa postal|desligad|correspond[êe]ncia volt|endere[çc]o n[ãa]o/i],
     ['Saúde mental / emocional', /ansiedad|depress|emocional|bullying|psic[óo]log|psiquiatr|medo|n[ãa]o quer (vir|ir)|desmotivad|recus|acompanhamento psic/i],
     ['Saúde / doença', /doen[çc]|gripe|febre|virose|hospital|m[eé]dic|internad|cirurgia|dor de|catapora|covid|dengue|consulta|atestad|convuls|crise/i],
     ['Transporte / distância', /transporte|[ôo]nibus|condu[çc][ãa]o|dist[âa]ncia|\blonge\b|carona|van escolar|passagem/i],
@@ -246,7 +228,6 @@
     ['Questão familiar', /fam[ií]li|m[ãa]e|\bpai\b|av[óo]|respons[áa]vel|irm[ãa]o|separa[çc]|guarda|conselho tutelar/i],
     ['Contato realizado', /contato realizad|conversad|orientad|compareceu|reuni[ãa]o|ciente|assinou|compromisso/i]
   ];
-  
   function classifyMotivo(texto){
     for(var i=0;i<MOTIVOS.length;i++){ if(MOTIVOS[i][1].test(texto)) return MOTIVOS[i][0]; }
     return 'Outro / não classificado';
@@ -261,6 +242,7 @@
     var comments=(payload.comments||[]);
     var lk=linkComments(recs, comments);
     var notas=notesAsComments(recs);
+    // anexa contagem de anotações ao aluno
     var porAluno={};
     lk.vinculados.concat(notas).forEach(function(c){
       var k=c.turma+'|'+(c.aluno||''); (porAluno[k]=porAluno[k]||[]).push(c);
@@ -288,7 +270,6 @@
       alunosRet: cnt(function(o){return o.retAny;}),
       termos: cnt(function(o){return o.termo;}),
       transf: cnt(function(o){return o.transf;}),
-      domiciliar: cnt(function(o){return o.domiciliar;}),
       laudos: cnt(function(o){return o.laudo;}),
       alcancados: cnt(function(o){return o.alcancado;}),
       npares: pares.length,
@@ -301,6 +282,7 @@
     A.acoesTotais = A.buscasAcoes + A.bilhetes + A.alunosSae + A.alunosRet;
     A.diasRecuperados = sum(pares,function(o){return Math.max(o['1B_i']-o['2B_i'],0);});
 
+    // por ano
     A.anos = ANO_ORDER.map(function(s){
       var g=recs.filter(function(o){return o.sheet===s;});
       var gp=pares.filter(function(o){return o.sheet===s;});
@@ -314,6 +296,7 @@
         mel: gp.filter(function(o){return o['2B_i']<o['1B_i'];}).length, np:gp.length};
     });
 
+    // por turma
     var chaves={}; recs.forEach(function(o){chaves[o.sheet+'||'+o.turma]=1;});
     A.turmas_tab=Object.keys(chaves).map(function(k){
       var p=k.split('||'), s=p[0], t=p[1];
@@ -328,6 +311,7 @@
         mel:gp.filter(function(o){return o['2B_i']<o['1B_i'];}).length, np:gp.length};
     }).sort(function(a,b){ return a.ord-b.ord || a.turma.localeCompare(b.turma); });
 
+    // comentários (notas + threaded), com motivo
     var todos = notas.concat(lk.vinculados).map(function(c){
       c.motivo=classifyMotivo(c.texto); return c;
     });
@@ -335,16 +319,18 @@
     A.comentarios = todos;
     A.comentariosNaoVinc = naoV;
     A.totalComentarios = todos.length + naoV.length;
+    // ranking de motivos (inclui não vinculados, pois o texto vale)
     var mc={};
     todos.concat(naoV).forEach(function(c){ mc[c.motivo]=(mc[c.motivo]||0)+1; });
     A.motivos = Object.keys(mc).map(function(k){return {motivo:k,n:mc[k]};})
                   .sort(function(a,b){return b.n-a.n;});
 
+    // lista de alunos enxuta pro dashboard
     A.alunos = recs.map(function(o){
       return {nome:cap(o.nome), turma:norm(o.turma).replace(/\s+/g,''), ano:o.ano,
         i1:o['1B_i'], i2:o['2B_i'], f1:o['1B_f'], f2:o['2B_f'],
         busca:o.buscaAny, bilhete:o.bilhete, sae:o.saeAny, termo:o.termo, ret:o.retAny,
-        transf:o.transf, domiciliar:o.domiciliar, laudo:o.laudo, contatos:o.contatos, qtdComentarios:o.qtdComentarios,
+        transf:o.transf, laudo:o.laudo, contatos:o.contatos, qtdComentarios:o.qtdComentarios,
         comentarios:o.comentarios.map(function(c){return {texto:c.texto, motivo:classifyMotivo(c.texto),
           fonte:c.fonte, celula:c.celula, autor:c.autor, data:c.data, resolvido:c.resolvido};})};
     });
