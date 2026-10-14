@@ -266,43 +266,6 @@ tbody tr:hover td{background:var(--paper-2)}
       <div class="legend"><span><i style="background:var(--line-2)"></i>Alunos monitorados</span><span><i style="background:var(--navy)"></i>Com acompanhamento</span></div>
     </div>
     
-    <!-- Quadro: Diário de Busca Ativa -->
-    <div class="panel wide">
-      <h2>Diário de Busca Ativa</h2>
-      <p class="note">Acompanhe 100% das ações listadas no contador global (ligações, bilhetes e SAE). Filtre por período ou tipo de ação para auditar o trabalho.</p>
-      
-      <div class="date-filter-box">
-        <div class="date-filter-group">
-            <span style="font-size:13px; color:var(--navy); font-weight:600">Período de:</span>
-            <select class="date-select" id="selDateStart"></select>
-        </div>
-        <div class="date-filter-group">
-            <span style="font-size:13px; color:var(--navy); font-weight:600; margin-left:8px">Até:</span>
-            <select class="date-select" id="selDateEnd"></select>
-        </div>
-        <div class="date-filter-group" style="margin-left:14px;">
-            <span style="font-size:13px; color:var(--navy); font-weight:600">Tratativa:</span>
-            <select class="date-select" id="selActionType">
-                <option value="Todas">Todas as ações</option>
-                <option value="Ligação">Ligação</option>
-                <option value="Bilhete">Bilhete</option>
-                <option value="SAE">SAE</option>
-            </select>
-        </div>
-        <span class="mono" id="dateActionCount" style="font-size:13px;color:var(--navy-3); font-weight:500; margin-left:auto; background:var(--paper-2); padding:6px 12px; border-radius:6px"></span>
-      </div>
-      
-      <div class="twrap"><table style="width:100%">
-        <thead><tr>
-          <th style="width:15%">Data / Status</th>
-          <th style="width:45%">Nome do Aluno</th>
-          <th style="text-align:center; width:15%">Turma</th>
-          <th style="width:25%">Tipo de Ação</th>
-        </tr></thead>
-        <tbody id="tbodyAcoesData"></tbody>
-      </table></div>
-    </div>
-
     <div class="grid">
       <div class="panel">
         <h2>⚠ Alunos com 10+ faltas</h2>
@@ -491,7 +454,7 @@ function load(){
       var primeiraVez = !S.data;
       S.data = build(payload);
       el('loadscreen').classList.add('hidden'); el('errscreen').classList.add('hidden'); el('dash').classList.remove('hidden');
-      if(primeiraVez) { initSelectors(); } else { fillTurmas(); fillBim(); fillDiarioDates(); }
+      if(primeiraVez) { initSelectors(); } else { fillTurmas(); fillBim(); }
       renderAll();
       var agora=new Date();
       setStatus('ok','atualizado');
@@ -717,118 +680,6 @@ function turmaChart(arr){
     s.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(base+14)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#0B2545">'+esc(a.turma)+'</text>'); });
   s.push('<line x1="'+x0+'" y1="'+base+'" x2="'+(W-10)+'" y2="'+base+'" stroke="#0B2545" stroke-width="1.2"/>');
   s.push('</svg>'); return '<div style="overflow-x:auto">'+s.join('')+'</div>';
-}
-
-function renderDiarioAcoes() {
-  var g = selAlunos();
-  var acoes = [];
-  var bims = S.bim === 'ambos' ? [1,2,3,4] : [Number(S.bim)];
-
-  g.forEach(function(r){
-      var addAction = function(textoRef, tipo) {
-          var dts = U.datesIn(textoRef);
-          var d = dts.length > 0 ? dts[0] : null; 
-          var sK = 99999;
-          var strData = 'Sem data anotada';
-          if (d) {
-              sK = d[0]*100 + d[1];
-              strData = String(d[1]).padStart(2,'0') + '/' + String(d[0]).padStart(2,'0');
-          }
-          acoes.push({
-              data: strData, sortKey: sK,
-              nome: r.nome, chave: r.nomeChave, turma: r.turma,
-              tipo: tipo
-          });
-      };
-
-      bims.forEach(function(b){
-          var txtBus = String(r[b+'B_BUS']||'').trim();
-          var txtDev = String(r[b+'B_DEV']||'').trim();
-          var txtBil = String(r[b+'B_BIL']||'').trim();
-          var txtSae = String(r[b+'B_SAE']||'').trim();
-
-          if (temAcao(txtBus) || txtDev.length > 3) {
-              var combined = [txtBus, txtDev].filter(x => x && x !== '-' && x.toLowerCase() !== 'não').join(' | ');
-              addAction(combined || 'Sim', 'Ligação');
-          }
-          if (temAcao(txtBil)) {
-              addAction(txtBil, 'Bilhete');
-          }
-          if (isSimStrict(txtSae)) {
-              addAction(txtSae, 'SAE');
-          }
-      });
-      
-      if (S.bim === 'ambos' && r.RECLASS && /bilhete/i.test(r.RECLASS)) {
-          var dts = U.datesIn(r.RECLASS);
-          var d = dts.length > 0 ? dts[0] : null;
-          var sK = 99999;
-          var strData = 'Sem data anotada';
-          if (d) {
-              sK = d[0]*100 + d[1];
-              strData = String(d[1]).padStart(2,'0') + '/' + String(d[0]).padStart(2,'0');
-          }
-          acoes.push({
-              data: strData, sortKey: sK,
-              nome: r.nome, chave: r.nomeChave, turma: r.turma,
-              tipo: 'Bilhete'
-          });
-      }
-  });
-
-  var uniq = [];
-  var seen = new Set();
-  acoes.forEach(function(a){
-      var k = a.data + '|' + a.chave + '|' + a.tipo;
-      if(!seen.has(k)) { seen.add(k); uniq.push(a); }
-  });
-  acoes = uniq;
-  
-  // Ordenação cronológica decrescente (mais recentes primeiro)
-  // Ações "Sem data anotada" (99999) vão para o final
-  acoes.sort(function(a, b){ 
-      if (a.sortKey === 99999 && b.sortKey !== 99999) return 1;
-      if (b.sortKey === 99999 && a.sortKey !== 99999) return -1;
-      return b.sortKey - a.sortKey; 
-  });
-
-  // Parsing seguro do seletor de datas
-  var dsVal = el('selDateStart').value;
-  var ds = dsVal ? Number(dsVal) : 0;
-  
-  var deVal = el('selDateEnd').value;
-  var de = deVal ? Number(deVal) : 99999;
-  
-  var dt = el('selActionType').value || 'Todas';
-
-  var filtradas = acoes.filter(function(a){
-      if (dt !== 'Todas' && a.tipo !== dt) return false;
-      if (a.sortKey < ds) return false;
-      if (a.sortKey > de) return false;
-      return true;
-  });
-
-  el('dateActionCount').textContent = filtradas.length + ' ação(ões) listada(s)';
-  var tb = el('tbodyAcoesData');
-  tb.innerHTML = '';
-
-  if (filtradas.length === 0) {
-     tb.innerHTML = '<tr><td colspan="4" class="note" style="text-align:center; padding:16px">Nenhuma ação encontrada neste filtro.</td></tr>';
-     return;
-  }
-
-  filtradas.forEach(function(a){
-      var cor = a.tipo === 'Bilhete' ? 'var(--green)' : (a.tipo === 'SAE' ? 'var(--gold)' : 'var(--navy-3)');
-      var bg = a.tipo === 'Bilhete' ? 'var(--green-soft)' : (a.tipo === 'SAE' ? '#F5EEDD' : '#E7EDF4');
-      var alertSemData = a.sortKey === 99999 ? 'color:var(--alert);' : '';
-      
-      var tr = document.createElement('tr');
-      tr.innerHTML = '<td class="mono" style="font-weight:600; ' + alertSemData + ' color:'+(a.sortKey===99999 ? '' : cor)+'">' + a.data + '</td>' +
-                     '<td><a class="aluno-link" data-chave="'+esc(a.chave)+'">'+esc(U.cap(a.nome))+'</a></td>' +
-                     '<td class="mono" style="text-align:center">'+esc(a.turma)+'</td>' +
-                     '<td><span class="tag" style="background:'+bg+'; color:'+cor+'">'+esc(a.tipo)+'</span></td>';
-      tb.appendChild(tr);
-  });
 }
 
 function renderSae(){
@@ -1119,40 +970,6 @@ window.abrirAluno = function(chave) {
 
 el('detClose').addEventListener('click', function(){ el('alunoModal').classList.add('hidden'); });
 
-function fillDiarioDates() {
-  if (S.diarioLoaded) return;
-  var allDatesSet = new Set();
-  var allDList = [];
-  S.data.ini.forEach(function(r){
-      [1,2,3,4].forEach(function(b){
-          [r[b+'B_BUS'], r[b+'B_DEV'], r[b+'B_BIL'], r[b+'B_SAE'], r.RECLASS].forEach(function(txt){
-              if(txt) {
-                  U.datesIn(txt).forEach(function(d){
-                     var sK = d[0]*100 + d[1];
-                     var sD = String(d[1]).padStart(2,'0') + '/' + String(d[0]).padStart(2,'0');
-                     if(!allDatesSet.has(sK)) {
-                         allDatesSet.add(sK);
-                         allDList.push({val: sK, label: sD});
-                     }
-                  });
-              }
-          });
-      });
-  });
-  allDList.sort((x,y) => x.val - y.val);
-  
-  var optsStart = '<option value="0">Data Início (Todas)</option>';
-  var optsEnd = '<option value="99999">Data Fim (Todas)</option>';
-  allDList.forEach(function(d){ 
-      optsStart += '<option value="'+d.val+'">'+d.label+'</option>'; 
-      optsEnd += '<option value="'+d.val+'">'+d.label+'</option>'; 
-  });
-  
-  el('selDateStart').innerHTML = optsStart;
-  el('selDateEnd').innerHTML = optsEnd;
-  S.diarioLoaded = true;
-}
-
 function initSelectors(){
   var anos=['Todas','1º ano','2º ano','3º ano','4º ano','5º ano'];
   el('selAno').innerHTML=anos.map(function(a){return '<option value="'+a+'"'+(a===S.ano?' selected':'')+'>'+(a==='Todas'?'Todos os anos':a)+'</option>';}).join('');
@@ -1160,7 +977,7 @@ function initSelectors(){
   fillBim();
   el('selBim').addEventListener('change',function(){ S.bim=this.value; renderAll(); });
   fillTurmas();
-  fillDiarioDates();
+ 
 }
 function fillBim(){
   var comDados=bimestresComDados();
@@ -1181,7 +998,7 @@ function fillTurmas(){
   if(el('selTurma2')){ el('selTurma2').innerHTML=opts; el('selTurma2').value=S.turma; }
 }
 
-function renderAll(){ renderKpis(); renderCharts(); renderDiarioAcoes(); renderAlertas(); renderLog(); renderTabela(); renderSae(); renderFoot(); }
+function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderSae(); renderFoot(); }
 
 function renderFoot(){
   el('foot').innerHTML = S.atualizadoEm ? 'Atualizado em ' + S.atualizadoEm : '';
@@ -1194,9 +1011,6 @@ el('logSearch').addEventListener('input',function(){ S.logBusca=this.value; rend
 el('alSearch').addEventListener('input',function(){ S.alBusca=this.value; renderTabela(); });
 el('saeSearch').addEventListener('input',function(){ S.saeBusca=this.value; renderSae(); });
 
-el('selDateStart').addEventListener('change', renderDiarioAcoes);
-el('selDateEnd').addEventListener('change', renderDiarioAcoes);
-el('selActionType').addEventListener('change', renderDiarioAcoes);
 
 Array.prototype.forEach.call(document.querySelectorAll('[data-af]'),function(b){ b.addEventListener('click',function(){
   S.alFiltro=b.getAttribute('data-af'); document.querySelectorAll('[data-af]').forEach(function(x){x.classList.toggle('on',x===b);}); renderTabela(); }); });
@@ -1216,11 +1030,6 @@ el('tabela').addEventListener('click',function(ev){
 });
 
 el('tbodySae').addEventListener('click',function(ev){
-  var link = ev.target.closest('.aluno-link');
-  if (link) window.abrirAluno(link.getAttribute('data-chave'));
-});
-
-el('tbodyAcoesData').addEventListener('click',function(ev){
   var link = ev.target.closest('.aluno-link');
   if (link) window.abrirAluno(link.getAttribute('data-chave'));
 });
