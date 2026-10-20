@@ -63,7 +63,7 @@
         var groups=[], g=null, prevRole=null;
         function roleDe(h){
           if(h.indexOf('busca ativa')===0) return 'BUS';
-          if(h.indexOf('devolutiv')===0) return 'DEV';
+          if(h.indexOf('devolutiv')===0||h.indexOf('decolutiv')===0) return 'DEV';
           if(h.indexOf('encaminhado')===0) return 'SAE';
           if(h.indexOf('retorno')===0) return 'RET';
           if(h.indexOf('bilhete')===0) return 'BIL';
@@ -78,6 +78,9 @@
           if(tv.indexOf('BIMESTRE')>=0){ var mm=tv.match(/(\d)/); if(mm) lab=+mm[1]; }
           var h=low(head[c3]);
           var role=h? roleDe(h) : null;
+          if(!role && !h && g && prevRole==='BUS' && g.cols.DEV==null && low(head[c3+1]).indexOf('encaminhado')===0){
+            role='DEV';
+          }
           if(!role){
             if(!g){
               if(h==='nome') meta.NOME=c3;
@@ -135,6 +138,13 @@
             rec[bi+'_RET']= cc.RET!=null? norm(row[cc.RET]):'';
             rec[bi+'_DEV']= cc.DEV!=null? norm(row[cc.DEV]):'';
             rec[bi+'_BIL']= cc.BIL!=null? norm(row[cc.BIL]):'';
+            if(!rec[bi+'_DEV'] && rec[bi+'_BUS'].length>15 && !/^(sim|n[ãa]o)\b/i.test(rec[bi+'_BUS'])){
+              rec[bi+'_DEV']=rec[bi+'_BUS'];
+            }
+            if(!rec[bi+'_DEV'] && rec[bi+'_RET'].length>3 && !isNao(rec[bi+'_RET']) && (!rec[bi+'_SAE'] || isNao(rec[bi+'_SAE'])) && !/^em contato com|^encaminhad|^laudo/i.test(rec[bi+'_RET'])){
+              rec[bi+'_DEV']=rec[bi+'_RET'];
+              rec[bi+'_RET']='';
+            }
           });
           // notas de célula desta linha -> anexa com o header da coluna
           if(notes && notes[r2]){
@@ -173,7 +183,7 @@
           rec.termo=/assinad/.test(ass)||ass.indexOf('sim')===0||/assinad/.test(reclass);
           // devolutivas (texto do relato) por bimestre
           rec.devolutivas=[];
-          [1,2,3,4].forEach(function(i){ var d=rec[i+'B_DEV']; if(d && d.length>3) rec.devolutivas.push({bim:i, texto:d}); });
+          [1,2,3,4].forEach(function(i){ var d=rec[i+'B_DEV']; if(d && d.length>3 && !/^n[ãa]o\b/i.test(d)) rec.devolutivas.push({bim:i, texto:d}); });
           rec.alcancado=rec.buscaAny||rec.bilhete||rec.saeAny;
           rec.contatos=[rec.busca1,rec.busca2,rec.busca3,rec.busca4,rec.bilhete,
                         isSim(rec['1B_SAE']),isSim(rec['2B_SAE']),isSim(rec['3B_SAE']),isSim(rec['4B_SAE'])]
