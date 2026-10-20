@@ -3,68 +3,79 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Diário de Busca Ativa · Anos Iniciais · Escola e Família</title>
+<title>Escola e Família · Anos Iniciais · E.M.C.M. Prof. José Geraldo Guimarães</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   --navy:#0B2545; --navy-2:#14345E; --navy-3:#1D4E89; --soft:#4C6789; --mut:#8AA0BC;
-  --white:#fff; --paper:#EEF2F7; --paper-2:#E4EBF3; --line:#D2DCE8; --line-2:#C2CFDE;
-  --alert:#B23A48; --alert-soft:#F3E1E4; --gold:#C08A2E; --green:#2C7A5B; --green-soft:#E1EFE9;
+  --white:#fff; --paper:#F2F5FA; --paper-2:#E6EDF6; --line:#D5E0EC; --line-2:#C2CFDE;
+  --alert:#B23A48; --alert-soft:#F6E4E7; --gold:#C08A2E; --green:#237A57; --green-soft:#E1F1EB;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--paper);color:var(--navy);font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
 h1,h2,h3{font-family:'Fraunces',Georgia,serif;line-height:1.12;letter-spacing:-.01em}
 .mono{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
-.wrap{max-width:1200px;margin:0 auto;padding:0 22px}
+.wrap{max-width:1220px;margin:0 auto;padding:0 24px}
 
-.topbar{background:var(--navy);color:#fff;padding:22px 0 0}
-.top-in{max-width:1200px;margin:0 auto;padding:0 22px}
-.top-row{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding-bottom:16px}
-.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8FA8C7}
-h1.title{font-size:31px;font-weight:700;color:#fff;margin-top:5px}
-.subtitle{font-size:13.5px;color:#C0D0E4;margin-top:5px}
-.top-meta{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8FA8C7;line-height:1.7}
-.top-meta .live{display:inline-flex;align-items:center;gap:6px}
+.topbar{background:#ffffff;color:var(--navy);border-top:5px solid var(--navy);box-shadow:0 4px 18px rgba(11,37,69,.07)}
+.top-in{max-width:1220px;margin:0 auto;padding:18px 24px 16px}
+.top-row{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.brand-left{display:flex;align-items:center;gap:18px;flex:1;min-width:280px}
+.logo-escola{height:76px;width:auto;object-fit:contain;flex-shrink:0;mix-blend-mode:multiply}
+.title-block{border-left:2px solid var(--line);padding-left:18px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--navy-3)}
+h1.title{font-size:32px;font-weight:700;color:var(--navy);margin-top:3px;letter-spacing:-.015em}
+.subtitle{font-size:13.5px;color:var(--soft);margin-top:4px}
+.brand-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.logo-prefeitura{height:54px;width:auto;object-fit:contain;mix-blend-mode:multiply}
+.top-meta{display:flex;align-items:center;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--soft)}
+.top-meta .live{display:inline-flex;align-items:center;gap:6px;background:var(--paper);padding:4px 10px;border-radius:20px;border:1px solid var(--line)}
 .ldot{width:7px;height:7px;border-radius:50%;background:#8FA8C7;display:inline-block}
-.ldot.ok{background:#57C08A} .ldot.load{background:#E3B23C;animation:pulse 1s infinite} .ldot.err{background:#E06A75}
+.ldot.ok{background:#237A57} .ldot.load{background:#E3B23C;animation:pulse 1s infinite} .ldot.err{background:#E06A75}
 @keyframes pulse{50%{opacity:.3}}
-.btn{font-family:'IBM Plex Sans';font-size:12.5px;font-weight:500;border:1px solid #33507A;background:#12365f;color:#dfe8f3;padding:6px 12px;border-radius:5px;cursor:pointer}
-.btn:hover{background:#1a4778}
-.btn:disabled{opacity:.5;cursor:default}
+.btn{font-family:'IBM Plex Sans';font-size:12.5px;font-weight:600;border:1px solid var(--navy-2);background:var(--navy);color:#fff;padding:7px 14px;border-radius:6px;cursor:pointer;transition:all .15s ease;box-shadow:0 1px 3px rgba(11,37,69,.12)}
+.btn:hover{background:var(--navy-3);border-color:var(--navy-3);transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:default;transform:none}
 
-.selbar{background:var(--navy-2)}
-.selrow{max-width:1200px;margin:0 auto;padding:12px 22px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.selrow label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#9FB4CE}
+.selbar{background:linear-gradient(90deg, var(--navy) 0%, var(--navy-2) 100%);border-top:1px solid var(--line);border-bottom:3px solid var(--gold)}
+.selrow{max-width:1220px;margin:0 auto;padding:12px 24px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.selrow label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.11em;text-transform:uppercase;color:#B4C6DC}
 .anos{display:flex;gap:3px;flex-wrap:wrap}
 .anochip{font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid #33507A;background:transparent;color:#B9CADF;cursor:pointer}
 .anochip:hover{background:#173d66}
 .anochip.on{background:#fff;color:var(--navy);border-color:#fff;font-weight:500}
-select.turma{font-family:'IBM Plex Sans';font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid #33507A;background:#0f2f54;color:#eaf1f8;min-width:180px}
+select.turma{font-family:'IBM Plex Sans';font-size:13px;font-weight:500;padding:7px 12px;border-radius:6px;border:1px solid #385A87;background:#0F2C50;color:#F0F5FA;min-width:180px;cursor:pointer;outline:none;transition:border-color .15s}
+select.turma:hover,select.turma:focus{border-color:#7297C4}
 
-.body{padding:26px 0 70px}
-.blocklabel{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
-.section{margin-bottom:26px}
+.body{padding:28px 0 70px}
+.blocklabel{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--navy-2);margin:0 0 12px;padding-bottom:7px;border-bottom:2px solid var(--line);display:flex;align-items:center;gap:8px}
+.blocklabel::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--gold);display:inline-block}
+.section{margin-bottom:28px}
 
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .kpis.cinco{grid-template-columns:repeat(5,1fr)}
 .kpis.seis{grid-template-columns:repeat(6,1fr)}
-.kpi{background:#fff;padding:14px 16px}
-.kpi .l{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--soft);margin-bottom:6px}
-.kpi .v{font-family:'Fraunces',serif;font-size:27px;font-weight:600;display:flex;align-items:baseline;gap:6px}
+.kpi{background:#fff;padding:16px 18px;border:1px solid var(--line);border-top:3px solid var(--navy-3);border-radius:10px;box-shadow:0 2px 8px rgba(11,37,69,.04);transition:transform .15s ease,box-shadow .15s ease}
+.kpi:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(11,37,69,.07)}
+.kpi:has(.v.alert){border-top-color:var(--alert)}
+.kpi:has(.v.green){border-top-color:var(--green)}
+.kpi:has(.v.gold){border-top-color:var(--gold)}
+.kpi .l{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--soft);margin-bottom:6px}
+.kpi .v{font-family:'Fraunces',serif;font-size:28px;font-weight:700;color:var(--navy);display:flex;align-items:baseline;gap:6px}
 .kpi .v.alert{color:var(--alert)} .kpi .v.green{color:var(--green)} .kpi .v.gold{color:var(--gold)}
 .kpi .sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--soft);font-weight:400}
 @media(max-width:820px){
-  .kpis,.kpis.cinco,.kpis.seis{grid-template-columns:repeat(2,1fr)}
+  .kpis,.kpis.cinco,.kpis.seis{grid-template-columns:repeat(2,1fr);gap:10px}
   .kpis.seis .kpi:first-child{grid-column:1 / -1}
 }
 
 .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px}
 @media(max-width:900px){.grid{grid-template-columns:1fr}}
-.panel{background:#fff;border:1px solid var(--line);border-radius:9px;padding:20px 20px 18px;margin-bottom:22px}
-.panel h2{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:3px}
-.panel .note{font-size:12px;color:var(--soft);margin-bottom:14px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px 22px 20px;margin-bottom:22px;box-shadow:0 3px 12px rgba(11,37,69,.04)}
+.panel h2{font-size:17px;font-weight:600;color:var(--navy);display:flex;align-items:center;gap:8px;margin-bottom:4px;padding-left:10px;border-left:3.5px solid var(--navy-3)}
+.panel .note{font-size:12.5px;color:var(--soft);margin-bottom:16px;padding-left:13.5px}
 .panel.wide{grid-column:1/-1}
 
 svg{display:block;max-width:100%;height:auto}
@@ -144,27 +155,32 @@ tbody tr:hover td{background:var(--paper-2)}
 
 @media(max-width:640px){
   body{font-size:13.5px}
-  .wrap,.top-in,.selrow,.top-row{padding-left:14px;padding-right:14px}
-  .topbar{padding-top:14px}
-  .top-row{padding-bottom:12px;align-items:flex-start}
+  .wrap,.top-in,.selrow{padding-left:14px;padding-right:14px}
+  .top-in{padding-top:12px;padding-bottom:12px}
+  .top-row{gap:12px;align-items:center}
+  .brand-left{gap:12px;min-width:100%}
+  .logo-escola{height:56px}
+  .title-block{padding-left:12px}
   .eyebrow{font-size:9px;letter-spacing:.08em}
-  h1.title{font-size:19px;margin-top:3px}
-  .subtitle{font-size:11.5px;margin-top:3px}
-  .top-meta{text-align:left;font-size:10px}
-  .top-meta .btn{padding:5px 10px}
+  h1.title{font-size:21px;margin-top:2px}
+  .subtitle{font-size:11.5px;margin-top:2px}
+  .brand-right{width:100%;flex-direction:row;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:10px}
+  .logo-prefeitura{height:38px}
+  .top-meta{font-size:10px;gap:8px}
+  .top-meta .btn{padding:5px 10px;font-size:11.5px}
   .selrow{gap:7px}
   .selrow label{width:100%;margin-bottom:-3px;margin-top:2px}
   select.turma{min-width:0!important;flex:1;font-size:13px;padding:8px}
   .blocklabel{font-size:10px}
   h2{font-size:15px}
   .panel{padding:15px 14px 14px;margin-bottom:16px}
-  .panel .note{font-size:11.5px}
+  .panel .note{font-size:11.5px;padding-left:0}
   .section{margin-bottom:18px}
   .grid{gap:14px}
-  .kpis{grid-template-columns:repeat(2,1fr)}
-  .kpis.cinco{grid-template-columns:repeat(2,1fr)}
+  .kpis{grid-template-columns:repeat(2,1fr);gap:10px}
+  .kpis.cinco{grid-template-columns:repeat(2,1fr);gap:10px}
   .kpis.cinco .kpi:first-child{grid-column:1 / -1}
-  .kpi{padding:11px 13px}
+  .kpi{padding:12px 14px}
   .kpi .v{font-size:22px}
   .kpi .l{font-size:9px}
   table{font-size:11.5px}
@@ -183,17 +199,17 @@ tbody tr:hover td{background:var(--paper-2)}
   .date-select { flex:1; min-width:0; }
 }
 @media(max-width:400px){
-  h1.title{font-size:17px}
+  h1.title{font-size:18px}
   .kpi .v{font-size:20px}
 }
 @media print{
   body{background:#fff}
-  .topbar{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .topbar{background:#fff!important;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .eyebrow,.subtitle,.top-meta{color:var(--soft)!important}
   h1.title{color:var(--navy)!important}
   .selbar,.controls,.btn{display:none!important}
   .panel,.kpi,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .panel{break-inside:avoid}
+  .panel{break-inside:avoid;box-shadow:none!important}
   .log,.twrap{max-height:none;overflow:visible}
 }
 </style>
@@ -203,14 +219,20 @@ tbody tr:hover td{background:var(--paper-2)}
 <div class="topbar">
   <div class="top-in">
     <div class="top-row">
-      <div>
-        <div class="eyebrow">Projeto Escola e Família · E.M.C.M. Prof. José Geraldo Guimarães</div>
-        <h1 class="title">Diário de Busca Ativa · Anos Iniciais</h1>
-        <div class="subtitle">1º ao 5º ano · faltas, bilhetes, encaminhamentos à SAE e devolutivas das famílias</div>
+      <div class="brand-left">
+        <img src="logo-escola.png" alt="Logo E.M.C.M. Prof. José Geraldo Guimarães" class="logo-escola">
+        <div class="title-block">
+          <div class="eyebrow">E.M.C.M. Prof. José Geraldo Guimarães · Anos Iniciais</div>
+          <h1 class="title">Escola e Família</h1>
+          <div class="subtitle">1º ao 5º ano · acompanhamento de frequência, busca ativa, SAE e devolutivas das famílias</div>
+        </div>
       </div>
-      <div class="top-meta">
-        <div class="live"><span class="ldot" id="dot"></span> <span id="statusTxt">iniciando…</span></div>
-        <div style="margin-top:6px"><button class="btn" id="btnPrint">Imprimir / PDF</button></div>
+      <div class="brand-right">
+        <img src="logo-prefeitura.png" alt="Secretaria de Educação · Prefeitura de Uberaba" class="logo-prefeitura">
+        <div class="top-meta">
+          <div class="live"><span class="ldot" id="dot"></span> <span id="statusTxt">iniciando…</span></div>
+          <button class="btn" id="btnPrint">Imprimir / PDF</button>
+        </div>
       </div>
     </div>
   </div>
@@ -238,7 +260,7 @@ tbody tr:hover td{background:var(--paper-2)}
 
     <div class="section">
       <p class="blocklabel">Frequência — <span id="lblFreq">todas as turmas</span></p>
-      <div class="kpis seis" id="kpiFreq"></div>
+      <div class="kpis cinco" id="kpiFreq"></div>
     </div>
     <div class="section">
       <p class="blocklabel">Trabalho de busca ativa realizado</p>
@@ -406,7 +428,11 @@ function vInj(r){ return S.bim==='ambos'? r.injTot : (r[S.bim+'B_i']||0); }
 
 function temAcao(v) {
   var t = String(v||'').trim().toLowerCase();
-  return (t && t !== '-' && t !== 'não' && t !== 'nao' && t !== 'falso');
+  return !!(t && t !== '-' && !/^n[ãa]o\b/.test(t) && t !== 'falso' && t !== '0');
+}
+function temDev(v) {
+  var t = String(v||'').trim();
+  return t.length > 3 && !/^n[ãa]o\b/i.test(t);
 }
 function isSimStrict(v) {
   var t = String(v||'').trim().toLowerCase();
@@ -416,7 +442,7 @@ function isSimStrict(v) {
 function vBusca(r){ 
   var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
   var count = 0;
-  bims.forEach(function(b){ if(temAcao(r[b+'B_BUS']) || (r[b+'B_DEV']&&r[b+'B_DEV'].length>3)) count++; });
+  bims.forEach(function(b){ if(temAcao(r[b+'B_BUS']) || temDev(r[b+'B_DEV'])) count++; });
   return count;
 }
 function vSae(r){ 
@@ -494,7 +520,7 @@ function bimestresComDados(){
     var tem = S.data.ini.some(function(r){
       return (r[b+'B_f']||0)>0 || (r[b+'B_i']||0)>0 || (r[b+'B_a']||0)>0 ||
              temAcao(r[b+'B_BUS']) || isSimStrict(r[b+'B_SAE']) || temAcao(r[b+'B_RET']) ||
-             temAcao(r[b+'B_BIL']) || ((r[b+'B_DEV']||'').length>3);
+             temAcao(r[b+'B_BIL']) || temDev(r[b+'B_DEV']);
     });
     if(tem) res.push(b);
   });
@@ -518,7 +544,7 @@ function selComentarios(){
 
 function renderKpis(){
   var g=selAlunos();
-  var faltas=0,atest=0,inj=0,bilh=0,sae=0,ret=0,transf=0,domic=0,buscas=0;
+  var faltas=0,atest=0,inj=0,bilh=0,sae=0,ret=0,transf=0,buscas=0;
   
   g.forEach(function(r){ 
     faltas+=vFaltas(r); atest+=vAtest(r); inj+=vInj(r);
@@ -527,7 +553,6 @@ function renderKpis(){
     ret += vRet(r);
     buscas += vBusca(r);
     if(r.transf) transf++; 
-    if(r.domiciliar) domic++;
   });
   
   var totalAcoes = buscas + bilh + sae;
@@ -537,8 +562,7 @@ function renderKpis(){
     kpi('Total de faltas', n(faltas)),
     kpi('Atestados', n(atest)),
     kpi('Faltas injustificadas', n(inj), 'alert'),
-    kpi('Transferidos', n(transf)),
-    kpi('Atd. Domiciliar', n(domic), 'gold')
+    kpi('Transferidos', n(transf))
   ].join('');
   
   el('kpiAcao').innerHTML=[
@@ -599,7 +623,7 @@ function renderCharts(){
     var bi=0,bu=0,sa=0;
     g.forEach(function(r){ 
       if(temAcao(r[b+'B_BIL'])) bi++; 
-      if(temAcao(r[b+'B_BUS'])||(r[b+'B_DEV']&&r[b+'B_DEV'].length>3)) bu++; 
+      if(temAcao(r[b+'B_BUS'])||temDev(r[b+'B_DEV'])) bu++; 
       if(isSimStrict(r[b+'B_SAE'])) sa++; 
     });
     return {lab:b+'º Bimestre', vals:[bi,bu,sa]};
@@ -714,13 +738,13 @@ function renderSae(){
           if(vRet(r)>0) comRet++; 
       }
       
-      if (r.RECLASS && /roberta/i.test(String(r.RECLASS))) robertaCount++;
+      if (S.bim==='ambos' && r.RECLASS && /roberta/i.test(String(r.RECLASS))) robertaCount++;
       
       var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
       bims.forEach(function(b){
-          [r[b+'B_SAE'], r[b+'B_RET'], r[b+'B_BUS'], r[b+'B_DEV'], r[b+'B_BIL']].forEach(function(txt) {
-              if (txt && /roberta/i.test(String(txt))) robertaCount++;
-          });
+          if ([r[b+'B_SAE'], r[b+'B_RET'], r[b+'B_BUS'], r[b+'B_DEV'], r[b+'B_BIL']].some(function(txt) {
+              return txt && /roberta/i.test(String(txt));
+          })) robertaCount++;
           
           var txt = String(r[b+'B_RET']||'').trim();
           if(temAcao(txt) && txt.toLowerCase() !== 'sim') { 
@@ -744,11 +768,11 @@ function renderSae(){
   });
 
   el('kpiSae').innerHTML = 
-    '<div style="display:flex; gap:16px; flex-wrap:wrap">' +
-      '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Encaminhados à SAE</div><div class="v gold">'+total+'</div></div>' +
-      '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Com Retorno</div><div class="v green">'+comRet+'</div></div>' +
-      '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Aguardando Retorno</div><div class="v alert">'+(total-comRet)+'</div></div>' +
-      '<div class="kpi" style="border:1px solid var(--line); border-radius:8px; flex:1"><div class="l">Ação da Vice-Direção</div><div class="v" style="color:var(--navy-3)">'+robertaCount+'<span class="sub" style="margin-left:6px">Roberta</span></div></div>' +
+    '<div class="kpis">' +
+      '<div class="kpi"><div class="l">Encaminhados à SAE</div><div class="v gold">'+total+'</div></div>' +
+      '<div class="kpi"><div class="l">Com Retorno</div><div class="v green">'+comRet+'</div></div>' +
+      '<div class="kpi"><div class="l">Aguardando Retorno</div><div class="v alert">'+(total-comRet)+'</div></div>' +
+      '<div class="kpi"><div class="l">Ação da Vice-Direção</div><div class="v" style="color:var(--navy-3)">'+robertaCount+'<span class="sub" style="margin-left:6px">Roberta</span></div></div>' +
     '</div>';
     
   var arrTrat = Object.keys(mcTrat).filter(k => mcTrat[k] > 0).sort((a,b) => mcTrat[b]-mcTrat[a]);
@@ -897,14 +921,14 @@ function renderTabela(){
     var txtTrat = trat.length ? trat.join(', ') : '—';
 
     var bims = S.bim==='ambos' ? [1,2,3,4] : [Number(S.bim)];
-    var temDev = false;
-    bims.forEach(function(b){ if((r[b+'B_DEV']||'').length>3) temDev = true; });
+    var temDevol = false;
+    bims.forEach(function(b){ if(temDev(r[b+'B_DEV'])) temDevol = true; });
     
     var iconDev = '';
     if (r.transf || r.domiciliar) {
         iconDev = '<span style="color:var(--line-2)">—</span>';
     } else {
-        iconDev = temDev 
+        iconDev = temDevol 
           ? '<span style="color:var(--green);font-size:16px;font-weight:bold" title="Família respondeu">✔</span>' 
           : '<span style="color:var(--alert);font-size:16px;font-weight:bold" title="Sem retorno familiar">✖</span>';
     }
@@ -938,7 +962,7 @@ window.abrirAluno = function(chave) {
         if (temAcao(bil)) acts.push('<b>Bilhete enviado:</b> <span style="color:var(--soft)">' + esc(bil) + '</span>');
         if (temAcao(sae)) acts.push('<b>Encaminhado à SAE:</b> <span style="color:var(--soft)">' + esc(sae) + '</span>');
         if (temAcao(ret)) acts.push('<b>Retorno da SAE:</b> <span style="color:var(--soft)">' + esc(ret) + '</span>');
-        if ((dev||'').length > 3) acts.push('<b>Devolutiva da Família:</b><br><span style="color:var(--soft); display:inline-block; margin-top:4px">' + esc(dev) + '</span>');
+        if (temDev(dev)) acts.push('<b>Devolutiva da Família:</b><br><span style="color:var(--soft); display:inline-block; margin-top:4px">' + esc(dev) + '</span>');
         
         if(f > 0 || acts.length > 0) {
             var content = `<div style="margin-bottom:8px; font-size:12.5px; color:var(--soft)">Faltas registradas: <b style="color:var(--navy)">${f}</b> (Atestados: ${a} | Injustificadas: ${i})</div>`;
