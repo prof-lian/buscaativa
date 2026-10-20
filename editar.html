@@ -208,6 +208,12 @@ textarea.auto{overflow:hidden}
 .diff-box.antes{background:#FDF6F7;border-color:#F0D5D9;color:#6E2B35}
 .diff-box.depois{background:#F2FAF6;border-color:#C7E6D7;color:#18543B}
 .diff-lbl{font-family:"IBM Plex Mono",monospace;font-size:10px;text-transform:uppercase;opacity:.75;display:block;margin-bottom:3px;font-weight:600}
+.hist-acts{display:inline-flex;align-items:center;gap:6px;margin-left:4px}
+.btn-hist{font:600 11.5px "IBM Plex Sans",sans-serif;padding:4px 9px;border-radius:6px;border:1px solid var(--line2);background:#fff;color:var(--navy);cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.btn-hist:hover{background:#eef4fb;border-color:var(--navy3)}
+.btn-hist.del{color:var(--alert);border-color:#ebccd1;background:#fff8f9}
+.btn-hist.del:hover{background:#f9e2e6;border-color:var(--alert)}
+.hist-edit-box{margin-top:10px;padding:10px 12px;background:#FFFDF6;border:1px solid var(--gold);border-radius:8px;display:grid;gap:8px}
 
 /* Perfil */
 .perf-grid{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:start}
@@ -312,10 +318,9 @@ textarea.auto{overflow:hidden}
         </button>
         <button class="tab" data-tab="sae" type="button">
           <span class="t-left"><span class="ico">🏥</span><span>Relatório SAE</span></span>
-          <span class="n" id="nSae"></span>
         </button>
         <button class="tab" data-tab="sit" type="button">
-          <span class="t-left"><span class="ico">🔄</span><span>Situação Rápida</span></span>
+          <span class="t-left"><span class="ico">🔄</span><span>Transferidos</span></span>
         </button>
 
         <div class="nav-lbl">Administração</div>
@@ -408,12 +413,12 @@ textarea.auto{overflow:hidden}
         </div>
       </section>
 
-      <!-- 3. SITUAÇÃO RÁPIDA -->
+      <!-- 3. TRANSFERIDOS -->
       <section id="pSit" class="panel-box hidden">
         <div class="sec-head">
           <div>
-            <h2>🔄 Situação Cadastral dos Alunos</h2>
-            <p>Marque rapidamente alunos transferidos, em atendimento domiciliar ou ativos.</p>
+            <h2>🔄 Transferidos</h2>
+            <p>Gerencie rapidamente alunos transferidos, em atendimento domiciliar ou ativos.</p>
           </div>
         </div>
         <div class="kpis">
@@ -422,7 +427,7 @@ textarea.auto{overflow:hidden}
           <div class="kpi"><b id="kAt">0</b><span>Ativos</span></div>
         </div>
         <label class="lbl" for="qSit">Buscar aluno para alterar situação</label>
-        <input id="qSit" type="search" placeholder="Digite o nome do aluno (busca em todas as turmas)…">
+        <input id="qSit" type="search" name="filtro_sit_aluno" autocomplete="off" placeholder="Digite o nome do aluno (busca em todas as turmas)…">
         <div class="lista hidden" id="resSit" style="margin-top:8px"></div>
         <div class="sec">Alunos com situação Transferido ou Domiciliar registrada</div>
         <div class="lista" id="listaSit"></div>
@@ -439,7 +444,7 @@ textarea.auto{overflow:hidden}
         <div class="ctrls">
           <div><label for="saeAno">Ano</label><select id="saeAno"></select></div>
           <div><label for="saeBim">Bimestre</label><select id="saeBim"></select></div>
-          <div style="grid-column:span 2"><label for="qSae">Buscar aluno</label><input id="qSae" type="search" placeholder="Nome…"></div>
+          <div style="grid-column:span 2"><label for="qSae">Buscar aluno</label><input id="qSae" type="search" name="filtro_sae_aluno" autocomplete="off" placeholder="Nome…"></div>
         </div>
         <div class="hint">
           <span class="seg" id="segSae">
@@ -464,10 +469,10 @@ textarea.auto{overflow:hidden}
           <div><label for="hQuem">Editor (Quem alterou)</label><select id="hQuem"><option value="">Todos</option></select></div>
           <div><label for="hTurma">Turma</label><select id="hTurma"><option value="">Todas</option></select></div>
           <div><label for="hCampo">Campo alterado</label><select id="hCampo"><option value="">Todos</option></select></div>
-          <div><label for="qHist">Buscar no histórico</label><input id="qHist" type="search" placeholder="Aluno, texto, célula…"></div>
+          <div><label for="qHist">Buscar no histórico</label><input id="qHist" type="search" name="filtro_busca_historico" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" placeholder="Aluno, texto, célula…"></div>
         </div>
         <div class="hint">
-          <span>Mostrando alterações da mais recente para a mais antiga. Você pode restaurar o valor anterior se precisar desfazer uma edição.</span>
+          <span>Mostrando alterações da mais recente para a mais antiga. Você pode editar ou excluir qualquer registro.</span>
           <b id="cntHist"></b>
         </div>
         <div id="listaHist"></div>
@@ -492,7 +497,7 @@ textarea.auto{overflow:hidden}
             <p style="font-size:11.5px;color:var(--muted);margin:10px 0 0">A imagem é ajustada automaticamente para formato quadrado.</p>
           </div>
           <div>
-            <form id="fPerfil" style="display:grid;gap:14px">
+            <form id="fPerfil" style="display:grid;gap:14px" autocomplete="off">
               <div class="fields" style="grid-template-columns:1fr 1fr;margin-top:0">
                 <div class="f">
                   <label for="pfNome">Nome de Exibição</label>
@@ -519,14 +524,16 @@ textarea.auto{overflow:hidden}
 
             <div class="sec" style="margin-top:28px;padding-top:18px;border-top:1px solid var(--line)">Segurança e Senha</div>
             <div class="card" style="background:var(--bg)">
+              <!-- Campo oculto para evitar que o navegador preencha o e-mail em outros campos de busca da página -->
+              <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;opacity:0;height:0;width:0;pointer-events:none;border:0;padding:0">
               <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
                 <div>
                   <label class="lbl" for="pfNovaSenha">Nova Senha (mín. 6 caracteres)</label>
-                  <input type="password" id="pfNovaSenha" placeholder="Digite a nova senha">
+                  <input type="password" id="pfNovaSenha" autocomplete="new-password" placeholder="Digite a nova senha">
                 </div>
                 <div>
                   <label class="lbl" for="pfConfSenha">Confirmar Nova Senha</label>
-                  <input type="password" id="pfConfSenha" placeholder="Repita a nova senha">
+                  <input type="password" id="pfConfSenha" autocomplete="new-password" placeholder="Repita a nova senha">
                 </div>
                 <button type="button" class="btn navy" id="bTrocarSenha">Alterar Senha</button>
               </div>
@@ -792,7 +799,7 @@ var S = {
   dados:{}, idx:{}, tab:'dev', aba:'', turma:'', bim:'', q:'', alFiltro:'todos', ordCol:'faltas', ordDir:-1,
   aluAba:'', aluTurma:'', qAlu:'', fichaModoCad:false,
   qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
-  hQuem:'', hTurma:'', hCampo:'', qHist:'', logRows:[], sessaoHist:[],
+  hQuem:'', hTurma:'', hCampo:'', qHist:'', logRows:[], sessaoHist:[], histDel:{}, histEditSig:'', mapaPerfis:{},
   perfil:{nome:'', cargo:'', foto:'', tel:''},
   draft:{}, fila:{}, conf:{}, erro:{}, ok:{}, user:null, geradoEm:null, salvando:false
 };
@@ -820,7 +827,26 @@ function temAcao(v){ var t=low(v); return !!t && t!=='-' && t!=='falso' && !/^na
 function num(v){ var f=parseFloat(String(v==null?'':v).replace(',','.')); return isNaN(f)?0:f; }
 function bimNum(b){ return b ? b.charAt(0)+'º bim.' : 'Geral'; }
 
-/* ===== Perfil do Usuário (Foto, Nome, Cargo) ===== */
+/* ===== Perfil do Usuário (Foto, Nome, Cargo) e Formatação de Nome ===== */
+function nomeEditor(raw){
+  var s = String(raw||'').trim();
+  if(!s) return 'Equipe';
+  var mPar = /^(.+?)\s*\(([^)]+@[^)]+)\)$/.exec(s);
+  var nomeExtraido = mPar ? mPar[1].trim() : '';
+  var emailExtraido = mPar ? mPar[2].trim().toLowerCase() : (s.indexOf('@')>=0 ? s.toLowerCase() : '');
+  if(emailExtraido){
+    var mk = emailExtraido.replace(/\./g,',');
+    if(S.mapaPerfis && S.mapaPerfis[mk] && S.mapaPerfis[mk].nome) return S.mapaPerfis[mk].nome;
+    if(S.user && String(S.user.email||'').toLowerCase() === emailExtraido && S.perfil && S.perfil.nome) return S.perfil.nome;
+  }
+  if(nomeExtraido && nomeExtraido.indexOf('@') < 0) return nomeExtraido;
+  if(emailExtraido){
+    var base = emailExtraido.split('@')[0].replace(/[._-]+/g,' ').trim();
+    return base.replace(/\b\w/g, function(l){ return l.toUpperCase(); });
+  }
+  return s;
+}
+
 function carregarPerfil(u){
   var email = String(u.email||'').toLowerCase();
   var raw = lsGet('perfil_'+email);
@@ -851,10 +877,11 @@ function carregarPerfil(u){
 
 function atualizarUIPerfil(){
   var p = S.perfil, email = S.user ? S.user.email : '';
-  var ini = (p.nome || email || 'U').trim().charAt(0).toUpperCase();
-  $('sideName').textContent = p.nome || email;
+  var nomeExib = p.nome || nomeEditor(email) || 'Usuário';
+  var ini = nomeExib.trim().charAt(0).toUpperCase();
+  $('sideName').textContent = nomeExib;
   $('sideRole').textContent = p.cargo || 'Equipe Escola e Família';
-  $('sideEmail').textContent = email;
+  $('sideEmail').textContent = '';
   if(p.foto){
     $('sideAvatar').innerHTML = '<img src="'+p.foto+'" alt="Foto"><div class="avatar-cam">Foto</div>';
     $('perfAvatarPreview').innerHTML = '<img src="'+p.foto+'" alt="Foto">';
@@ -992,7 +1019,7 @@ function salvarPerfilAtual(){
 function entrou(u){
   S.user=u; $('telaVerif').classList.add('hidden');
   carregarPerfil(u);
-  $('sub').textContent='Conectado como '+u.email;
+  $('sub').textContent='Conectado como '+(S.perfil.nome || nomeEditor(u.email));
   var k=String(u.email).toLowerCase().replace(/\./g,',');
   db.ref('editores/'+k).once('value').then(function(s){
     if(s.val()!==true) throw new Error('A conta '+u.email+' ainda não está liberada para editar. Peça ao administrador para liberar este e-mail.');
@@ -1022,16 +1049,30 @@ function ouvirPlanilha(){
     db.ref('editores').on('value',function(x){ S.edPub=x.val()||{}; if(S.tab==='edt') renderEdt(); });
     db.ref('editores_extra').on('value',function(x){ S.edExtra=x.val()||{}; if(S.tab==='edt') renderEdt(); });
   });
+  /* Perfis de editores para exibir sempre o nome em vez do e-mail */
+  db.ref('perfis').on('value',function(s){
+    S.mapaPerfis = s.val() || {};
+    montarFiltrosHist();
+    if(S.tab==='hist') renderHist();
+  },function(){});
+  /* Registros excluídos do histórico */
+  try{ S.histDel = JSON.parse(lsGet('hist_deleted_sigs')||'{}')||{}; }catch(_){}
+  db.ref('historico_excluido').on('value',function(s){
+    S.histDel = Object.assign({}, S.histDel, s.val()||{});
+    lsSet('hist_deleted_sigs', JSON.stringify(S.histDel));
+    montarFiltrosHist();
+    if(S.tab==='hist') renderHist();
+  },function(){});
   /* Escuta histórico salvo direto no Firebase */
   db.ref('historico_edicoes').limitToLast(600).on('value',function(s){
     var val = s.val() || {};
-    S.fbHist = Object.keys(val).map(function(k){ return val[k]; });
+    S.fbHist = Object.keys(val).map(function(k){ var o = Object.assign({}, val[k]); o._fbKey = k; return o; });
     montarFiltrosHist();
     if(S.tab==='hist') renderHist();
   },function(){});
   db.ref('busca_ativa/historico').limitToLast(600).on('value',function(s){
     var val = s.val() || {};
-    S.fbHist2 = Object.keys(val).map(function(k){ return val[k]; });
+    S.fbHist2 = Object.keys(val).map(function(k){ var o = Object.assign({}, val[k]); o._fbKey = k; return o; });
     montarFiltrosHist();
     if(S.tab==='hist') renderHist();
   },function(){});
@@ -1389,7 +1430,6 @@ function itensSae(){
 function pendenteSae(it){ return !it.rid || !temAcao(orig(it.rid)) || (it.rid in S.draft) || (it.rid in S.fila) || S.ok[it.rid] || S.conf[it.rid]!=null; }
 function renderSae(){
   var itens=itensSae(), pend=itens.filter(function(it){ return !it.rid || !temAcao(orig(it.rid)); });
-  $('nSae').textContent= pendGlobal() || '';
   [].forEach.call($('segSae').children,function(b){ b.classList.toggle('on', b.getAttribute('data-f')===S.fSae); });
   var q=low(S.qSae);
   var lista=(S.fSae==='pend'? itens.filter(pendenteSae) : itens).filter(function(it){ return !q || low(nomeDe(it.al)).indexOf(q)>=0; });
@@ -1406,26 +1446,34 @@ function renderSae(){
       '</div>';
   }).join('');
 }
-function pendGlobal(){
-  var n=0; todosAlunos().forEach(function(al){ Object.keys(al.b).forEach(function(bi){
-    var sid=fieldId(al,bi,'SAE'), rid=fieldId(al,bi,'RET'); if(sid && temAcao(orig(sid)) && (!rid || !temAcao(orig(rid)))) n++; }); });
-  return n;
-}
 
 /* ===== 5. Aba Histórico de Alterações (Firebase) ===== */
+function histSig(r){
+  if(!r) return '';
+  return [String(r.quando||'').slice(0,16), r.aluno||'', r.campo||'', r.celula||'', String(r.antes||'')].join('|');
+}
+function histDelKey(sig){
+  return String(sig||'').replace(/[.#$\[\]\/\s|]/g,'_').slice(0,120);
+}
 function todosRegistrosHist(){
   var legBkp = [];
   try{ var raw = lsGet('hist_legacy_backup'); if(raw) legBkp = JSON.parse(raw)||[]; }catch(_){}
   var localH = [];
   try{ var raw2 = lsGet('hist_local_saved'); if(raw2) localH = JSON.parse(raw2)||[]; }catch(_){}
   var brutos = [].concat(S.sessaoHist||[], S.fbHist||[], S.fbHist2||[], localH, S.logRows||[], legBkp);
-  var vistos = {}, out = [];
+  var vistos = {}, out = [], delMap = S.histDel || {};
   brutos.forEach(function(r){
     if(!r) return;
-    var k = [String(r.quando||'').slice(0,16), r.quem||'', r.aluno||'', r.campo||'', r.depois||''].join('|');
-    if(vistos[k]) return;
-    vistos[k] = 1;
-    out.push(r);
+    var sig = histSig(r);
+    var dk = histDelKey(sig);
+    if(delMap[dk] || (r._fbKey && delMap[r._fbKey])) return;
+    if(vistos[sig]){
+      if(r._fbKey && !vistos[sig]._fbKey) vistos[sig]._fbKey = r._fbKey;
+      return;
+    }
+    var item = Object.assign({}, r, { _sig: sig });
+    vistos[sig] = item;
+    out.push(item);
   });
   return out.sort(function(a,b){
     return String(b.quando||'').localeCompare(String(a.quando||''));
@@ -1435,7 +1483,8 @@ function montarFiltrosHist(){
   var all = todosRegistrosHist();
   var quems={}, turmas={}, campos={};
   all.forEach(function(r){
-    if(r.quem) quems[r.quem]=1;
+    var nmQ = nomeEditor(r.quem);
+    if(nmQ) quems[nmQ]=1;
     if(r.turma) turmas[r.turma]=1;
     if(r.campo) campos[r.campo]=1;
   });
@@ -1456,15 +1505,23 @@ function a1ToRC(cel){
 }
 
 function renderHist(){
+  /* Limpa caso o navegador tenha tentado preencher o e-mail no campo de busca */
+  if($('qHist') && /@/.test($('qHist').value) && S.qHist === $('qHist').value){
+    $('qHist').value = '';
+    S.qHist = '';
+  }
   var all = todosRegistrosHist();
+  S.histMap = {};
+  all.forEach(function(r){ S.histMap[r._sig] = r; });
   $('nHist').textContent = all.length || '';
   var q = low(S.qHist);
   var list = all.filter(function(r){
-    if(S.hQuem && r.quem !== S.hQuem) return false;
+    var nmEditor = nomeEditor(r.quem);
+    if(S.hQuem && nmEditor !== S.hQuem) return false;
     if(S.hTurma && r.turma !== S.hTurma) return false;
     if(S.hCampo && r.campo !== S.hCampo) return false;
     if(q){
-      var txt = low(r.aluno+' '+r.turma+' '+r.quem+' '+r.campo+' '+r.antes+' '+r.depois+' '+r.celula);
+      var txt = low(r.aluno+' '+r.turma+' '+nmEditor+' '+r.campo+' '+r.antes+' '+r.depois+' '+r.celula);
       if(txt.indexOf(q)<0) return false;
     }
     return true;
@@ -1474,26 +1531,41 @@ function renderHist(){
     $('listaHist').innerHTML='<div class="card vazio">Nenhuma alteração encontrada com esses filtros.</div>';
     return;
   }
-  $('listaHist').innerHTML = list.slice(0,200).map(function(r, idx){
+  $('listaHist').innerHTML = list.slice(0,200).map(function(r){
     var dt = r.quando;
     try{
       var d = new Date(r.quando);
       if(!isNaN(d.getTime())) dt = d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
     }catch(_){}
-    var rc = a1ToRC(r.celula);
-    var idTarget = (rc && r.aba) ? fid(r.aba, rc.r, rc.c) : '';
-    var btnRev = (idTarget && S.idx[idTarget])
-      ? ' <button type="button" class="chip" data-reverter="'+esc(idTarget)+'" data-antes="'+esc(r.antes||'')+'" title="Colocar o valor anterior na fila de salvamento">↩ Restaurar valor anterior</button>'
+    var nmEditor = nomeEditor(r.quem);
+    var editando = (S.histEditSig === r._sig);
+    var boxEdit = editando
+      ? '<div class="hist-edit-box">'+
+          '<label class="lbl" style="margin:0">Editar valor gravado para <b>'+esc(r.aluno)+'</b> ('+esc(r.campo)+'):</label>'+
+          '<textarea id="inpHistEdit" style="min-height:68px">'+esc(r.depois||'')+'</textarea>'+
+          '<div style="display:flex;gap:8px;justify-content:flex-end">'+
+            '<button type="button" class="btn out-dark" data-hist-cancel="1" style="padding:6px 12px;font-size:12px">Cancelar</button>'+
+            '<button type="button" class="btn pri" data-hist-save="'+esc(r._sig)+'" style="padding:6px 14px;font-size:12px">💾 Salvar Edição</button>'+
+          '</div>'+
+        '</div>'
       : '';
     return '<div class="hist-item">'+
       '<div class="hist-top">'+
         '<div><b style="font-size:14.5px;color:var(--navy)">'+esc(r.aluno||'—')+'</b> <span class="tag">'+esc(r.turma||'—')+'</span> <span class="tag d">'+esc(r.campo||'—')+(r.bim && r.bim!=='-'?' · '+esc(r.bim):'')+'</span></div>'+
-        '<div class="hist-who"><span>👤 <b>'+esc(r.quem||'—')+'</b></span> · <span class="mono">🕒 '+esc(dt)+'</span>'+(r.celula?' · <span class="mono">Célula '+esc(r.celula)+'</span>':'')+btnRev+'</div>'+
+        '<div class="hist-who">'+
+          '<span>👤 <b>'+esc(nmEditor)+'</b></span> · <span class="mono">🕒 '+esc(dt)+'</span>'+
+          (r.celula?' · <span class="mono">Célula '+esc(r.celula)+'</span>':'')+
+          '<span class="hist-acts">'+
+            '<button type="button" class="btn-hist" data-hist-edit="'+esc(r._sig)+'" title="Editar este registro">✏️ Editar</button>'+
+            '<button type="button" class="btn-hist del" data-hist-del="'+esc(r._sig)+'" title="Excluir este registro e desfazer alteração">🗑️ Excluir</button>'+
+          '</span>'+
+        '</div>'+
       '</div>'+
       '<div class="hist-diff">'+
         '<div class="diff-box antes"><span class="diff-lbl">Valor Anterior</span>'+esc(r.antes||'(vazio)')+'</div>'+
         '<div class="diff-box depois"><span class="diff-lbl">Novo Valor Gravado</span>'+esc(r.depois||'(vazio)')+'</div>'+
       '</div>'+
+      boxEdit+
     '</div>';
   }).join('');
 }
@@ -1671,6 +1743,10 @@ document.addEventListener('click',function(e){
 function irTab(t){
   if(t==='edt' && !S.admin) t='dev';
   S.tab=t; lsSet('tab',t);
+  if(t==='hist' && $('qHist') && /@/.test($('qHist').value)){
+    $('qHist').value = '';
+    S.qHist = '';
+  }
   [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===t); });
   $('pDev').classList.toggle('hidden',t!=='dev');
   $('pAlu').classList.toggle('hidden',t!=='alu');
@@ -1696,7 +1772,6 @@ function render(){
   else if(S.tab==='sae') renderSae();
   else if(S.tab==='hist') renderHist();
   else if(S.tab==='edt') renderEdt();
-  $('nSae').textContent= pendGlobal() || '';
   $('nHist').textContent = todosRegistrosHist().length || '';
   atualizarBarra();
 }
@@ -1704,7 +1779,7 @@ function render(){
 function atualizarBarra(){
   var n=sujos().length, nf=Object.keys(S.fila).length;
   $('bar').classList.toggle('on', n>0 || S.salvando);
-  $('barTxt').textContent= S.salvando? 'Enviando alterações para a planilha…' : (n+(n===1?' alteração pendente para salvar':' alterações pendentes para salvar'))+(nf?' · '+nf+' na fila':'');
+  $('barTxt').textContent= S.salvando? 'Salvando alterações…' : (n+(n===1?' alteração pendente para salvar':' alterações pendentes para salvar'))+(nf?' · '+nf+' na fila':'');
   $('bSalvar').disabled=S.salvando; $('bDesc').disabled=S.salvando;
 }
 function marcar(id){
@@ -1716,6 +1791,96 @@ function setDraft(id,v){
   var base=(id in S.fila)? S.fila[id].novo : orig(id);
   if(v===base && S.conf[id]==null) delete S.draft[id]; else S.draft[id]=v;
   delete S.erro[id]; delete S.ok[id];
+}
+
+/* Funções para Editar ou Excluir item diretamente no Histórico */
+function aplicarValorDiretoNaCelula(r, valorAlvo){
+  var rc = a1ToRC(r.celula);
+  if(!rc || !r.aba) return Promise.resolve();
+  var idTarget = fid(r.aba, rc.r, rc.c);
+  var key = fbKey(idTarget);
+  var x = S.idx[idTarget];
+  var email = S.user ? String(S.user.email).toLowerCase() : '';
+  var item = {
+    aba: r.aba, linha: rc.r, col: rc.c, nome: r.aluno||'', turma: r.turma||'',
+    campo: r.campo||'', bim: r.bim||'',
+    antes: String(r.depois||''), novo: valorAlvo, email: email, ts: Date.now(), forcar: true
+  };
+  if(x && x.f) x.f.v = valorAlvo;
+  delete S.draft[idTarget];
+  var p1 = db.ref('edicoes_salvas/'+key).set(item).catch(function(){});
+  var p2 = db.ref('busca_ativa/overrides/'+key).set(item).catch(function(){});
+  var p3 = (x && x.al && x.al.sheetIdx != null)
+    ? db.ref('busca_ativa/sheets/'+x.al.sheetIdx+'/values/'+(rc.r-1)+'/'+(rc.c-1)).set(valorAlvo).catch(function(){})
+    : Promise.resolve();
+  var p4 = db.ref('edicoes_pendentes/'+key).set(item).catch(function(){});
+  return Promise.all([p1, p2, p3, p4]);
+}
+
+function excluirItemHist(sig){
+  var r = S.histMap && S.histMap[sig];
+  if(!r) return;
+  if(!confirm('Deseja excluir este registro do histórico de "' + (r.aluno||'') + '" e desfazer a alteração?')) return;
+  var dk = histDelKey(sig);
+  S.histDel[dk] = true;
+  if(r._fbKey) S.histDel[r._fbKey] = true;
+  lsSet('hist_deleted_sigs', JSON.stringify(S.histDel));
+  db.ref('historico_excluido/'+dk).set(true).catch(function(){});
+  if(r._fbKey){
+    db.ref('historico_edicoes/'+r._fbKey).remove().catch(function(){});
+    db.ref('busca_ativa/historico/'+r._fbKey).remove().catch(function(){});
+  }
+  S.sessaoHist = (S.sessaoHist||[]).filter(function(x){ return histSig(x) !== sig; });
+  S.fbHist = (S.fbHist||[]).filter(function(x){ return histSig(x) !== sig; });
+  S.fbHist2 = (S.fbHist2||[]).filter(function(x){ return histSig(x) !== sig; });
+  S.logRows = (S.logRows||[]).filter(function(x){ return histSig(x) !== sig; });
+  try{
+    var loc = JSON.parse(lsGet('hist_local_saved')||'[]').filter(function(x){ return histSig(x) !== sig; });
+    lsSet('hist_local_saved', JSON.stringify(loc));
+  }catch(_){}
+  aplicarValorDiretoNaCelula(r, String(r.antes||'')).then(function(){
+    montarFiltrosHist();
+    render();
+    toast('Registro excluído e valor anterior restaurado!');
+  });
+}
+
+function salvarEdicaoItemHist(sig, novoTexto){
+  var r = S.histMap && S.histMap[sig];
+  if(!r) return;
+  var atualizado = {
+    quando: r.quando,
+    quem: nomeEditor(r.quem),
+    aba: r.aba||'',
+    turma: r.turma||'',
+    aluno: r.aluno||'',
+    campo: r.campo||'',
+    bim: r.bim||'-',
+    celula: r.celula||'',
+    antes: r.antes||'',
+    depois: novoTexto
+  };
+  var fbKeyTarget = r._fbKey || ('ed_' + Date.now() + '_' + histDelKey(sig).slice(0,30));
+  atualizado._fbKey = fbKeyTarget;
+  db.ref('historico_edicoes/'+fbKeyTarget).set(atualizado).catch(function(){});
+  db.ref('busca_ativa/historico/'+fbKeyTarget).set(atualizado).catch(function(){});
+  var updArr = function(arr){
+    return (arr||[]).map(function(x){ return histSig(x) === sig ? Object.assign({}, x, atualizado) : x; });
+  };
+  S.sessaoHist = updArr(S.sessaoHist);
+  S.fbHist = updArr(S.fbHist);
+  S.fbHist2 = updArr(S.fbHist2);
+  S.logRows = updArr(S.logRows);
+  try{
+    var loc = updArr(JSON.parse(lsGet('hist_local_saved')||'[]'));
+    lsSet('hist_local_saved', JSON.stringify(loc));
+  }catch(_){}
+  S.histEditSig = '';
+  aplicarValorDiretoNaCelula(r, novoTexto).then(function(){
+    montarFiltrosHist();
+    render();
+    toast('Registro e célula atualizados com sucesso!');
+  });
 }
 
 /* Eventos de Edição, Troca de Turma e Novo Aluno */
@@ -1735,7 +1900,7 @@ document.addEventListener('change',function(e){
   var novo = novaTurma === al.turmaOrig ? atual : (atual ? atual + ' [TURMA: ' + novaTurma + ']' : '[TURMA: ' + novaTurma + ']');
   setDraft(alvoCell, novo);
   render();
-  toast('Turma alterada para ' + novaTurma + '. Clique em "Salvar na Planilha" na barra inferior.');
+  toast('Turma alterada para ' + novaTurma + '. Clique em "Salvar Alterações" na barra inferior.');
 });
 
 document.addEventListener('click',function(e){
@@ -1761,23 +1926,37 @@ document.addEventListener('click',function(e){
   var sa=e.target.closest('#segSae button'); if(sa){ S.fSae=sa.getAttribute('data-f'); render(); return; }
   var fk=e.target.closest('[data-ficha]'); if(fk){ abrirFicha(fk.getAttribute('data-ficha'), false); return; }
   var fkc=e.target.closest('[data-ficha-cad]'); if(fkc){ abrirFicha(fkc.getAttribute('data-ficha-cad'), true); return; }
-  var rv=e.target.closest('[data-reverter]');
-  if(rv){
-    var idRev = rv.getAttribute('data-reverter'), valAnt = rv.getAttribute('data-antes') || '';
-    setDraft(idRev, valAnt);
-    render();
-    toast('Valor anterior restaurado no rascunho. Clique em "Salvar na Planilha" para gravar.');
+  var he=e.target.closest('[data-hist-edit]');
+  if(he){
+    var sigEd = he.getAttribute('data-hist-edit');
+    S.histEditSig = (S.histEditSig === sigEd) ? '' : sigEd;
+    renderHist();
+    if(S.histEditSig && $('inpHistEdit')) $('inpHistEdit').focus();
+    return;
+  }
+  var hc=e.target.closest('[data-hist-cancel]');
+  if(hc){ S.histEditSig = ''; renderHist(); return; }
+  var hs=e.target.closest('[data-hist-save]');
+  if(hs){
+    var sigSv = hs.getAttribute('data-hist-save');
+    var valNovo = $('inpHistEdit') ? $('inpHistEdit').value : '';
+    salvarEdicaoItemHist(sigSv, valNovo);
+    return;
+  }
+  var hd=e.target.closest('[data-hist-del]');
+  if(hd){
+    excluirItemHist(hd.getAttribute('data-hist-del'));
     return;
   }
   var ex=e.target.closest('[data-excluir-aluno]');
   if(ex){
     var alEx = S.alKey[ex.getAttribute('data-excluir-aluno')];
     if(!alEx || !alEx.nomeCell) return;
-    if(!confirm('Deseja marcar "' + nomeDe(alEx) + '" como removido? (Você precisará clicar em Salvar na Planilha para confirmar).')) return;
+    if(!confirm('Deseja marcar "' + nomeDe(alEx) + '" como removido? (Você precisará clicar em Salvar Alterações para confirmar).')) return;
     var idNm = fid(alEx.aba, alEx.r, alEx.nomeCell.c);
     setDraft(idNm, '[EXCLUIDO] ' + alEx.nome);
     fecharFicha();
-    toast('Aluno marcado para remoção. Clique em "Salvar na Planilha" para gravar.');
+    toast('Aluno marcado para remoção. Clique em "Salvar Alterações" para gravar.');
   }
 });
 
@@ -1871,7 +2050,7 @@ $('bExportHist').onclick=function(){
   var csv = ['Data_Hora;Editor;Aba;Turma;Aluno;Campo;Bimestre;Celula;Valor_Anterior;Novo_Valor'];
   all.forEach(function(r){
     var escCsv = function(s){ return '"' + String(s==null?'':s).replace(/"/g,'""').replace(/\r?\n/g,' ') + '"'; };
-    csv.push([r.quando, r.quem, r.aba, r.turma, r.aluno, r.campo, r.bim, r.celula, r.antes, r.depois].map(escCsv).join(';'));
+    csv.push([r.quando, nomeEditor(r.quem), r.aba, r.turma, r.aluno, r.campo, r.bim, r.celula, r.antes, r.depois].map(escCsv).join(';'));
   });
   var blob = new Blob(['\uFEFF'+csv.join('\r\n')], {type:'text/csv;charset=utf-8;'});
   var a = document.createElement('a');
@@ -1884,7 +2063,7 @@ function salvar(){
   var ids=sujos(); if(!ids.length || S.salvando) return;
   S.salvando=true; atualizarBarra();
   var email=String(S.user.email).toLowerCase();
-  var autorLabel = (S.perfil && S.perfil.nome) ? (S.perfil.nome + ' (' + email + ')') : email;
+  var autorLabel = (S.perfil && S.perfil.nome) ? S.perfil.nome : nomeEditor(email);
 
   Promise.all(ids.map(function(id){
     var x=S.idx[id], novo=S.draft[id], key=fbKey(id), ts=Date.now();
@@ -1894,6 +2073,7 @@ function salvar(){
       campo:x.campo, bim:x.bim,
       antes:antesVal, novo:novo, email:email, ts:ts, forcar:true
     };
+    var logKey = ts + '_' + key;
     var histEntry = {
       quando: new Date(ts).toISOString(),
       quem: autorLabel,
@@ -1904,9 +2084,9 @@ function salvar(){
       bim: x.bim ? (BIM_LBL[x.bim] || x.bim) : '-',
       celula: 'L'+x.al.r+'C'+x.f.c,
       antes: antesVal,
-      depois: novo
+      depois: novo,
+      _fbKey: logKey
     };
-    var logKey = ts + '_' + key;
 
     /* 1. Grava diretamente no Firebase (histórico permanente + overrides + célula em sheets) */
     var pHist1 = db.ref('historico_edicoes/'+logKey).set(histEntry).catch(function(){});
