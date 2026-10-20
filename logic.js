@@ -37,8 +37,19 @@
   // ---- parseia um payload em lista de registros de aluno + colunas de anotação por célula
   function parseStudents(payload){
     var recs=[];
+    var ovMap = payload && payload.overrides ? payload.overrides : null;
     (payload.sheets||[]).forEach(function(sh){
       var sheet=sh.name, V=sh.values||[], notes=sh.notes||[];
+      if(ovMap){
+        Object.keys(ovMap).forEach(function(k){
+          var o = ovMap[k];
+          if(o && o.aba === sheet && o.linha >= 1 && o.col >= 1){
+            var ri = o.linha - 1, ci = o.col - 1;
+            if(!V[ri]) V[ri] = [];
+            V[ri][ci] = o.novo;
+          }
+        });
+      }
       // acha linhas de cabeçalho (célula == 'Nome')
       var headerRows=[];
       for(var r=0;r<V.length;r++){
@@ -72,9 +83,10 @@
           if(/^(qt\.?\s*)?(de\s+)?faltas?\b/.test(h)) return 'FAL';
           return null;
         }
+        var totCol=-1;
         for(var c3=0;c3<head.length;c3++){
           var tv=up(titleRow[c3]), lab=null;
-          if(tv.indexOf('TOTAL')===0) break;
+          if(tv.indexOf('TOTAL')===0){ totCol=c3; break; }
           if(tv.indexOf('BIMESTRE')>=0){ var mm=tv.match(/(\d)/); if(mm) lab=+mm[1]; }
           var h=low(head[c3]);
           var role=h? roleDe(h) : null;
@@ -106,6 +118,7 @@
         }
         var prevBim=0;
         groups.forEach(function(gr){ var n=gr.lab||(prevBim+1); prevBim=n; if(n>=1&&n<=4) cols[n+'B']=gr.cols; });
+        if(cols['4B'] && cols['4B'].DEV==null){ cols['4B'].DEV = totCol>=0 ? (totCol+3) : head.length; }
         if(meta.NOME==null) continue;
         // coluna logo após o Nome costuma ser Situação/Reclassificação (onde vai "TRANSFERIDO"),
         // mesmo quando o cabeçalho está em branco. Captura como SITU2 se não for já conhecida.
@@ -114,10 +127,17 @@
         if(!conhecidas[apos]) meta.SITU2=apos;
         for(var r2=hr+1;r2<=end;r2++){
           var row=V[r2]; if(!row) continue;
-          var nome=norm(row[meta.NOME]); if(!nome) continue;
+          var nome=norm(row[meta.NOME]); if(!nome || /^\[EXCLUIDO\]/i.test(nome)) continue;
           var rec={sheet:sheet, ano:LBL[sheet], seg:SEG[sheet], turma:turma, linha:r2+1, nome:nome, nomeChave:up(nome),
                    cells:{}, notas:[]};
           ['COD','RECLASS','ASSIN','MATRIC','SITUACAO','SITU2'].forEach(function(k){ if(meta[k]!=null) rec[k]=norm(row[meta[k]]); });
+          var mTurma=(rec.RECLASS||'').match(/\[TURMA:\s*([^\]]+)\]/i)||(rec.SITUACAO||'').match(/\[TURMA:\s*([^\]]+)\]/i)||(rec.SITU2||'').match(/\[TURMA:\s*([^\]]+)\]/i);
+          if(mTurma){
+            rec.turma=norm(mTurma[1]);
+            var mAno=rec.turma.match(/^(\d)/);
+            var mapAba={'1':'PRIMEIROS','2':'SEGUNDOS','3':'TERCEIROS','4':'QUARTOS','5':'QUINTOS TARDE'};
+            if(mAno && mapAba[mAno[1]]){ rec.sheet=mapAba[mAno[1]]; rec.ano=LBL[rec.sheet]; }
+          }
           ['1B','2B','3B','4B'].forEach(function(bi){
             var cc=cols[bi]||{};
             var fbim = cc.FBIM!=null? num(row[cc.FBIM]) : null;
