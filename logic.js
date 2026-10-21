@@ -40,6 +40,7 @@
     var ovMap = payload && payload.overrides ? payload.overrides : null;
     (payload.sheets||[]).forEach(function(sh){
       var sheet=sh.name, V=sh.values||[], notes=sh.notes||[];
+      var ovCells={};
       if(ovMap){
         Object.keys(ovMap).forEach(function(k){
           var o = ovMap[k];
@@ -47,6 +48,7 @@
             var ri = o.linha - 1, ci = o.col - 1;
             if(!V[ri]) V[ri] = [];
             V[ri][ci] = o.novo;
+            ovCells[ri+'_'+ci] = o;
           }
         });
       }
@@ -146,8 +148,12 @@
             var inj  = cc.INJ!=null?  num(row[cc.INJ])  : null;
             var duplo = (cc.FBIM!=null && cc.FCOL!=null);
             var faltas = fbim!=null? fbim : fcol;   // se há coluna do próprio bimestre, usa ela; senão a única
+            var fColUsed = fbim!=null? cc.FBIM : cc.FCOL;
+            var fOrAteOverridden = (fColUsed!=null && ovCells[r2+'_'+fColUsed]) || (cc.ATE!=null && ovCells[r2+'_'+cc.ATE]);
+            var injOverridden = (cc.INJ!=null && ovCells[r2+'_'+cc.INJ]);
             var injust;
-            if(inj!=null) injust = inj;             // coluna "Faltas injustificadas" existe -> ela manda
+            if(fOrAteOverridden && !injOverridden && faltas!=null) injust = faltas-(ate||0);
+            else if(inj!=null) injust = inj;        // coluna "Faltas injustificadas" existe -> ela manda
             else if(faltas!=null) injust = faltas-(ate||0);
             else injust = null;
             rec[bi+'_f']=faltas; rec[bi+'_a']=ate;
@@ -164,6 +170,27 @@
             if(!rec[bi+'_DEV'] && rec[bi+'_RET'].length>3 && !isNao(rec[bi+'_RET']) && (!rec[bi+'_SAE'] || isNao(rec[bi+'_SAE'])) && !/^em contato com|^encaminhad|^laudo/i.test(rec[bi+'_RET'])){
               rec[bi+'_DEV']=rec[bi+'_RET'];
               rec[bi+'_RET']='';
+            }
+            if(ovMap){
+              var fOv=null, aOv=null, iOv=null;
+              Object.keys(ovMap).forEach(function(k){
+                var o = ovMap[k];
+                if(!o || o.aba !== sheet || o.linha !== (r2+1) || o.bim !== bi) return;
+                if(o.campo === 'FAL') fOv = o;
+                else if(o.campo === 'ATE') aOv = o;
+                else if(o.campo === 'INJ') iOv = o;
+                else if(o.campo === 'DEV') rec[bi+'_DEV'] = norm(o.novo);
+                else if(o.campo === 'BUS') rec[bi+'_BUS'] = norm(o.novo);
+                else if(o.campo === 'SAE') rec[bi+'_SAE'] = norm(o.novo);
+                else if(o.campo === 'RET') rec[bi+'_RET'] = norm(o.novo);
+                else if(o.campo === 'BIL') rec[bi+'_BIL'] = norm(o.novo);
+              });
+              if(fOv) rec[bi+'_f'] = num(fOv.novo) != null ? num(fOv.novo) : 0;
+              if(aOv) rec[bi+'_a'] = num(aOv.novo) != null ? num(aOv.novo) : 0;
+              if(iOv) rec[bi+'_i'] = num(iOv.novo) != null ? num(iOv.novo) : 0;
+              if((fOv || aOv) && !iOv){
+                rec[bi+'_i'] = Math.max((rec[bi+'_f']||0) - (rec[bi+'_a']||0), 0);
+              }
             }
           });
           // notas de célula desta linha -> anexa com o header da coluna
