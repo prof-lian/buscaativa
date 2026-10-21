@@ -23,6 +23,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{
   --navy:#0B2545; --navy2:#14345E; --navy3:#1D4E89; --ink:#13263E; --muted:#566F8E; --line:#D5E0EC;
@@ -233,6 +234,17 @@ textarea.auto{overflow:hidden}
 .perf-avatar-lg{width:120px;height:120px;border-radius:50%;margin:0 auto 12px;background:#fff;border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;overflow:hidden;font:700 42px "Fraunces",serif;color:var(--navy);box-shadow:0 4px 14px rgba(11,37,69,.1)}
 .perf-avatar-lg img{width:100%;height:100%;object-fit:cover}
 
+/* Faltas, Atestados e Permissões */
+.inp-num-sm{width:78px!important;text-align:center;font-family:"IBM Plex Mono",monospace;font-weight:600;padding:6px 8px!important}
+.inp-num-sm.changed{background:var(--dirty);border-color:var(--gold)}
+.perm-grid{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.perm-chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink);background:var(--bg);border:1px solid var(--line);padding:5px 10px;border-radius:7px;cursor:pointer;user-select:none;transition:all .12s}
+.perm-chk:hover{border-color:var(--navy3);background:#eaf1fb}
+.perm-chk input[type=checkbox]{width:15px;height:15px;margin:0;accent-color:var(--navy);cursor:pointer}
+.perm-chk.adm-chk{background:#FFFDF4;border-color:var(--gold);font-weight:600;color:var(--navy)}
+.pdf-box{background:linear-gradient(90deg,#F5F9FF 0%,#FFFDF7 100%);border:1px dashed var(--navy3);border-radius:12px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cursor:not-allowed!important}
+
 @media (max-width:960px){
   .layout{grid-template-columns:1fr;padding:14px 14px 110px;gap:16px}
   .sidebar{position:static}
@@ -327,6 +339,9 @@ textarea.auto{overflow:hidden}
         <button class="tab on" data-tab="dev" type="button">
           <span class="t-left"><span class="ico">📋</span><span>Busca Ativa e Faltosos</span></span>
         </button>
+        <button class="tab" data-tab="fal" type="button">
+          <span class="t-left"><span class="ico">📅</span><span>Faltas e Atestados</span></span>
+        </button>
         <button class="tab" data-tab="sae" type="button">
           <span class="t-left"><span class="ico">🏥</span><span>Relatório SAE</span></span>
         </button>
@@ -383,6 +398,122 @@ textarea.auto{overflow:hidden}
           <span><b id="cntDev"></b> · <span id="lblFal"></span></span>
         </div>
         <div class="twrap"><table id="tabFal" class="t-std"></table></div>
+      </section>
+
+      <!-- 1B. FALTAS E ATESTADOS -->
+      <section id="pFal" class="panel-box hidden">
+        <div class="sec-head">
+          <div>
+            <h2>📅 Lançamento de Faltas e Atestados</h2>
+            <p>Importe o relatório de faltas em PDF por turma, ajuste manualmente a quantidade de faltas e atestados por aluno ou cadastre atestados médicos detalhados.</p>
+          </div>
+          <button type="button" class="btn pri" id="bSalvarFaltasTopo">💾 Salvar Alterações de Faltas</button>
+        </div>
+
+        <!-- Importação via PDF por Turma -->
+        <div class="pdf-box">
+          <div style="flex:1;min-width:260px">
+            <b style="color:var(--navy);font-size:15px;display:block;margin-bottom:3px">📄 Importar Faltas por PDF da Turma</b>
+            <span style="font-size:12.5px;color:var(--muted)">Selecione a <b>Turma</b> e o <b>Bimestre</b> abaixo e anexe o PDF com a listagem de faltas. O sistema identifica cada aluno automaticamente e preenche as faltas para conferência.</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <input type="file" id="inpPdfFal" accept=".pdf,application/pdf" class="hidden">
+            <button type="button" class="btn navy" id="bAnexarPdf">📎 Anexar PDF da Turma</button>
+          </div>
+          <div id="pdfStatusBox" class="st hidden" style="flex-basis:100%;margin-top:4px;padding:8px 12px;border-radius:7px;background:#fff;border:1px solid var(--line)"></div>
+        </div>
+
+        <!-- Filtros da Tabela de Faltas por Turma -->
+        <div class="ctrls" style="grid-template-columns:1fr 1fr 2fr">
+          <div><label for="faTurma">Turma</label><select id="faTurma"></select></div>
+          <div><label for="faBim">Bimestre do Lançamento</label><select id="faBim">
+            <option value="1B">1º bimestre</option>
+            <option value="2B">2º bimestre</option>
+            <option value="3B" selected>3º bimestre</option>
+            <option value="4B">4º bimestre</option>
+          </select></div>
+          <div><label for="qFa">Buscar aluno na turma</label><input id="qFa" type="search" name="filtro_fa_aluno" autocomplete="off" placeholder="Digite o nome do aluno…"></div>
+        </div>
+        <div class="hint">
+          <span>Altere manualmente <b>Qt. Faltas</b> ou <b>Qt. Atestados</b> de qualquer aluno abaixo (as faltas injustificadas são calculadas automaticamente) e clique em <b>Salvar Alterações</b>.</span>
+          <b id="cntFa"></b>
+        </div>
+        <div class="twrap" style="max-height:52vh;margin-bottom:26px">
+          <table class="t-std" id="tabLancFal"></table>
+        </div>
+
+        <!-- Seção de Atestados Médicos (Cadastro + Compilado) -->
+        <div class="sec" style="border-top:2px solid var(--line);padding-top:20px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <span>🩺 Registro e Compilado de Atestados Médicos</span>
+          <span style="font:400 12.5px 'IBM Plex Sans',sans-serif;color:var(--muted)">Ao registrar um atestado, os dias letivos já atualizam os atestados do aluno no painel</span>
+        </div>
+
+        <div class="card" style="background:#FFFDF7;border-color:var(--gold);margin-bottom:18px">
+          <form id="fAtestado" autocomplete="off">
+            <input type="hidden" id="atEditId" value="">
+            <div class="ctrls" style="grid-template-columns:1fr 2.2fr 1fr 1.4fr;margin-bottom:10px">
+              <div>
+                <label for="atTurma">Turma</label>
+                <select id="atTurma"></select>
+              </div>
+              <div>
+                <label for="atAluno">Aluno</label>
+                <select id="atAluno" required></select>
+              </div>
+              <div>
+                <label for="atBim">Bimestre</label>
+                <select id="atBim">
+                  <option value="1B">1º bimestre</option>
+                  <option value="2B">2º bimestre</option>
+                  <option value="3B" selected>3º bimestre</option>
+                  <option value="4B">4º bimestre</option>
+                </select>
+              </div>
+              <div>
+                <label for="atPeriodo">Período do Atestado</label>
+                <input type="text" id="atPeriodo" placeholder="Ex.: 10/08/2026 a 14/08/2026" required>
+              </div>
+            </div>
+            <div class="ctrls" style="grid-template-columns:1fr 1fr 2.4fr auto;align-items:end;margin-bottom:0">
+              <div>
+                <label for="atCid">CID</label>
+                <input type="text" id="atCid" placeholder="Ex.: J00 / A09">
+              </div>
+              <div>
+                <label for="atDias">Dias Letivos</label>
+                <input type="number" id="atDias" min="1" max="180" value="1" required>
+              </div>
+              <div>
+                <label for="atObs">OBS</label>
+                <input type="text" id="atObs" placeholder="Observações, médico, unidade de saúde, entregue por…">
+              </div>
+              <div style="display:flex;gap:8px">
+                <button type="button" class="btn out-dark hidden" id="bCancAt">Cancelar</button>
+                <button type="submit" class="btn navy" id="bAddAt">+ Adicionar Atestado</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Filtros e Tabela do Compilado de Atestados -->
+        <div class="ctrls" style="grid-template-columns:1fr 1fr 2fr">
+          <div><label for="fltAtTurma">Filtrar Turma</label><select id="fltAtTurma"><option value="">Todas as turmas</option></select></div>
+          <div><label for="fltAtBim">Filtrar Bimestre</label><select id="fltAtBim">
+            <option value="">Todos os bimestres</option>
+            <option value="1B">1º bimestre</option>
+            <option value="2B">2º bimestre</option>
+            <option value="3B">3º bimestre</option>
+            <option value="4B">4º bimestre</option>
+          </select></div>
+          <div><label for="qAt">Buscar no compilado de atestados</label><input id="qAt" type="search" name="filtro_at_busca" autocomplete="off" placeholder="Aluno, CID, período, observação…"></div>
+        </div>
+        <div class="hint">
+          <span id="resumoAtestados">Compilado de atestados lançados</span>
+          <b id="cntAtestados"></b>
+        </div>
+        <div class="twrap" style="max-height:50vh">
+          <table class="t-std" id="tabAtestados"></table>
+        </div>
       </section>
 
       <!-- 2. GERENCIAR ALUNOS -->
@@ -554,19 +685,30 @@ textarea.auto{overflow:hidden}
         </div>
       </section>
 
-      <!-- 7. EDITORES (só administradores) -->
+      <!-- 7. EDITORES E PERMISSÕES (só administradores) -->
       <section id="pEdt" class="panel-box hidden">
         <div class="sec-head">
           <div>
-            <h2>🔐 Gerenciar Editores e Permissões</h2>
-            <p>Adicione ou remova membros da equipe autorizados a editar dados pelo painel.</p>
+            <h2>🔐 Gerenciar Usuários e Permissões de Acesso</h2>
+            <p>Defina quem é Administrador (ADM) e marque exatamente o que cada usuário pode alterar no sistema. Se uma opção estiver desmarcada, o usuário fica bloqueado de fazer aquela alteração.</p>
           </div>
         </div>
         <div class="card" style="background:var(--bg)">
-          <form id="fEdt" class="ctrls" style="grid-template-columns:2fr 1.3fr auto;align-items:end;margin:0">
-            <div><label for="eEmail">E-mail da pessoa</label><input type="email" id="eEmail" placeholder="nome@edu.uberabadigital.com.br" required></div>
-            <div><label for="eSenha">Senha provisória</label><input type="text" id="eSenha" placeholder="mínimo 6 caracteres" minlength="6" required autocomplete="off"></div>
-            <div><button class="btn navy" type="submit" id="bAddEdt">+ Liberar Acesso</button></div>
+          <form id="fEdt" style="margin:0">
+            <div class="ctrls" style="grid-template-columns:2fr 1.3fr auto;align-items:end;margin-bottom:10px">
+              <div><label for="eEmail">E-mail da pessoa</label><input type="email" id="eEmail" placeholder="nome@edu.uberabadigital.com.br" required></div>
+              <div><label for="eSenha">Senha provisória</label><input type="text" id="eSenha" placeholder="mínimo 6 caracteres" minlength="6" required autocomplete="off"></div>
+              <div><button class="btn navy" type="submit" id="bAddEdt">+ Liberar Acesso</button></div>
+            </div>
+            <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px">Permissões iniciais para este usuário:</div>
+            <div class="perm-grid" id="newEdtPerms" style="border-top:0;padding-top:2px">
+              <label class="perm-chk adm-chk"><input type="checkbox" id="np_adm"> 👑 Administrador (ADM)</label>
+              <label class="perm-chk"><input type="checkbox" id="np_dados_aluno" checked> 🎓 Dados do aluno</label>
+              <label class="perm-chk"><input type="checkbox" id="np_faltas" checked> 📅 Faltas e Atestados</label>
+              <label class="perm-chk"><input type="checkbox" id="np_busca_ativa" checked> 📋 Informações da Busca Ativa</label>
+              <label class="perm-chk"><input type="checkbox" id="np_devolutiva_familia" checked> 💬 Devolutiva da Família</label>
+              <label class="perm-chk"><input type="checkbox" id="np_devolutiva_sae" checked> 🏥 Devolutivas da SAE</label>
+            </div>
           </form>
           <div class="msg" id="edtErro"></div>
           <div id="edtOk" class="hidden" style="margin-top:12px">
@@ -575,9 +717,9 @@ textarea.auto{overflow:hidden}
             <button type="button" class="chip" id="bCopiar" style="margin-top:6px">Copiar convite</button>
           </div>
         </div>
-        <div class="sec">Pessoas com acesso de edição</div>
+        <div class="sec">Usuários cadastrados e controle de permissões</div>
         <div class="lista" id="listaEdt"><div class="load">Carregando…</div></div>
-        <p class="hint" style="margin-top:8px">Os marcados como "fixo" estão no código do Apps Script ou são editores da planilha.</p>
+        <p class="hint" style="margin-top:8px">Marque ou desmarque as caixas de seleção de qualquer usuário para liberar ou bloquear alterações em tempo real.</p>
       </section>
 
     </main>
@@ -707,11 +849,20 @@ function edMapaAba_(V) {
     });
     if (nomeCol < 0) continue;
 
-    /* Garante que o 4º bimestre SEMPRE tenha a coluna Devolutiva da família disponível */
-    if (!cols['4B']) cols['4B'] = {};
-    if (cols['4B'].DEV == null) {
-      cols['4B'].DEV = totCol >= 0 ? (totCol + 3) : head.length;
-    }
+    /* Garante que todos os 4 bimestres SEMPRE tenham colunas mapeadas para Faltas, Atestados, Injustificadas e Ações */
+    var allRoles = ['FAL','ATE','INJ','BIL','BUS','DEV','SAE','RET'];
+    var baseVirt = Math.max(head.length, totCol >= 0 ? (totCol + 4) : 0) + 2;
+    ord.forEach(function(bi, bIdx){
+      if (!cols[bi]) cols[bi] = {};
+      if (bi === '4B' && cols['4B'].DEV == null && totCol >= 0) {
+        cols['4B'].DEV = totCol + 3;
+      }
+      allRoles.forEach(function(rk, rIdx){
+        if (cols[bi][rk] == null) {
+          cols[bi][rk] = baseVirt + (bIdx * 10) + rIdx;
+        }
+      });
+    });
 
     infoCols.forEach(function (ci) {
       var hh = edLow_(head[ci]);
@@ -808,9 +959,11 @@ var CAMPO_LBL = {
 
 var S = {
   dados:{}, idx:{}, tab:'dev', aba:'', turma:'', bim:'', q:'', alFiltro:'todos', ordCol:'faltas', ordDir:-1,
+  faTurma:'', faBim:'3B', qFa:'', atTurma:'', atBim:'3B', fltAtTurma:'', fltAtBim:'', qAt:'', atestados:{},
   aluAba:'', aluTurma:'', qAlu:'', fichaModoCad:false,
   qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
   hQuem:'', hTurma:'', hCampo:'', qHist:'', logRows:[], sessaoHist:[], histDel:{}, histEditSig:'', mapaPerfis:{},
+  permsAll:{}, adminsMap:{}, minhasPerms:{adm:false, dados_aluno:true, faltas:true, busca_ativa:true, devolutiva_familia:true, devolutiva_sae:true},
   perfil:{nome:'', cargo:'', foto:'', tel:''},
   draft:{}, fila:{}, conf:{}, erro:{}, ok:{}, user:null, geradoEm:null, salvando:false
 };
@@ -1051,20 +1204,91 @@ function traduz(e){
 }
 function falha(t){ $('msgGeral').innerHTML='<div class="erro">'+esc(t)+'</div>'; $('app').classList.add('hidden'); }
 
+/* ===== Controle de Permissões de Usuário ===== */
+function permsPadrao(isAdm){
+  return {
+    adm: !!isAdm,
+    dados_aluno: true,
+    faltas: true,
+    busca_ativa: true,
+    devolutiva_familia: true,
+    devolutiva_sae: true
+  };
+}
+function permsDeKey(mk){
+  var isAdmFixo = !!(S.adminsMap && S.adminsMap[mk] === true) || mk === 'lian,ribeiro@edu,uberabadigital,com,br';
+  var salvo = (S.permsAll && S.permsAll[mk]) || null;
+  if(!salvo) return permsPadrao(isAdmFixo);
+  return {
+    adm: isAdmFixo ? (salvo.adm !== false) : !!salvo.adm,
+    dados_aluno: salvo.dados_aluno !== false,
+    faltas: salvo.faltas !== false,
+    busca_ativa: salvo.busca_ativa !== false,
+    devolutiva_familia: salvo.devolutiva_familia !== false,
+    devolutiva_sae: salvo.devolutiva_sae !== false
+  };
+}
+function temPerm(tipo){
+  if(!S.minhasPerms) return true;
+  return S.minhasPerms[tipo] !== false;
+}
+function temPermCampo(campo){
+  if(campo==='NOME'||campo==='COD'||campo==='MATRIC'||campo==='RECLASS'||campo==='SIT') return temPerm('dados_aluno');
+  if(campo==='FAL'||campo==='ATE'||campo==='INJ') return temPerm('faltas');
+  if(campo==='BIL'||campo==='BUS'||campo==='SAE') return temPerm('busca_ativa');
+  if(campo==='DEV') return temPerm('devolutiva_familia');
+  if(campo==='RET') return temPerm('devolutiva_sae');
+  return true;
+}
+function podeEditarId(id){
+  var x = S.idx[id];
+  if(!x) return true;
+  return temPermCampo(x.campo);
+}
+function atualizarMeuStatusPerm(){
+  if(!S.user) return;
+  var mk = String(S.user.email).toLowerCase().replace(/\./g,',');
+  S.minhasPerms = permsDeKey(mk);
+  var novoAdmin = !!S.minhasPerms.adm || !!(S.adminsMap && S.adminsMap[mk] === true) || mk === 'lian,ribeiro@edu,uberabadigital,com,br';
+  var era = S.admin;
+  S.admin = novoAdmin;
+  $('tabEdt').classList.toggle('hidden', !S.admin);
+  if(S.admin && !era){
+    db.ref('editores').on('value',function(x){ S.edPub=x.val()||{}; if(S.tab==='edt') renderEdt(); });
+    db.ref('editores_extra').on('value',function(x){ S.edExtra=x.val()||{}; if(S.tab==='edt') renderEdt(); });
+  }
+  if(Object.keys(S.dados).length) render();
+}
+
 /* ===== Leitura do Firebase ===== */
 function ouvirPlanilha(){
   var mk=String(S.user.email).toLowerCase().replace(/\./g,',');
-  db.ref('admins/'+mk).on('value',function(s){
-    var era=S.admin; S.admin=(s.val()===true); $('tabEdt').classList.toggle('hidden',!S.admin);
-    if(!S.admin || era) return;
-    db.ref('editores').on('value',function(x){ S.edPub=x.val()||{}; if(S.tab==='edt') renderEdt(); });
-    db.ref('editores_extra').on('value',function(x){ S.edExtra=x.val()||{}; if(S.tab==='edt') renderEdt(); });
+  db.ref('admins').on('value',function(s){
+    S.adminsMap = s.val() || {};
+    atualizarMeuStatusPerm();
+    if(S.tab==='edt') renderEdt();
+  },function(){
+    db.ref('admins/'+mk).on('value',function(s){
+      S.adminsMap = S.adminsMap || {};
+      S.adminsMap[mk] = (s.val()===true);
+      atualizarMeuStatusPerm();
+    });
   });
+  db.ref('permissoes_usuarios').on('value',function(s){
+    S.permsAll = s.val() || {};
+    atualizarMeuStatusPerm();
+    if(S.tab==='edt') renderEdt();
+  },function(){});
+  db.ref('atestados_medicos').on('value',function(s){
+    S.atestados = s.val() || {};
+    if(S.tab==='fal') renderFal();
+  },function(){});
   /* Perfis de editores para exibir sempre o nome em vez do e-mail */
   db.ref('perfis').on('value',function(s){
     S.mapaPerfis = s.val() || {};
     montarFiltrosHist();
     if(S.tab==='hist') renderHist();
+    if(S.tab==='edt') renderEdt();
   },function(){});
   /* Registros excluídos do histórico */
   try{ S.histDel = JSON.parse(lsGet('hist_deleted_sigs')||'{}')||{}; }catch(_){}
@@ -1197,9 +1421,10 @@ function carregarTudo(){
 
     montarFiltros();
     montarFiltrosAlu();
+    montarFiltrosFal();
     montarFiltrosHist();
 
-    var lt=lsGet('tab'); irTab(['dev','alu','sit','sae','hist','perf','edt'].indexOf(lt)>=0?lt:S.tab);
+    var lt=lsGet('tab'); irTab(['dev','fal','alu','sit','sae','hist','perf','edt'].indexOf(lt)>=0?lt:S.tab);
     if(S.geradoEm) $('sub').textContent='Planilha sincronizada em '+new Date(S.geradoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   }).catch(function(e){ falha('Erro ao ler o Firebase: '+(e.message||e)); });
 }
@@ -1250,19 +1475,49 @@ function montarFiltrosAlu(){
   $('nvTurma').innerHTML=allT.map(function(t){return '<option value="'+esc(t)+'">'+esc(t)+'</option>';}).join('');
 }
 
+function montarFiltrosFal(){
+  var allT = todasTurmasLista();
+  if(!S.faTurma && allT.length) S.faTurma = allT[0];
+  if(!S.atTurma && allT.length) S.atTurma = allT[0];
+  $('faTurma').innerHTML = allT.map(function(t){ return '<option value="'+esc(t)+'">'+esc(t)+'</option>'; }).join('');
+  $('faTurma').value = S.faTurma;
+  $('atTurma').innerHTML = '<option value="">Todas as turmas</option>' + allT.map(function(t){ return '<option value="'+esc(t)+'">'+esc(t)+'</option>'; }).join('');
+  $('atTurma').value = S.atTurma;
+  $('fltAtTurma').innerHTML = '<option value="">Todas as turmas</option>' + allT.map(function(t){ return '<option value="'+esc(t)+'">'+esc(t)+'</option>'; }).join('');
+  $('fltAtTurma').value = S.fltAtTurma;
+  popularSelectAlunosAt();
+}
+
+function popularSelectAlunosAt(manterVal){
+  var selVal = manterVal || ($('atAluno') ? $('atAluno').value : '');
+  var trm = $('atTurma') ? $('atTurma').value : '';
+  var alus = todosAlunos().filter(function(al){ return !trm || turmaDe(al) === trm; });
+  alus.sort(function(a,b){ return cmpTurma(turmaDe(a),turmaDe(b)) || low(nomeDe(a)).localeCompare(low(nomeDe(b))); });
+  if($('atAluno')){
+    $('atAluno').innerHTML = '<option value="">Selecione o aluno…</option>' + alus.map(function(al){
+      var k = al.aba + '|' + al.r;
+      return '<option value="'+esc(k)+'">'+esc(nomeDe(al))+' ('+esc(turmaDe(al))+')</option>';
+    }).join('');
+    if(selVal) $('atAluno').value = selVal;
+  }
+}
+
 /* ===== Componentes de Campo Editável ===== */
 function campo(id, lbl, opts){
   opts=opts||{};
   var v=valor(id), ch=(id in S.draft), na=(id in S.fila);
+  var permOk = podeEditarId(id);
+  var disAttr = permOk ? '' : ' disabled title="Você não tem permissão para alterar este campo"';
   var cls='f'+(opts.wide?' wide':'')+(ch?' changed':'')+(na&&!ch?' fila':'')+(S.conf[id]!=null?' conf':'');
   var chips=(opts.chips||[]).map(function(c){
     var t={sim:'Sim, hoje',nao:'Não',data:'+ data de hoje'}[c];
-    return '<button type="button" class="chip" data-chip="'+c+'" data-id="'+esc(id)+'">'+t+'</button>';
+    return '<button type="button" class="chip" data-chip="'+c+'" data-id="'+esc(id)+'"'+disAttr+'>'+t+'</button>';
   }).join('');
   var inp= opts.wide
-    ? '<textarea'+(opts.auto?' class="auto"':'')+' data-id="'+esc(id)+'" placeholder="'+esc(opts.ph||'')+'">'+esc(v)+'</textarea>'
-    : '<input type="text" data-id="'+esc(id)+'" value="'+esc(v)+'" placeholder="'+esc(opts.ph||'')+'">';
-  return '<div class="'+cls+'" data-fbox="'+esc(id)+'"><label><span>'+esc(lbl)+'</span><span class="chips">'+chips+'</span></label>'+inp+statusMsg(id)+'</div>';
+    ? '<textarea'+(opts.auto?' class="auto"':'')+' data-id="'+esc(id)+'" placeholder="'+esc(opts.ph||'')+'"'+disAttr+'>'+esc(v)+'</textarea>'
+    : '<input type="text" data-id="'+esc(id)+'" value="'+esc(v)+'" placeholder="'+esc(opts.ph||'')+'"'+disAttr+'>';
+  var lockBadge = permOk ? '' : ' <span style="font-size:11px;color:var(--muted);font-weight:400">🔒 Somente leitura</span>';
+  return '<div class="'+cls+'" data-fbox="'+esc(id)+'"><label><span>'+esc(lbl)+lockBadge+'</span><span class="chips">'+chips+'</span></label>'+inp+statusMsg(id)+'</div>';
 }
 
 function statusMsg(id){
@@ -1360,8 +1615,333 @@ function renderDev(){
   }).join('')+'</tbody>';
 }
 
+/* ===== 1B. Aba Faltas e Atestados (PDF + Ajuste Manual + Compilado de Atestados) ===== */
+function atestadosLista(){
+  var map = S.atestados || {};
+  return Object.keys(map).map(function(k){
+    return Object.assign({ id: k }, map[k]);
+  }).filter(function(r){ return r && r.aluno; }).sort(function(a,b){
+    return (b.em||0) - (a.em||0);
+  });
+}
+
+function renderFal(){
+  var podeFal = temPerm('faltas');
+  var disAttr = podeFal ? '' : ' disabled title="Você não tem permissão para alterar faltas e atestados"';
+  if($('bAnexarPdf')) $('bAnexarPdf').disabled = !podeFal;
+  if($('bAddAt')) $('bAddAt').disabled = !podeFal;
+
+  var trm = S.faTurma;
+  var bi  = S.faBim || '3B';
+  var q   = low(S.qFa);
+  var lista = todosAlunos().filter(function(al){
+    if(trm && turmaDe(al) !== trm) return false;
+    if(q && low(nomeDe(al)).indexOf(q) < 0 && low(codDe(al)).indexOf(q) < 0) return false;
+    return true;
+  });
+  lista.sort(function(a,b){ return cmpTurma(turmaDe(a),turmaDe(b)) || low(nomeDe(a)).localeCompare(low(nomeDe(b))); });
+  $('cntFa').textContent = lista.length + ' aluno(s) · ' + (BIM_LBL[bi]||bi);
+
+  var atAll = atestadosLista();
+  var atPorAlunoBim = {};
+  atAll.forEach(function(at){
+    var k = (at.alunoKey || '') + '|' + (at.bim || '');
+    if(!atPorAlunoBim[k]) atPorAlunoBim[k] = [];
+    atPorAlunoBim[k].push(at);
+  });
+
+  var head = '<thead><tr>'+
+    '<th style="width:42px;text-align:center">#</th>'+
+    '<th>Nome do Aluno</th>'+
+    '<th style="text-align:center">Turma</th>'+
+    '<th style="text-align:center">Situação</th>'+
+    '<th style="text-align:center">Qt. Faltas ('+esc(bi)+')</th>'+
+    '<th style="text-align:center">Qt. Atestados ('+esc(bi)+')</th>'+
+    '<th style="text-align:center">Faltas Injust. ('+esc(bi)+')</th>'+
+    '<th>Atestados no Bimestre</th>'+
+    '<th style="text-align:right">Ação</th>'+
+  '</tr></thead>';
+
+  if(!lista.length){
+    $('tabLancFal').innerHTML = head + '<tbody><tr><td colspan="9" class="vazio">Nenhum aluno encontrado para esta turma.</td></tr></tbody>';
+  } else {
+    $('tabLancFal').innerHTML = head + '<tbody>' + lista.map(function(al, idxAl){
+      var alK = al.aba + '|' + al.r;
+      var st = sitDe(al);
+      var stBadge = st==='T'?'<span class="tag hi">Transferido</span>':(st==='D'?'<span class="tag d">Domiciliar</span>':'<span class="tag ok">Ativo</span>');
+      var fId = fieldId(al, bi, 'FAL');
+      var aId = fieldId(al, bi, 'ATE');
+      var iId = fieldId(al, bi, 'INJ');
+      var o = al.b[bi] || {};
+      var vF = num(fId ? valor(fId) : o.FAL);
+      var vA = num(aId ? valor(aId) : o.ATE);
+      var rawI = iId ? valor(iId) : o.INJ;
+      var vI = (rawI != null && String(rawI).trim() !== '') ? num(rawI) : Math.max(vF - vA, 0);
+      var fDirty = fId && (fId in S.draft);
+      var aDirty = aId && (aId in S.draft);
+      var iDirty = iId && (iId in S.draft);
+      var ats = atPorAlunoBim[alK + '|' + bi] || [];
+      var resumoAt = ats.length
+        ? ats.map(function(x){ return '<span class="tag ok" title="CID: '+esc(x.cid||'—')+' · '+esc(x.obs||'')+'">'+esc(x.dias)+'d ('+esc(x.periodo)+')</span>'; }).join(' ')
+        : '<span style="color:var(--muted);font-size:12px">—</span>';
+
+      return '<tr>'+
+        '<td class="mono" style="text-align:center;color:var(--muted);font-size:12px">'+(idxAl+1)+'</td>'+
+        '<td><span class="nmlink" data-ficha="'+esc(alK)+'">'+esc(nomeDe(al))+'</span>'+(alunoDirty(al)?' <span class="tag dirty">editado</span>':'')+'</td>'+
+        '<td class="mono" style="text-align:center;font-weight:600">'+esc(turmaDe(al))+'</td>'+
+        '<td style="text-align:center">'+stBadge+'</td>'+
+        '<td style="text-align:center" data-fbox="'+esc(fId||'')+'">'+
+          (fId ? '<input type="number" min="0" max="200" class="inp-num-sm'+(fDirty?' changed':'')+'" data-id="'+esc(fId)+'" data-fal-al="'+esc(alK)+'" data-fal-bi="'+esc(bi)+'" data-fal-role="FAL" value="'+vF+'"'+disAttr+'>' : vF)+
+        '</td>'+
+        '<td style="text-align:center" data-fbox="'+esc(aId||'')+'">'+
+          (aId ? '<input type="number" min="0" max="200" class="inp-num-sm'+(aDirty?' changed':'')+'" data-id="'+esc(aId)+'" data-fal-al="'+esc(alK)+'" data-fal-bi="'+esc(bi)+'" data-fal-role="ATE" value="'+vA+'"'+disAttr+'>' : vA)+
+        '</td>'+
+        '<td style="text-align:center" data-fbox="'+esc(iId||'')+'">'+
+          (iId ? '<input type="number" min="0" max="200" class="inp-num-sm'+(iDirty?' changed':'')+'" style="'+(vI>=10?'color:var(--alert);border-color:#e8b0b8':'')+'" data-id="'+esc(iId)+'" data-fal-al="'+esc(alK)+'" data-fal-bi="'+esc(bi)+'" data-fal-role="INJ" value="'+vI+'"'+disAttr+'>' : vI)+
+        '</td>'+
+        '<td>'+resumoAt+'</td>'+
+        '<td style="text-align:right"><button type="button" class="chip" data-novo-at-aluno="'+esc(alK)+'"'+disAttr+'>+ Atestado</button></td>'+
+      '</tr>';
+    }).join('') + '</tbody>';
+  }
+
+  renderCompiladoAtestados();
+}
+
+function renderCompiladoAtestados(){
+  var podeFal = temPerm('faltas');
+  var disAttr = podeFal ? '' : ' disabled';
+  var all = atestadosLista();
+  var q = low(S.qAt);
+  var filtrados = all.filter(function(r){
+    if(S.fltAtTurma && r.turma !== S.fltAtTurma) return false;
+    if(S.fltAtBim && r.bim !== S.fltAtBim) return false;
+    if(q){
+      var txt = low((r.aluno||'')+' '+(r.turma||'')+' '+(r.periodo||'')+' '+(r.cid||'')+' '+(r.obs||''));
+      if(txt.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+
+  var totDias = filtrados.reduce(function(acc, r){ return acc + num(r.dias); }, 0);
+  $('cntAtestados').textContent = filtrados.length + ' atestado(s) · ' + totDias + ' dia(s) letivo(s) abonado(s)';
+
+  var head = '<thead><tr>'+
+    '<th style="text-align:center">Turma</th>'+
+    '<th>Aluno</th>'+
+    '<th style="text-align:center">Bimestre</th>'+
+    '<th>Período do Atestado</th>'+
+    '<th style="text-align:center">CID</th>'+
+    '<th class="num">Dias Letivos</th>'+
+    '<th>OBS</th>'+
+    '<th>Registrado por</th>'+
+    '<th style="text-align:right">Ações</th>'+
+  '</tr></thead>';
+
+  if(!filtrados.length){
+    $('tabAtestados').innerHTML = head + '<tbody><tr><td colspan="9" class="vazio">Nenhum atestado médico registrado com esses filtros.</td></tr></tbody>';
+    return;
+  }
+
+  $('tabAtestados').innerHTML = head + '<tbody>' + filtrados.map(function(r){
+    var dt = r.em ? new Date(r.em).toLocaleDateString('pt-BR') : '';
+    return '<tr>'+
+      '<td class="mono" style="text-align:center;font-weight:700">'+esc(r.turma||'—')+'</td>'+
+      '<td><span class="nmlink" data-ficha="'+esc(r.alunoKey||'')+'">'+esc(r.aluno||'—')+'</span></td>'+
+      '<td style="text-align:center"><span class="tag">'+esc(BIM_LBL[r.bim]||r.bim||'—')+'</span></td>'+
+      '<td class="mono" style="font-weight:600">'+esc(r.periodo||'—')+'</td>'+
+      '<td class="mono" style="text-align:center"><span class="tag d">'+esc(r.cid||'—')+'</span></td>'+
+      '<td class="num" style="font-weight:700;color:var(--green)">'+num(r.dias)+'</td>'+
+      '<td>'+esc(r.obs||'—')+'</td>'+
+      '<td style="font-size:12px;color:var(--muted)">'+esc(nomeEditor(r.por||''))+(dt?' · '+esc(dt):'')+'</td>'+
+      '<td style="text-align:right;white-space:nowrap">'+
+        '<button type="button" class="btn-hist" data-at-edit="'+esc(r.id)+'"'+disAttr+'>✏️ Editar</button> '+
+        '<button type="button" class="btn-hist del" data-at-del="'+esc(r.id)+'"'+disAttr+'>🗑️ Excluir</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('') + '</tbody>';
+}
+
+/* Sincroniza automaticamente o total de dias de atestado do aluno no bimestre com o Firebase */
+function sincronizarAtestadoNoAluno(alunoKey, bi){
+  var al = S.alKey && S.alKey[alunoKey];
+  if(!al || !al.b[bi]) return Promise.resolve();
+  var todosAt = atestadosLista().filter(function(x){ return x.alunoKey === alunoKey && x.bim === bi; });
+  var somaDias = todosAt.reduce(function(acc, x){ return acc + num(x.dias); }, 0);
+  var fId = fieldId(al, bi, 'FAL');
+  var aId = fieldId(al, bi, 'ATE');
+  var iId = fieldId(al, bi, 'INJ');
+  var vF = num(fId ? valor(fId) : al.b[bi].FAL);
+  var vI = Math.max(vF - somaDias, 0);
+
+  var proms = [];
+  if(aId){
+    var rA = { aba: al.aba, celula: 'L'+al.r+'C'+S.idx[aId].f.c, aluno: nomeDe(al), turma: turmaDe(al), campo: 'Atestados', bim: BIM_LBL[bi]||bi, depois: String(orig(aId)) };
+    proms.push(aplicarValorDiretoNaCelula(rA, String(somaDias)));
+  }
+  if(iId){
+    var rI = { aba: al.aba, celula: 'L'+al.r+'C'+S.idx[iId].f.c, aluno: nomeDe(al), turma: turmaDe(al), campo: 'Faltas injustificadas', bim: BIM_LBL[bi]||bi, depois: String(orig(iId)) };
+    proms.push(aplicarValorDiretoNaCelula(rI, String(vI)));
+  }
+  return Promise.all(proms);
+}
+
+/* Leitura inteligente de PDF de Faltas por Turma */
+function normNomePdf(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function extrairLinhasDoPdf(file){
+  if(!window.pdfjsLib) return Promise.reject(new Error('Biblioteca leitora de PDF (pdf.js) ainda não carregou. Verifique sua internet.'));
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  return file.arrayBuffer().then(function(buf){
+    return pdfjsLib.getDocument({ data: buf }).promise;
+  }).then(function(pdf){
+    var pagePromises = [];
+    for(var p=1; p<=pdf.numPages; p++){
+      (function(pageNum){
+        pagePromises.push(pdf.getPage(pageNum).then(function(page){
+          return page.getTextContent().then(function(tc){
+            /* Agrupa elementos por coordenada Y aproximada para manter cada linha da tabela unida */
+            var rows = [];
+            (tc.items || []).forEach(function(it){
+              var txt = String(it.str || '').trim();
+              if(!txt) return;
+              var x = it.transform ? it.transform[4] : 0;
+              var y = it.transform ? it.transform[5] : 0;
+              var row = null;
+              for(var i=0; i<rows.length; i++){
+                if(Math.abs(rows[i].y - y) <= 4.5){ row = rows[i]; break; }
+              }
+              if(!row){ row = { y: y, items: [] }; rows.push(row); }
+              row.items.push({ x: x, str: txt });
+            });
+            rows.sort(function(a,b){ return b.y - a.y; });
+            return rows.map(function(r){
+              r.items.sort(function(a,b){ return a.x - b.x; });
+              return r.items.map(function(i){ return i.str; }).join(' ');
+            });
+          });
+        }));
+      })(p);
+    }
+    return Promise.all(pagePromises).then(function(pagesLines){
+      var allLines = [];
+      pagesLines.forEach(function(pl){ allLines = allLines.concat(pl); });
+      return allLines;
+    });
+  });
+}
+
+function extrairFaltaDaLinhaPdf(linha, restoAposNome, codAluno){
+  /* Remove datas (ex: 10/08/2026), porcentagens (ex: 95,5% ou 95 %) e códigos longos */
+  var limpo = String(restoAposNome || '')
+    .replace(/\b\d{1,2}[\/\-]\d{1,2}([\/\-]\d{2,4})?\b/g, ' ')
+    .replace(/\b\d+([.,]\d+)?\s*%/g, ' ')
+    .replace(/\b\d+[.,]\d+\b/g, ' ');
+  if(codAluno){
+    limpo = limpo.replace(new RegExp('\\b' + String(codAluno).replace(/\D/g,'') + '\\b', 'g'), ' ');
+  }
+  var matches = limpo.match(/\b\d{1,3}\b/g) || [];
+  var nums = matches.map(function(n){ return parseInt(n, 10); }).filter(function(n){ return !isNaN(n) && n >= 0 && n <= 180; });
+  if(!nums.length){
+    /* Se o PDF colocou um traço "-" ou "0" para zero faltas */
+    if(/(?:^|\s)(-|--|0)(?:\s|$)/.test(limpo)) return 0;
+    return null;
+  }
+  return nums[0];
+}
+
+function processarPdfFaltas(file){
+  if(!temPerm('faltas')){ toast('Você não tem permissão para lançar faltas.'); return; }
+  var box = $('pdfStatusBox');
+  box.classList.remove('hidden');
+  box.style.color = 'var(--navy)';
+  box.textContent = '⏳ Lendo arquivo PDF "' + file.name + '" e identificando alunos da turma ' + S.faTurma + '…';
+
+  extrairLinhasDoPdf(file).then(function(linhas){
+    var trm = S.faTurma;
+    var bi  = S.faBim || '3B';
+    var alunosTurma = todosAlunos().filter(function(al){ return !trm || turmaDe(al) === trm; });
+    if(!alunosTurma.length){
+      box.style.color = 'var(--alert)';
+      box.textContent = 'Nenhum aluno encontrado na turma selecionada (' + trm + ').';
+      return;
+    }
+
+    var linhasPrep = linhas.map(function(l){
+      return { raw: l, norm: normNomePdf(l) };
+    });
+    var textoUnicoNorm = linhasPrep.map(function(x){ return x.raw; }).join('\n');
+
+    var encontrados = 0;
+    alunosTurma.forEach(function(al){
+      var nmNorm = normNomePdf(nomeDe(al));
+      if(!nmNorm || nmNorm.length < 3) return;
+      var partes = nmNorm.split(' ').filter(function(p){ return p.length > 2 && ['DAS','DOS','DE','DA','DO'].indexOf(p) < 0; });
+
+      var achouVal = null;
+      for(var i=0; i<linhasPrep.length; i++){
+        var lp = linhasPrep[i];
+        var idxPos = lp.norm.indexOf(nmNorm);
+        if(idxPos < 0 && partes.length >= 2){
+          /* Tenta casar pelo primeiro + segundo + último nome caso o PDF abrevie ou quebre linha */
+          var chaveCurta = partes[0] + ' ' + partes[1];
+          if(lp.norm.indexOf(chaveCurta) >= 0 && lp.norm.indexOf(partes[partes.length-1]) >= 0){
+            idxPos = lp.norm.indexOf(chaveCurta);
+          }
+        }
+        if(idxPos >= 0){
+          /* Pega o trecho da linha original após o nome do aluno */
+          var rawUpper = String(lp.raw).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+          var ultPalavra = partes[partes.length - 1] || nmNorm;
+          var posUlt = rawUpper.lastIndexOf(ultPalavra);
+          var resto = posUlt >= 0 ? lp.raw.slice(posUlt + ultPalavra.length) : lp.raw;
+          var vExtraido = extrairFaltaDaLinhaPdf(lp.raw, resto, codDe(al));
+          /* Se o número estava na linha imediatamente seguinte (PDF com quebra de coluna) */
+          if(vExtraido == null && i + 1 < linhasPrep.length){
+            vExtraido = extrairFaltaDaLinhaPdf(linhasPrep[i+1].raw, linhasPrep[i+1].raw, codDe(al));
+          }
+          if(vExtraido != null){
+            achouVal = vExtraido;
+            break;
+          }
+        }
+      }
+
+      if(achouVal != null){
+        var fId = fieldId(al, bi, 'FAL');
+        var aId = fieldId(al, bi, 'ATE');
+        var iId = fieldId(al, bi, 'INJ');
+        if(fId){
+          setDraft(fId, String(achouVal));
+          var vA = num(aId ? valor(aId) : (al.b[bi] && al.b[bi].ATE));
+          var novoI = Math.max(achouVal - vA, 0);
+          if(iId) setDraft(iId, String(novoI));
+          encontrados++;
+        }
+      }
+    });
+
+    render();
+    if(encontrados > 0){
+      box.style.color = 'var(--green)';
+      box.innerHTML = '✓ PDF <b>'+esc(file.name)+'</b> lido com sucesso! Foram preenchidas as faltas de <b>'+encontrados+'</b> de <b>'+alunosTurma.length+'</b> alunos da turma <b>'+esc(trm)+'</b> no <b>'+esc(BIM_LBL[bi]||bi)+'</b>. Confira na tabela abaixo e clique em <b>Salvar Alterações</b>.';
+      toast(encontrados + ' alunos tiveram faltas preenchidas pelo PDF!');
+    } else {
+      box.style.color = 'var(--alert)';
+      box.innerHTML = '⚠️ O PDF foi lido ('+linhas.length+' linhas extraídas), mas nenhum aluno da turma <b>'+esc(trm)+'</b> foi localizado no arquivo. Verifique se a turma selecionada corresponde ao PDF enviado.';
+    }
+  }).catch(function(err){
+    box.style.color = 'var(--alert)';
+    box.textContent = 'Erro ao ler o PDF: ' + (err && err.message ? err.message : String(err));
+  });
+}
+
 /* ===== 2. Aba Gerenciar Alunos ===== */
 function renderAlu(){
+  var podeDados = temPerm('dados_aluno');
+  if($('bNovoAluno')) $('bNovoAluno').disabled = !podeDados;
   var lista=todosAlunos(S.aluAba).filter(function(al){ return !S.aluTurma || turmaDe(al)===S.aluTurma; });
   var q=low(S.qAlu);
   if(q){
@@ -1392,10 +1972,11 @@ function renderAlu(){
 function segSit(al){
   var id=sitId(al), st=sitDe(al);
   if(!id) return '<span class="tag">sem coluna de situação nesta turma</span>';
+  var dis = temPerm('dados_aluno') ? '' : ' disabled title="Sem permissão para alterar dados do aluno"';
   return '<span class="seg" data-sit="'+esc(id)+'">'+
-    '<button type="button" class="a'+(st==='A'?' on':'')+'" data-v="A">Ativo</button>'+
-    '<button type="button" class="t'+(st==='T'?' on':'')+'" data-v="T">Transferido</button>'+
-    '<button type="button" class="d'+(st==='D'?' on':'')+'" data-v="D">Domiciliar</button></span>';
+    '<button type="button" class="a'+(st==='A'?' on':'')+'" data-v="A"'+dis+'>Ativo</button>'+
+    '<button type="button" class="t'+(st==='T'?' on':'')+'" data-v="T"'+dis+'>Transferido</button>'+
+    '<button type="button" class="d'+(st==='D'?' on':'')+'" data-v="D"'+dis+'>Domiciliar</button></span>';
 }
 function linhaSit(al){
   var id=sitId(al);
@@ -1618,18 +2199,20 @@ function renderFicha(){
   h.push('<div class="msit"><b>Situação Cadastral:</b>'+segSit(al)+(sid?statusMsg(sid):'')+'</div>');
 
   if(S.fichaModoCad){
+    var podeDados = temPerm('dados_aluno');
+    var disCad = podeDados ? '' : ' disabled title="Você não tem permissão para alterar dados cadastrais do aluno"';
     var idNome = al.nomeCell ? fid(al.aba,al.r,al.nomeCell.c) : null;
     var idCod  = al.codCell  ? fid(al.aba,al.r,al.codCell.c)  : null;
     var idMat  = al.matCell  ? fid(al.aba,al.r,al.matCell.c)  : null;
     var idRecl = al.reclCell ? fid(al.aba,al.r,al.reclCell.c) : null;
     var turmasDisp = todasTurmasLista();
-    var selTurmaHtml = '<div class="f"><label><span>Turma Atual (Trocar de Turma)</span></label>'+
-      '<select data-troca-turma="'+esc(al.aba+'|'+al.r)+'">'+
+    var selTurmaHtml = '<div class="f"><label><span>Turma Atual (Trocar de Turma)'+(podeDados?'':' 🔒')+'</span></label>'+
+      '<select data-troca-turma="'+esc(al.aba+'|'+al.r)+'"'+disCad+'>'+
       turmasDisp.map(function(t){ return '<option value="'+esc(t)+'"'+(t===trm?' selected':'')+'>'+esc(t)+(t===al.turmaOrig?' (original)':' (remanejado)')+'</option>'; }).join('')+
-      '</select><div class="st">Ao trocar de turma, a mudança fica gravada na planilha.</div></div>';
+      '</select><div class="st">Ao trocar de turma, a mudança fica gravada no painel e na planilha.</div></div>';
 
     h.push('<div class="bimcard" style="border-color:var(--gold);background:#FFFDF7">'+
-      '<h4>🎓 Dados Cadastrais do Aluno <small>Alterações salvas diretamente na planilha</small></h4>'+
+      '<h4>🎓 Dados Cadastrais do Aluno <small>Alterações salvas diretamente no sistema</small></h4>'+
       '<div class="fields">'+
         (idNome ? campo(idNome, 'Nome Completo do Aluno') : '')+
         (idCod  ? campo(idCod,  'Código do Aluno (INEP/Rede)') : '')+
@@ -1639,14 +2222,14 @@ function renderFicha(){
       '</div>'+
       '<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center">'+
         '<span style="font-size:12px;color:var(--muted)">Caso o aluno tenha sido lançado em duplicidade, você pode arquivá-lo/removê-lo da listagem:</span>'+
-        '<button type="button" class="chip" style="color:var(--alert);border-color:#e6b8bf" data-excluir-aluno="'+esc(al.aba+'|'+al.r)+'">🗑️ Remover aluno duplicado</button>'+
+        '<button type="button" class="chip" style="color:var(--alert);border-color:#e6b8bf" data-excluir-aluno="'+esc(al.aba+'|'+al.r)+'"'+disCad+'>🗑️ Remover aluno duplicado</button>'+
       '</div>'+
     '</div>');
   } else if(al.info){
     h.push('<div class="minfo"><b style="color:var(--gold)">Anotações gerais da planilha:</b> '+esc(reclDe(al)||al.info)+'</div>');
   }
 
-  /* Cartões dos 4 Bimestres (1º, 2º, 3º e 4º Bimestre com Devolutiva da Família garantida) */
+  /* Cartões dos 4 Bimestres (1º, 2º, 3º e 4º Bimestre com Faltas/Atestados e Devolutiva da Família garantida) */
   ['1B','2B','3B','4B'].forEach(function(bi){
     var o=al.b[bi]; if(!o) return;
     var fId=fieldId(al,bi,'FAL'), aId=fieldId(al,bi,'ATE'), iId=fieldId(al,bi,'INJ');
@@ -1656,10 +2239,7 @@ function renderFicha(){
     var temDado=num(vF)||ED_ROLES_EDIT.some(function(k){ return o[k] && temAcao(valor(fid(al.aba,al.r,o[k].c))); });
     var f=function(k,lbl,opts){ var id=fieldId(al,bi,k); return id? campo(id,lbl,opts) : ''; };
 
-    var numsEdit = '';
-    if(S.fichaModoCad){
-      numsEdit = f('FAL','Qt. Faltas no Bimestre') + f('ATE','Qt. Atestados') + f('INJ','Qt. Faltas Injustificadas');
-    }
+    var numsEdit = f('FAL','Qt. Faltas no Bimestre') + f('ATE','Qt. Atestados') + f('INJ','Qt. Faltas Injustificadas');
     var curtos=f('BIL','Bilhete',{chips:['sim','nao']})+f('BUS','Busca ativa (ligação)',{chips:['sim','nao']})+f('SAE','Encaminhado à SAE',{chips:['sim','nao']});
     var longos=f('DEV','Devolutiva da família',{wide:true,chips:['data'],ph:'Relato da família / justificativa das faltas neste bimestre…',auto:true})+
                f('RET','Retorno da SAE',{wide:true,chips:['data'],ph:'Retorno oficial da SAE…',auto:true});
@@ -1681,24 +2261,57 @@ $('ficha').addEventListener('click',function(e){ if(e.target===$('ficha')) fecha
 document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.fichaKey) fecharFicha(); });
 document.addEventListener('input',function(e){ if(e.target.classList && e.target.classList.contains('auto')){ e.target.style.height='auto'; e.target.style.height=Math.max(84,e.target.scrollHeight+2)+'px'; } });
 
-/* ===== Aba Editores (só administradores) ===== */
+/* ===== Aba Editores e Permissões de Usuários (só administradores) ===== */
 function chaveEmail(e){ return String(e).toLowerCase().trim().replace(/\./g,','); }
 function renderEdt(){
-  var pub=S.edPub||{}, ext=S.edExtra||{}, todos={};
-  Object.keys(pub).forEach(function(k){ todos[k]={email:k.replace(/,/g,'.'), pub:true}; });
-  Object.keys(ext).forEach(function(k){ var e=ext[k]||{}; todos[k]=todos[k]||{email:e.email, pub:false}; todos[k].extra=e; });
-  var ks=Object.keys(todos).sort(function(a,b){ return todos[a].email.localeCompare(todos[b].email); });
-  if(!ks.length){ $('listaEdt').innerHTML='<div class="vazio">Ninguém ainda.</div>'; return; }
+  var pub=S.edPub||{}, ext=S.edExtra||{}, adms=S.adminsMap||{}, pms=S.permsAll||{}, todos={};
+  Object.keys(pub).forEach(function(k){ if(pub[k]) todos[k]={email:k.replace(/,/g,'.'), pub:true}; });
+  Object.keys(ext).forEach(function(k){ var e=ext[k]||{}; todos[k]=todos[k]||{email:e.email||k.replace(/,/g,'.'), pub:false}; todos[k].extra=e; });
+  Object.keys(adms).forEach(function(k){ if(adms[k]) todos[k]=todos[k]||{email:k.replace(/,/g,'.'), pub:true}; });
+  Object.keys(pms).forEach(function(k){ todos[k]=todos[k]||{email:k.replace(/,/g,'.'), pub:true}; });
+
+  var ks=Object.keys(todos).sort(function(a,b){ return (todos[a].email||'').localeCompare(todos[b].email||''); });
+  if(!ks.length){ $('listaEdt').innerHTML='<div class="vazio">Nenhum usuário cadastrado ainda.</div>'; return; }
+
   $('listaEdt').innerHTML=ks.map(function(k){
-    var t=todos[k], tags=[];
+    var t=todos[k], p=permsDeKey(k), tags=[];
+    if(p.adm) tags.push('<span class="tag ok">👑 ADM</span>');
     if(t.extra){
       tags.push(t.pub? '<span class="tag ok">liberado</span>' : '<span class="tag d">liberando… (até 1 min)</span>');
-      tags.push('<button type="button" class="chip" data-rmedt="'+esc(k)+'">Remover</button>');
-    } else tags.push('<span class="tag">fixo</span>');
-    var sub=t.extra? 'adicionado por '+esc(t.extra.por||'?')+(t.extra.em?' em '+new Date(t.extra.em).toLocaleDateString('pt-BR'):'') : 'no código do Apps Script ou editor da planilha';
-    return '<div class="sitrow"><div class="nm">'+esc(t.email)+'<small>'+sub+'</small></div><div class="tags">'+tags.join('')+'</div></div>';
+      tags.push('<button type="button" class="chip" data-rmedt="'+esc(k)+'">Remover acesso</button>');
+    } else {
+      tags.push('<span class="tag">autorizado</span>');
+    }
+    var nmExib = nomeEditor(t.email);
+    var sub = t.extra
+      ? 'adicionado por '+esc(nomeEditor(t.extra.por||'?'))+(t.extra.em?' em '+new Date(t.extra.em).toLocaleDateString('pt-BR'):'')
+      : 'usuário autorizado da equipe';
+
+    var chk = function(campoKey, labelTxt, isAdmBox){
+      var on = !!p[campoKey];
+      return '<label class="perm-chk'+(isAdmBox?' adm-chk':'')+'">'+
+        '<input type="checkbox" data-perm-user="'+esc(k)+'" data-perm-key="'+esc(campoKey)+'"'+(on?' checked':'')+'> '+
+        labelTxt+
+      '</label>';
+    };
+
+    return '<div class="sitrow" style="flex-direction:column;align-items:stretch;gap:8px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
+        '<div class="nm"><b>'+esc(nmExib)+'</b> <span style="color:var(--muted);font-weight:400;font-size:12.5px">('+esc(t.email)+')</span><small>'+sub+'</small></div>'+
+        '<div class="tags">'+tags.join('')+'</div>'+
+      '</div>'+
+      '<div class="perm-grid">'+
+        chk('adm', '👑 Administrador (ADM)', true)+
+        chk('dados_aluno', '🎓 Dados do aluno', false)+
+        chk('faltas', '📅 Faltas e Atestados', false)+
+        chk('busca_ativa', '📋 Informações da Busca Ativa', false)+
+        chk('devolutiva_familia', '💬 Devolutiva da Família', false)+
+        chk('devolutiva_sae', '🏥 Devolutivas da SAE', false)+
+      '</div>'+
+    '</div>';
   }).join('');
 }
+
 function appSec(){
   var a=firebase.apps.filter(function(x){return x.name==='sec';})[0];
   return a || firebase.initializeApp(FIREBASE_CONFIG,'sec');
@@ -1706,6 +2319,15 @@ function appSec(){
 $('fEdt').onsubmit=function(ev){
   ev.preventDefault();
   var email=$('eEmail').value.trim().toLowerCase(), senha=$('eSenha').value;
+  var kUser = chaveEmail(email);
+  var initPerms = {
+    adm: !!($('np_adm') && $('np_adm').checked),
+    dados_aluno: !$('np_dados_aluno') || $('np_dados_aluno').checked,
+    faltas: !$('np_faltas') || $('np_faltas').checked,
+    busca_ativa: !$('np_busca_ativa') || $('np_busca_ativa').checked,
+    devolutiva_familia: !$('np_devolutiva_familia') || $('np_devolutiva_familia').checked,
+    devolutiva_sae: !$('np_devolutiva_sae') || $('np_devolutiva_sae').checked
+  };
   $('edtErro').textContent=''; $('edtOk').classList.add('hidden');
   if(senha.length<6){ $('edtErro').textContent='A senha precisa ter pelo menos 6 caracteres.'; return; }
   $('bAddEdt').disabled=true; $('bAddEdt').textContent='Criando…';
@@ -1715,15 +2337,20 @@ $('fEdt').onsubmit=function(ev){
     .then(function(c){ sa.languageCode='pt'; return c.user.sendEmailVerification().catch(function(){}); })
     .catch(function(e){ if(e && e.code==='auth/email-already-in-use'){ jaExistia=true; return; } throw e; })
     .then(function(){ return sa.signOut().catch(function(){}); })
-    .then(function(){ return db.ref('editores_extra/'+chaveEmail(email)).set({email:email, por:String(S.user.email).toLowerCase(), em:Date.now()}); })
+    .then(function(){
+      var p1 = db.ref('editores_extra/'+kUser).set({email:email, por:String(S.user.email).toLowerCase(), em:Date.now()});
+      var p2 = db.ref('permissoes_usuarios/'+kUser).set(initPerms).catch(function(){});
+      var p3 = initPerms.adm ? db.ref('admins/'+kUser).set(true).catch(function(){}) : Promise.resolve();
+      return Promise.all([p1, p2, p3]);
+    })
     .then(function(){
       var link=location.href.split('?')[0].split('#')[0];
       $('edtOkTit').textContent= jaExistia
-        ? '✓ '+email+' liberado. Essa pessoa já tinha conta.'
+        ? '✓ '+email+' liberado com as permissões selecionadas. Essa pessoa já tinha conta.'
         : '✓ Conta criada para '+email+'. Fica liberada para editar em até 1 minuto.';
       $('edtMsg').value= jaExistia
-        ? 'Olá! Você já pode editar o Painel Escola e Família:\n'+link+'\n\nEntre com seu e-mail ('+email+') e sua senha.'
-        : 'Olá! Você foi cadastrado(a) para editar o Painel Escola e Família.\n\nSite: '+link+'\nE-mail: '+email+'\nSenha provisória: '+senha;
+        ? 'Olá! Você já pode acessar o Painel Escola e Família:\n'+link+'\n\nEntre com seu e-mail ('+email+') e sua senha.'
+        : 'Olá! Você foi cadastrado(a) no Painel Escola e Família.\n\nSite: '+link+'\nE-mail: '+email+'\nSenha provisória: '+senha;
       $('edtOk').classList.remove('hidden');
       $('eEmail').value=''; $('eSenha').value='';
     })
@@ -1734,7 +2361,7 @@ function traduzEdt(e){
   var c=e&&e.code||'';
   if(c==='auth/invalid-email') return 'E-mail inválido.';
   if(c==='auth/weak-password') return 'Senha fraca: use pelo menos 6 caracteres.';
-  if(/PERMISSION_DENIED/i.test(e&&e.message||'')) return 'Sem permissão para adicionar editores.';
+  if(/PERMISSION_DENIED/i.test(e&&e.message||'')) return 'Sem permissão para gerenciar editores.';
   return (e&&e.message)||String(e);
 }
 $('bCopiar').onclick=function(){
@@ -1760,6 +2387,7 @@ function irTab(t){
   }
   [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===t); });
   $('pDev').classList.toggle('hidden',t!=='dev');
+  $('pFal').classList.toggle('hidden',t!=='fal');
   $('pAlu').classList.toggle('hidden',t!=='alu');
   $('pSit').classList.toggle('hidden',t!=='sit');
   $('pSae').classList.toggle('hidden',t!=='sae');
@@ -1778,6 +2406,7 @@ function render(){
   if(fId && !ae.classList.contains('chip')){ var n=document.querySelector('[data-id="'+CSS.escape(fId)+'"]:not(.chip)'); if(n && n!==ae){ n.focus(); try{ n.setSelectionRange(selS,selE); }catch(_){} } }
   $('ficha').scrollTop=fy;
   if(S.tab==='dev') renderDev();
+  else if(S.tab==='fal') renderFal();
   else if(S.tab==='alu') renderAlu();
   else if(S.tab==='sit') renderSit();
   else if(S.tab==='sae') renderSae();
@@ -1799,6 +2428,10 @@ function marcar(id){
   atualizarBarra();
 }
 function setDraft(id,v){
+  if(!podeEditarId(id)){
+    toast('Você não tem permissão para alterar este campo.');
+    return;
+  }
   var base=(id in S.fila)? S.fila[id].novo : orig(id);
   if(v===base && S.conf[id]==null) delete S.draft[id]; else S.draft[id]=v;
   delete S.erro[id]; delete S.ok[id];
@@ -1894,21 +2527,70 @@ function salvarEdicaoItemHist(sig, novoTexto){
   });
 }
 
-/* Eventos de Edição, Troca de Turma e Novo Aluno */
+/* Eventos de Edição, Recálculo Automático de Injustificadas, Troca de Turma e Permissões */
 document.addEventListener('input',function(e){
   var id=e.target.getAttribute('data-id'); if(!id || e.target.classList.contains('chip')) return;
+  if(!podeEditarId(id)){
+    e.target.value = valor(id);
+    toast('Você não tem permissão para alterar este campo.');
+    return;
+  }
   setDraft(id,e.target.value); marcar(id);
+
+  /* Se alterou FAL ou ATE, recalcula automaticamente INJ do mesmo aluno e bimestre */
+  var x = S.idx[id];
+  if(x && x.al && x.bim && (x.campo === 'FAL' || x.campo === 'ATE')){
+    var fId = fieldId(x.al, x.bim, 'FAL');
+    var aId = fieldId(x.al, x.bim, 'ATE');
+    var iId = fieldId(x.al, x.bim, 'INJ');
+    if(iId){
+      var vF = num(fId ? valor(fId) : (x.al.b[x.bim] && x.al.b[x.bim].FAL));
+      var vA = num(aId ? valor(aId) : (x.al.b[x.bim] && x.al.b[x.bim].ATE));
+      var vI = Math.max(vF - vA, 0);
+      setDraft(iId, String(vI));
+      marcar(iId);
+      var inpI = document.querySelector('[data-id="'+CSS.escape(iId)+'"]:not(.chip)');
+      if(inpI && inpI !== document.activeElement) inpI.value = String(vI);
+    }
+  }
 });
 
 document.addEventListener('change',function(e){
+  /* Checkboxes de permissão na aba de gerenciamento de usuários */
+  var pUser = e.target.getAttribute('data-perm-user');
+  var pKey  = e.target.getAttribute('data-perm-key');
+  if(pUser && pKey){
+    if(!S.admin){ e.target.checked = !e.target.checked; return; }
+    var atual = permsDeKey(pUser);
+    atual[pKey] = !!e.target.checked;
+    S.permsAll[pUser] = atual;
+    db.ref('permissoes_usuarios/'+pUser).set(atual).then(function(){
+      if(pKey === 'adm'){
+        return db.ref('admins/'+pUser).set(atual.adm ? true : null).catch(function(){});
+      }
+    }).then(function(){
+      atualizarMeuStatusPerm();
+      toast('Permissões de ' + nomeEditor(pUser.replace(/,/g,'.')) + ' atualizadas!');
+    }).catch(function(err){
+      toast('Erro ao salvar permissão: ' + (err.message||err), 5000);
+    });
+    return;
+  }
+
+  /* Troca de turma */
   var k = e.target.getAttribute('data-troca-turma');
   if(!k) return;
+  if(!temPerm('dados_aluno')){
+    toast('Você não tem permissão para alterar dados do aluno.');
+    render();
+    return;
+  }
   var al = S.alKey[k]; if(!al) return;
   var novaTurma = e.target.value;
   var alvoCell = al.reclCell ? fid(al.aba,al.r,al.reclCell.c) : sitId(al);
   if(!alvoCell){ toast('Não há coluna de observação/situação nesta turma para gravar o remanejamento.'); return; }
-  var atual = String(valor(alvoCell)||'').replace(/\s*\[TURMA:\s*[^\]]+\]/gi, '').trim();
-  var novo = novaTurma === al.turmaOrig ? atual : (atual ? atual + ' [TURMA: ' + novaTurma + ']' : '[TURMA: ' + novaTurma + ']');
+  var atualTxt = String(valor(alvoCell)||'').replace(/\s*\[TURMA:\s*[^\]]+\]/gi, '').trim();
+  var novo = novaTurma === al.turmaOrig ? atualTxt : (atualTxt ? atualTxt + ' [TURMA: ' + novaTurma + ']' : '[TURMA: ' + novaTurma + ']');
   setDraft(alvoCell, novo);
   render();
   toast('Turma alterada para ' + novaTurma + '. Clique em "Salvar Alterações" na barra inferior.');
@@ -1918,7 +2600,9 @@ document.addEventListener('click',function(e){
   var tb=e.target.closest('[data-tab]'); if(tb){ irTab(tb.getAttribute('data-tab')); return; }
   var b=e.target.closest('[data-chip]');
   if(b){
-    var id=b.getAttribute('data-id'), c=b.getAttribute('data-chip'), v=valor(id), lv=low(v), h=hoje(), nv;
+    var id=b.getAttribute('data-id');
+    if(!podeEditarId(id)){ toast('Você não tem permissão para alterar este campo.'); return; }
+    var c=b.getAttribute('data-chip'), v=valor(id), lv=low(v), h=hoje(), nv;
     var vazioOuNao=!lv || /^nao\b/.test(lv);
     if(c==='nao') nv='NÃO';
     else if(c==='sim') nv= vazioOuNao? 'SIM '+h : (v.indexOf(h)>=0? v : v.replace(/\s+$/,'')+' E '+h);
@@ -1929,7 +2613,13 @@ document.addEventListener('click',function(e){
     marcar(id); return;
   }
   var ss=e.target.closest('[data-sit] button');
-  if(ss){ var sid=ss.parentNode.getAttribute('data-sit'); setDraft(sid, novoValorSit(sid, ss.getAttribute('data-v'))); render(); return; }
+  if(ss){
+    if(!temPerm('dados_aluno')){ toast('Você não tem permissão para alterar a situação do aluno.'); return; }
+    var sid=ss.parentNode.getAttribute('data-sit');
+    setDraft(sid, novoValorSit(sid, ss.getAttribute('data-v')));
+    render();
+    return;
+  }
   var u=e.target.closest('[data-usar]');
   if(u){ var id2=u.getAttribute('data-usar'); S.idx[id2].f.v=S.conf[id2]; delete S.draft[id2]; delete S.conf[id2]; render(); return; }
   var sf=e.target.closest('#segFal button'); if(sf){ S.alFiltro=sf.getAttribute('data-af'); render(); return; }
@@ -1937,6 +2627,65 @@ document.addEventListener('click',function(e){
   var sa=e.target.closest('#segSae button'); if(sa){ S.fSae=sa.getAttribute('data-f'); render(); return; }
   var fk=e.target.closest('[data-ficha]'); if(fk){ abrirFicha(fk.getAttribute('data-ficha'), false); return; }
   var fkc=e.target.closest('[data-ficha-cad]'); if(fkc){ abrirFicha(fkc.getAttribute('data-ficha-cad'), true); return; }
+
+  /* Botão rápido "+ Atestado" na linha do aluno na aba Faltas e Atestados */
+  var naa = e.target.closest('[data-novo-at-aluno]');
+  if(naa){
+    var kAl = naa.getAttribute('data-novo-at-aluno');
+    var alObj = S.alKey && S.alKey[kAl];
+    if(alObj){
+      $('atTurma').value = turmaDe(alObj);
+      S.atTurma = turmaDe(alObj);
+      popularSelectAlunosAt(kAl);
+      $('atAluno').value = kAl;
+      $('atBim').value = S.faBim || '3B';
+      $('atPeriodo').focus();
+      $('fAtestado').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
+
+  /* Editar Atestado Médico do compilado */
+  var ate = e.target.closest('[data-at-edit]');
+  if(ate){
+    if(!temPerm('faltas')){ toast('Sem permissão para editar atestados.'); return; }
+    var idAt = ate.getAttribute('data-at-edit');
+    var regAt = S.atestados && S.atestados[idAt];
+    if(!regAt) return;
+    $('atEditId').value = idAt;
+    $('atTurma').value = regAt.turma || '';
+    S.atTurma = regAt.turma || '';
+    popularSelectAlunosAt(regAt.alunoKey);
+    $('atAluno').value = regAt.alunoKey || '';
+    $('atBim').value = regAt.bim || '3B';
+    $('atPeriodo').value = regAt.periodo || '';
+    $('atCid').value = regAt.cid || '';
+    $('atDias').value = regAt.dias || 1;
+    $('atObs').value = regAt.obs || '';
+    $('bAddAt').textContent = '💾 Salvar Atestado';
+    $('bCancAt').classList.remove('hidden');
+    $('fAtestado').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  /* Excluir Atestado Médico do compilado */
+  var atd = e.target.closest('[data-at-del]');
+  if(atd){
+    if(!temPerm('faltas')){ toast('Sem permissão para excluir atestados.'); return; }
+    var idDel = atd.getAttribute('data-at-del');
+    var regDel = S.atestados && S.atestados[idDel];
+    if(!regDel) return;
+    if(!confirm('Excluir o atestado de "' + (regDel.aluno||'') + '" (' + (regDel.periodo||'') + ')?')) return;
+    delete S.atestados[idDel];
+    db.ref('atestados_medicos/'+idDel).remove().then(function(){
+      return sincronizarAtestadoNoAluno(regDel.alunoKey, regDel.bim || '3B');
+    }).then(function(){
+      render();
+      toast('Atestado excluído e contador atualizado!');
+    });
+    return;
+  }
+
   var he=e.target.closest('[data-hist-edit]');
   if(he){
     var sigEd = he.getAttribute('data-hist-edit');
@@ -1961,6 +2710,7 @@ document.addEventListener('click',function(e){
   }
   var ex=e.target.closest('[data-excluir-aluno]');
   if(ex){
+    if(!temPerm('dados_aluno')){ toast('Sem permissão para remover aluno.'); return; }
     var alEx = S.alKey[ex.getAttribute('data-excluir-aluno')];
     if(!alEx || !alEx.nomeCell) return;
     if(!confirm('Deseja marcar "' + nomeDe(alEx) + '" como removido? (Você precisará clicar em Salvar Alterações para confirmar).')) return;
@@ -1971,10 +2721,87 @@ document.addEventListener('click',function(e){
   }
 });
 
+/* Eventos da Aba Faltas e Atestados */
+$('bAnexarPdf').onclick=function(){
+  if(!temPerm('faltas')){ toast('Você não tem permissão para lançar faltas.'); return; }
+  $('inpPdfFal').value = '';
+  $('inpPdfFal').click();
+};
+$('inpPdfFal').onchange=function(ev){
+  var file = ev.target.files && ev.target.files[0];
+  if(file) processarPdfFaltas(file);
+};
+$('faTurma').onchange=function(){ S.faTurma=this.value; renderFal(); };
+$('faBim').onchange=function(){ S.faBim=this.value; renderFal(); };
+$('qFa').oninput=function(){ S.qFa=this.value; renderFal(); };
+$('atTurma').onchange=function(){ S.atTurma=this.value; popularSelectAlunosAt(); };
+$('fltAtTurma').onchange=function(){ S.fltAtTurma=this.value; renderCompiladoAtestados(); };
+$('fltAtBim').onchange=function(){ S.fltAtBim=this.value; renderCompiladoAtestados(); };
+$('qAt').oninput=function(){ S.qAt=this.value; renderCompiladoAtestados(); };
+
+$('bCancAt').onclick=function(){
+  $('atEditId').value = '';
+  $('atPeriodo').value = '';
+  $('atCid').value = '';
+  $('atDias').value = '1';
+  $('atObs').value = '';
+  $('bAddAt').textContent = '+ Adicionar Atestado';
+  $('bCancAt').classList.add('hidden');
+};
+
+$('fAtestado').onsubmit=function(ev){
+  ev.preventDefault();
+  if(!temPerm('faltas')){ toast('Você não tem permissão para lançar atestados.'); return; }
+  var alKey = $('atAluno').value;
+  var al = S.alKey && S.alKey[alKey];
+  if(!al){ toast('Selecione um aluno válido.'); return; }
+  var bi = $('atBim').value || '3B';
+  var periodo = $('atPeriodo').value.trim();
+  var cid = $('atCid').value.trim().toUpperCase();
+  var dias = Math.max(1, parseInt($('atDias').value, 10) || 1);
+  var obs = $('atObs').value.trim();
+  var editId = $('atEditId').value;
+  var idAt = editId || ('at_' + Date.now() + '_' + fbKey(alKey));
+  var autor = (S.perfil && S.perfil.nome) ? S.perfil.nome : (S.user ? nomeEditor(S.user.email) : 'Equipe');
+
+  var reg = {
+    id: idAt,
+    alunoKey: alKey,
+    aluno: nomeDe(al),
+    turma: turmaDe(al),
+    aba: al.aba,
+    linha: al.r,
+    bim: bi,
+    periodo: periodo,
+    cid: cid,
+    dias: dias,
+    obs: obs,
+    por: autor,
+    em: Date.now()
+  };
+
+  S.atestados = S.atestados || {};
+  S.atestados[idAt] = reg;
+
+  db.ref('atestados_medicos/' + idAt).set(reg).then(function(){
+    return sincronizarAtestadoNoAluno(alKey, bi);
+  }).then(function(){
+    $('bCancAt').click();
+    render();
+    toast('✓ Atestado salvo e quantidade de atestados do aluno atualizada no painel!');
+  }).catch(function(err){
+    toast('Erro ao salvar atestado: ' + (err.message || err), 5000);
+  });
+};
+
 /* Cadastro de Novo Aluno */
-$('bNovoAluno').onclick=function(){ $('boxNovoAluno').classList.toggle('hidden'); $('nvNome').focus(); };
+$('bNovoAluno').onclick=function(){
+  if(!temPerm('dados_aluno')){ toast('Você não tem permissão para cadastrar alunos.'); return; }
+  $('boxNovoAluno').classList.toggle('hidden'); $('nvNome').focus();
+};
 $('bCancNovo').onclick=function(){ $('boxNovoAluno').classList.add('hidden'); };
 $('bConfNovo').onclick=function(){
+  if(!temPerm('dados_aluno')){ toast('Você não tem permissão para cadastrar alunos.'); return; }
   var trmDest = $('nvTurma').value, nome = $('nvNome').value.trim().toUpperCase(), cod = $('nvCod').value.trim(), mat = $('nvMat').value.trim();
   if(!nome){ toast('Digite o nome completo do aluno.'); $('nvNome').focus(); return; }
   /* Procura uma linha livre na turma escolhida ou na mesma aba */
@@ -2026,7 +2853,7 @@ $('bConfNovo').onclick=function(){
   $('nvNome').value=''; $('nvCod').value=''; $('nvMat').value='';
   $('boxNovoAluno').classList.add('hidden');
   render();
-  toast('Aluno "' + nome + '" preparado na turma ' + trmDest + '. Clique em "Salvar na Planilha".');
+  toast('Aluno "' + nome + '" preparado na turma ' + trmDest + '. Clique em "Salvar Alterações".');
 };
 
 $('sAno').onchange=function(){ S.aba=this.value; S.turma=''; montarFiltros(); render(); };
@@ -2048,7 +2875,7 @@ $('bDesc').onclick=function(){ if(!confirm('Descartar todas as alterações não
 $('bSalvar').onclick=salvar;
 window.addEventListener('beforeunload',function(e){ if(sujos().length){ e.preventDefault(); e.returnValue=''; } });
 
-['q','qAlu','qSit','qSae','qHist'].forEach(function(k){
+['q','qFa','qAt','qAlu','qSit','qSae','qHist'].forEach(function(k){
   var el=$(k); if(!el) return;
   var f=el.oninput;
   el.oninput=function(){ var p=el.selectionStart; f.call(el); el.focus(); try{el.setSelectionRange(p,p);}catch(_){} };
