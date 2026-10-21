@@ -224,7 +224,7 @@ tbody tr:hover td{background:var(--paper-2)}
   .topbar{background:#fff!important;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .eyebrow,.subtitle,.top-meta{color:var(--soft)!important}
   h1.title{color:var(--navy)!important}
-  .selbar,.controls,.btn{display:none!important}
+  .selbar,.controls,.btn,.no-print-dev{display:none!important}
   .panel,.kpi,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .panel{break-inside:avoid;box-shadow:none!important}
   .log,.twrap{max-height:none;overflow:visible}
@@ -318,7 +318,7 @@ tbody tr:hover td{background:var(--paper-2)}
       </div>
     </div>
 
-    <div class="panel wide">
+    <div class="panel wide no-print-dev">
       <h2>Devolutivas das famílias</h2>
       <p class="note">Texto da coluna "Devolutiva da família" da planilha, já vinculado ao aluno e ao bimestre. Categorização de motivo automática.</p>
       <div class="controls" id="logFilters" style="margin-bottom:10px"></div>
@@ -490,10 +490,19 @@ var MES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'
 
 function load(){
   setStatus('load','carregando…');
-  fetch(FIREBASE_URL.replace(/\/+$/,'')+'/busca_ativa.json?t='+Date.now(),{cache:'no-store'})
-    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-    .then(function(payload){
+  var baseUrl = FIREBASE_URL.replace(/\/+$/,'');
+  var t = Date.now();
+  Promise.all([
+    fetch(baseUrl+'/busca_ativa.json?t='+t,{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
+    fetch(baseUrl+'/edicoes_salvas.json?t='+t,{cache:'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; })
+  ])
+    .then(function(arr){
+      var payload = arr[0];
+      var edSalvas = arr[1];
       if(!payload) throw new Error('Banco vazio. Rode "sincronizar" no Apps Script.');
+      if(edSalvas && typeof edSalvas === 'object'){
+        payload.overrides = Object.assign({}, payload.overrides || {}, edSalvas);
+      }
       var primeiraVez = !S.data;
       S.data = build(payload);
       el('loadscreen').classList.add('hidden'); el('errscreen').classList.add('hidden'); el('dash').classList.remove('hidden');
@@ -876,7 +885,23 @@ function renderLog(){
   });
   list.sort(function(a,b){ return cmpTurma(a.turma,b.turma) || U.up(a.nome).localeCompare(U.up(b.nome)) || a.bim-b.bim; });
   el('logCount').textContent=list.length+' relato(s)';
-  el('log').innerHTML = list.length? list.map(logItem).join('') : '<p class="note">Nenhuma devolutiva registrada nesta seleção. A professora preenche a coluna "Devolutiva da família" na planilha.</p>';
+  if(!list.length){
+    el('log').innerHTML = '<p class="note">Nenhuma devolutiva registrada nesta seleção. A professora preenche a coluna "Devolutiva da família" na planilha.</p>';
+    return;
+  }
+  var isMobile = window.innerWidth <= 640;
+  var exibir = (isMobile && !S.verMaisLog && list.length > 3) ? list.slice(0, 3) : list;
+  var btnMais = '';
+  if(isMobile && list.length > 3){
+    btnMais = S.verMaisLog
+      ? '<div style="margin-top:12px;text-align:center"><button type="button" class="btn" id="btnToggleLog" style="width:100%;background:var(--paper);color:var(--navy);border-color:var(--line-2)">▲ Mostrar menos</button></div>'
+      : '<div style="margin-top:12px;text-align:center"><button type="button" class="btn" id="btnToggleLog" style="width:100%">▼ Ver mais ('+(list.length - 3)+' restante'+(list.length - 3 === 1 ? '' : 's')+')</button></div>';
+  }
+  el('log').innerHTML = exibir.map(logItem).join('') + btnMais;
+  var bTog = document.getElementById('btnToggleLog');
+  if(bTog){
+    bTog.onclick = function(){ S.verMaisLog = !S.verMaisLog; renderLog(); };
+  }
 }
 
 function logItem(c){
