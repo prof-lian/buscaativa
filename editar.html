@@ -410,29 +410,68 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
           <button type="button" class="btn pri" id="bSalvarFaltasTopo">💾 Salvar Alterações de Faltas</button>
         </div>
 
-        <!-- Importação via PDF por Turma -->
+        <!-- Importação via PDF (Geral Multi-Turmas ou PDF por Turma) -->
         <div class="pdf-box">
           <div style="flex:1;min-width:260px">
-            <b style="color:var(--navy);font-size:15px;display:block;margin-bottom:3px">📄 Importar Faltas por PDF da Turma</b>
-            <span style="font-size:12.5px;color:var(--muted)">Selecione a <b>Turma</b> e o <b>Bimestre</b> abaixo e anexe o PDF com a listagem de faltas. O sistema identifica cada aluno automaticamente e preenche as faltas para conferência.</span>
+            <b style="color:var(--navy);font-size:15px;display:block;margin-bottom:4px">📄 Importar e Validar Faltas / Atestados por PDF</b>
+            <span style="font-size:12.5px;color:var(--muted);display:block;line-height:1.45">
+              Aceita os <b>2 tipos de PDF</b>: (1) <b>Relação Geral de Alunos (1º ao 4º Bimestre + Total)</b> de todas as turmas e (2) <b>Relatório / Diário de Faltas por Turma</b>. O sistema compara com os dados já existentes no site, <b>não duplica dados</b> (atualiza apenas o que mudou) e exibe abaixo o relatório completo com o total anterior e atual para validação.
+            </span>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <select id="pdfEscopo" style="width:auto;min-width:230px;background:#fff;font-size:12.5px;padding:8px 10px" title="Escolha se o PDF deve atualizar todas as turmas contidas nele ou apenas a turma selecionada abaixo">
+              <option value="auto" selected>🌐 Automático (Todas as turmas/bim. do PDF)</option>
+              <option value="filtro">🎯 Apenas a Turma e Bimestre selecionados abaixo</option>
+            </select>
             <input type="file" id="inpPdfFal" accept=".pdf,application/pdf" class="hidden">
-            <button type="button" class="btn navy" id="bAnexarPdf">📎 Anexar PDF da Turma</button>
+            <button type="button" class="btn navy" id="bAnexarPdf">📎 Anexar PDF (Geral ou da Turma)</button>
           </div>
-          <div id="pdfStatusBox" class="st hidden" style="flex-basis:100%;margin-top:4px;padding:8px 12px;border-radius:7px;background:#fff;border:1px solid var(--line)"></div>
+          <div id="pdfStatusBox" class="st hidden" style="flex-basis:100%;margin-top:4px;padding:10px 14px;border-radius:7px;background:#fff;border:1px solid var(--line)"></div>
+        </div>
+
+        <!-- Relatório de Validação pós-leitura do PDF (Antes x Depois) -->
+        <div id="boxValidacaoPdf" class="card hidden" style="border:2px solid var(--navy);background:#F8FAFE;margin-bottom:22px;padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+            <div>
+              <h3 style="margin:0 0 3px;font-size:16.5px;color:var(--navy)" id="valPdfTitulo">📊 Relatório de Validação do PDF</h3>
+              <p style="margin:0;font-size:12.5px;color:var(--muted)" id="valPdfSub">Confira abaixo tudo o que atualizou, o total de faltas anterior no site e o total atual lido do PDF.</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button type="button" class="btn pri" id="bSalvarValPdf">💾 Confirmar e Salvar Atualizações</button>
+              <button type="button" class="btn out-dark" id="bFecharValPdf" style="padding:7px 12px;font-size:12px">✕ Ocultar resumo</button>
+            </div>
+          </div>
+
+          <div class="kpis" id="valPdfKpis" style="grid-template-columns:repeat(5,1fr);margin:10px 0 14px"></div>
+
+          <div class="hint" style="margin-bottom:10px">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span class="seg" id="segValPdf">
+                <button type="button" data-vf="mudou" class="on">🔄 Apenas o que atualizou</button>
+                <button type="button" data-vf="todos">📋 Todos do PDF</button>
+                <button type="button" data-vf="iguais">✔ Já idênticos (sem mudança)</button>
+              </span>
+              <select id="valPdfTurma" style="width:auto;min-width:140px;padding:5px 10px;font-size:12.5px"><option value="">Todas as turmas</option></select>
+              <input type="search" id="valPdfBusca" placeholder="Filtrar aluno no relatório…" style="width:210px;padding:5px 10px;font-size:12.5px">
+            </div>
+            <b id="cntValPdf"></b>
+          </div>
+
+          <div class="twrap" style="max-height:46vh">
+            <table class="t-std" id="tabValidacaoPdf"></table>
+          </div>
         </div>
 
         <!-- Filtros da Tabela de Faltas por Turma -->
         <div class="ctrls" style="grid-template-columns:1fr 1fr 2fr">
           <div><label for="faTurma">Turma</label><select id="faTurma"></select></div>
-          <div><label for="faBim">Bimestre do Lançamento</label><select id="faBim">
+          <div><label for="faBim">Bimestre do Lançamento Manual</label><select id="faBim">
             <option value="1B">1º bimestre</option>
             <option value="2B">2º bimestre</option>
-            <option value="3B" selected>3º bimestre</option>
-            <option value="4B">4º bimestre</option>
+            <option value="3B">3º bimestre</option>
+            <option value="4B" selected>4º bimestre</option>
           </select></div>
-          <div><label for="qFa">Buscar aluno na turma</label><input id="qFa" type="search" name="filtro_fa_aluno" autocomplete="off" placeholder="Digite o nome do aluno…"></div>
+          <div><label for="qFa">Buscar aluno na turma</label><input id="qFa" type="search" name="filtro_fa_aluno" autocomplete="off" placeholder="Digite o nome ou matrícula do aluno…"></div>
         </div>
         <div class="hint">
           <span>Altere manualmente <b>Qt. Faltas</b> ou <b>Qt. Atestados</b> de qualquer aluno abaixo (as faltas injustificadas são calculadas automaticamente) e clique em <b>Salvar Alterações</b>.</span>
@@ -959,7 +998,8 @@ var CAMPO_LBL = {
 
 var S = {
   dados:{}, idx:{}, tab:'dev', aba:'', turma:'', bim:'', q:'', alFiltro:'todos', ordCol:'faltas', ordDir:-1,
-  faTurma:'', faBim:'3B', qFa:'', atTurma:'', atBim:'3B', fltAtTurma:'', fltAtBim:'', qAt:'', atestados:{},
+  faTurma:'', faBim:'4B', qFa:'', atTurma:'', atBim:'4B', fltAtTurma:'', fltAtBim:'', qAt:'', atestados:{}, atestadosPlanilha:{},
+  valPdf:null, valPdfFiltro:'mudou', valPdfTurma:'', valPdfBusca:'',
   aluAba:'', aluTurma:'', qAlu:'', fichaModoCad:false,
   qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
   hQuem:'', hTurma:'', hCampo:'', qHist:'', logRows:[], sessaoHist:[], histDel:{}, histEditSig:'', mapaPerfis:{},
@@ -985,6 +1025,7 @@ function fmt(v){
   return s;
 }
 function orig(id){ return S.idx[id]? fmt(S.idx[id].f.v) : ''; }
+function valorSalvo(id){ if(!id) return ''; if(id in S.fila) return S.fila[id].novo; return orig(id); }
 function valor(id){ if(!id) return ''; if(id in S.draft) return S.draft[id]; if(id in S.fila) return S.fila[id].novo; return orig(id); }
 function sujos(){ return Object.keys(S.draft); }
 function temAcao(v){ var t=low(v); return !!t && t!=='-' && t!=='falso' && !/^nao\b/.test(t) && t!=='n' && t!=='0'; }
@@ -1329,11 +1370,15 @@ function carregarTudo(){
     var ov2 = (resArr[2] && resArr[2].val()) || {};
     var ovMap = Object.assign({}, ov1, ov2);
     var sheets=s.val()||[]; if(!Array.isArray(sheets)) sheets=Object.keys(sheets).map(function(k){return sheets[k];});
-    var novo={}, idx={}, alKey={}, logRows=[], sheetIdxMap={};
+    var novo={}, idx={}, alKey={}, logRows=[], sheetIdxMap={}, rawAtRows=[];
 
     sheets.forEach(function(sh, sIdx){
       if(!sh) return;
       sheetIdxMap[sh.name] = sIdx;
+      if(sh.name === 'ATESTADOS'){
+        rawAtRows = sh.values || [];
+        return;
+      }
       if(sh.name === 'Log Edicoes'){
         var LV = sh.values || [];
         var migBatch = {};
@@ -1407,6 +1452,45 @@ function carregarTudo(){
     });
 
     S.dados=novo; S.idx=idx; S.alKey=alKey; S.logRows=logRows;
+
+    /* Indexa os atestados já existentes na aba ATESTADOS da planilha sem duplicar */
+    var atPlan = {};
+    var mapaNomeAl = {};
+    Object.keys(alKey).forEach(function(k){
+      var al = alKey[k];
+      mapaNomeAl[edLow_(al.nome) + '|' + edLow_(al.turma)] = k;
+      mapaNomeAl[edLow_(al.nome)] = k;
+    });
+    for(var ar = 1; ar < rawAtRows.length; ar++){
+      var rAt = rawAtRows[ar] || [];
+      var trmAt = edNorm_(rAt[1]).replace(/\s+/g,'').toUpperCase();
+      var bimRaw = edLow_(rAt[2]);
+      var nmAt  = edNorm_(rAt[3]);
+      var perAt = fmt(edNorm_(rAt[4]));
+      var cidAt = edNorm_(rAt[5]);
+      var diasAt = num(rAt[6]);
+      var obsAt  = edNorm_(rAt[7]);
+      if(!nmAt || edLow_(nmAt) === 'aluno' || !/^\d+[º°]?[A-G]$/i.test(trmAt)) continue;
+      if(!perAt && !cidAt && !diasAt) continue;
+      var mB = bimRaw.match(/(\d)/);
+      var biAt = (mB && mB[1]>='1' && mB[1]<='4') ? (mB[1]+'B') : '1B';
+      var kVinc = mapaNomeAl[edLow_(nmAt) + '|' + edLow_(trmAt)] || mapaNomeAl[edLow_(nmAt)] || '';
+      var idPlan = 'plan_at_' + ar;
+      atPlan[idPlan] = {
+        id: idPlan,
+        alunoKey: kVinc,
+        aluno: nmAt,
+        turma: trmAt,
+        bim: biAt,
+        periodo: perAt || '—',
+        cid: cidAt || 'S/CID',
+        dias: diasAt,
+        obs: obsAt,
+        por: 'Planilha',
+        em: 1700000000000 + ar
+      };
+    }
+    S.atestadosPlanilha = atPlan;
     var abas=ABAS.filter(function(a){return novo[a];});
     if(!abas.length){ falha('Não encontrei as abas dos anos iniciais no Firebase. Rode "sincronizar" na planilha.'); return; }
 
@@ -1617,10 +1701,18 @@ function renderDev(){
 
 /* ===== 1B. Aba Faltas e Atestados (PDF + Ajuste Manual + Compilado de Atestados) ===== */
 function atestadosLista(){
-  var map = S.atestados || {};
-  return Object.keys(map).map(function(k){
-    return Object.assign({ id: k }, map[k]);
-  }).filter(function(r){ return r && r.aluno; }).sort(function(a,b){
+  var combinado = Object.assign({}, S.atestadosPlanilha || {}, S.atestados || {});
+  var vistosSig = {};
+  var lista = [];
+  Object.keys(combinado).forEach(function(k){
+    var r = combinado[k];
+    if(!r || !r.aluno || r._excluido) return;
+    var sig = [low(r.aluno), low(r.turma||''), r.bim||'', low(r.periodo||''), low(r.cid||''), num(r.dias)].join('|');
+    if(vistosSig[sig] && /^plan_at_/.test(k)) return;
+    vistosSig[sig] = true;
+    lista.push(Object.assign({ id: k }, r));
+  });
+  return lista.sort(function(a,b){
     return (b.em||0) - (a.em||0);
   });
 }
@@ -1631,8 +1723,10 @@ function renderFal(){
   if($('bAnexarPdf')) $('bAnexarPdf').disabled = !podeFal;
   if($('bAddAt')) $('bAddAt').disabled = !podeFal;
 
+  if(S.valPdf) renderRelatorioPdf();
+
   var trm = S.faTurma;
-  var bi  = S.faBim || '3B';
+  var bi  = S.faBim || '4B';
   var q   = low(S.qFa);
   var lista = todosAlunos().filter(function(al){
     if(trm && turmaDe(al) !== trm) return false;
@@ -1652,18 +1746,20 @@ function renderFal(){
 
   var head = '<thead><tr>'+
     '<th style="width:42px;text-align:center">#</th>'+
+    '<th>Matrícula</th>'+
     '<th>Nome do Aluno</th>'+
     '<th style="text-align:center">Turma</th>'+
     '<th style="text-align:center">Situação</th>'+
     '<th style="text-align:center">Qt. Faltas ('+esc(bi)+')</th>'+
     '<th style="text-align:center">Qt. Atestados ('+esc(bi)+')</th>'+
     '<th style="text-align:center">Faltas Injust. ('+esc(bi)+')</th>'+
-    '<th>Atestados no Bimestre</th>'+
+    '<th class="num">Total Ano (Faltas)</th>'+
+    '<th>Atestados ('+esc(bi)+')</th>'+
     '<th style="text-align:right">Ação</th>'+
   '</tr></thead>';
 
   if(!lista.length){
-    $('tabLancFal').innerHTML = head + '<tbody><tr><td colspan="9" class="vazio">Nenhum aluno encontrado para esta turma.</td></tr></tbody>';
+    $('tabLancFal').innerHTML = head + '<tbody><tr><td colspan="11" class="vazio">Nenhum aluno encontrado para esta turma.</td></tr></tbody>';
   } else {
     $('tabLancFal').innerHTML = head + '<tbody>' + lista.map(function(al, idxAl){
       var alK = al.aba + '|' + al.r;
@@ -1680,6 +1776,15 @@ function renderFal(){
       var fDirty = fId && (fId in S.draft);
       var aDirty = aId && (aId in S.draft);
       var iDirty = iId && (iId in S.draft);
+
+      var totAnoF = 0, totAnoA = 0;
+      ['1B','2B','3B','4B'].forEach(function(bItem){
+        var ob = al.b[bItem]; if(!ob) return;
+        var idF2 = fieldId(al, bItem, 'FAL'), idA2 = fieldId(al, bItem, 'ATE');
+        totAnoF += num(idF2 ? valor(idF2) : ob.FAL);
+        totAnoA += num(idA2 ? valor(idA2) : ob.ATE);
+      });
+
       var ats = atPorAlunoBim[alK + '|' + bi] || [];
       var resumoAt = ats.length
         ? ats.map(function(x){ return '<span class="tag ok" title="CID: '+esc(x.cid||'—')+' · '+esc(x.obs||'')+'">'+esc(x.dias)+'d ('+esc(x.periodo)+')</span>'; }).join(' ')
@@ -1687,6 +1792,7 @@ function renderFal(){
 
       return '<tr>'+
         '<td class="mono" style="text-align:center;color:var(--muted);font-size:12px">'+(idxAl+1)+'</td>'+
+        '<td class="mono" style="font-size:12px;color:var(--muted)">'+esc(codDe(al)||'—')+'</td>'+
         '<td><span class="nmlink" data-ficha="'+esc(alK)+'">'+esc(nomeDe(al))+'</span>'+(alunoDirty(al)?' <span class="tag dirty">editado</span>':'')+'</td>'+
         '<td class="mono" style="text-align:center;font-weight:600">'+esc(turmaDe(al))+'</td>'+
         '<td style="text-align:center">'+stBadge+'</td>'+
@@ -1699,6 +1805,7 @@ function renderFal(){
         '<td style="text-align:center" data-fbox="'+esc(iId||'')+'">'+
           (iId ? '<input type="number" min="0" max="200" class="inp-num-sm'+(iDirty?' changed':'')+'" style="'+(vI>=10?'color:var(--alert);border-color:#e8b0b8':'')+'" data-id="'+esc(iId)+'" data-fal-al="'+esc(alK)+'" data-fal-bi="'+esc(bi)+'" data-fal-role="INJ" value="'+vI+'"'+disAttr+'>' : vI)+
         '</td>'+
+        '<td class="num" style="font-weight:700;color:var(--navy)">'+totAnoF+' <small style="color:var(--muted);font-weight:400">('+totAnoA+' at.)</small></td>'+
         '<td>'+resumoAt+'</td>'+
         '<td style="text-align:right"><button type="button" class="chip" data-novo-at-aluno="'+esc(alK)+'"'+disAttr+'>+ Atestado</button></td>'+
       '</tr>';
@@ -1743,11 +1850,11 @@ function renderCompiladoAtestados(){
     return;
   }
 
-  $('tabAtestados').innerHTML = head + '<tbody>' + filtrados.map(function(r){
-    var dt = r.em ? new Date(r.em).toLocaleDateString('pt-BR') : '';
+  $('tabAtestados').innerHTML = head + '<tbody>' + filtrados.slice(0, 400).map(function(r){
+    var dt = (r.em && r.em > 1710000000000) ? new Date(r.em).toLocaleDateString('pt-BR') : '';
     return '<tr>'+
       '<td class="mono" style="text-align:center;font-weight:700">'+esc(r.turma||'—')+'</td>'+
-      '<td><span class="nmlink" data-ficha="'+esc(r.alunoKey||'')+'">'+esc(r.aluno||'—')+'</span></td>'+
+      '<td>'+(r.alunoKey ? '<span class="nmlink" data-ficha="'+esc(r.alunoKey)+'">'+esc(r.aluno||'—')+'</span>' : esc(r.aluno||'—'))+'</td>'+
       '<td style="text-align:center"><span class="tag">'+esc(BIM_LBL[r.bim]||r.bim||'—')+'</span></td>'+
       '<td class="mono" style="font-weight:600">'+esc(r.periodo||'—')+'</td>'+
       '<td class="mono" style="text-align:center"><span class="tag d">'+esc(r.cid||'—')+'</span></td>'+
@@ -1786,12 +1893,26 @@ function sincronizarAtestadoNoAluno(alunoKey, bi){
   return Promise.all(proms);
 }
 
-/* Leitura inteligente de PDF de Faltas por Turma */
+/* ===== Leitor Inteligente para os 2 Tipos de PDF (Relação Geral 1º-4º Bim e PDF por Turma) ===== */
 function normNomePdf(s){
-  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z\s]/g,' ').replace(/\s+/g,' ').trim();
+  return String(s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toUpperCase()
+    .replace(/\bJR\.?\b/g,'JUNIOR')
+    .replace(/\bFILHO\b/g,'FILHO')
+    .replace(/[^A-Z\s]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
 }
 
-function extrairLinhasDoPdf(file){
+function normTurmaPdf(s){
+  var m = String(s||'').toUpperCase().match(/([1-9])\s*[º°O]?\s*(?:ANO\s*)?([A-G])\b/);
+  if(m) return m[1] + 'º' + m[2];
+  return '';
+}
+
+/* Carrega páginas do PDF preservando tanto a ordem do stream quanto as coordenadas X/Y */
+function lerPaginasPdf(file){
   if(!window.pdfjsLib) return Promise.reject(new Error('Biblioteca leitora de PDF (pdf.js) ainda não carregou. Verifique sua internet.'));
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   return file.arrayBuffer().then(function(buf){
@@ -1802,54 +1923,398 @@ function extrairLinhasDoPdf(file){
       (function(pageNum){
         pagePromises.push(pdf.getPage(pageNum).then(function(page){
           return page.getTextContent().then(function(tc){
-            /* Agrupa elementos por coordenada Y aproximada para manter cada linha da tabela unida */
-            var rows = [];
+            var rawItems = [];
             (tc.items || []).forEach(function(it){
-              var txt = String(it.str || '').trim();
+              var txt = String(it.str || '').replace(/\s+/g,' ').trim();
               if(!txt) return;
               var x = it.transform ? it.transform[4] : 0;
               var y = it.transform ? it.transform[5] : 0;
+              rawItems.push({ x: x, y: y, str: txt });
+            });
+
+            /* 1. Texto na ordem original do stream do PDF */
+            var streamText = rawItems.map(function(i){ return i.str; }).join(' ');
+
+            /* 2. Linhas agrupadas por coordenada Y e ordenadas por X (com união de nomes quebrados em 2 linhas) */
+            var rows = [];
+            rawItems.forEach(function(it){
               var row = null;
               for(var i=0; i<rows.length; i++){
-                if(Math.abs(rows[i].y - y) <= 4.5){ row = rows[i]; break; }
+                if(Math.abs(rows[i].y - it.y) <= 5){ row = rows[i]; break; }
               }
-              if(!row){ row = { y: y, items: [] }; rows.push(row); }
-              row.items.push({ x: x, str: txt });
+              if(!row){ row = { y: it.y, items: [] }; rows.push(row); }
+              row.items.push({ x: it.x, y: it.y, str: it.str });
             });
             rows.sort(function(a,b){ return b.y - a.y; });
-            return rows.map(function(r){
-              r.items.sort(function(a,b){ return a.x - b.x; });
-              return r.items.map(function(i){ return i.str; }).join(' ');
+            rows.forEach(function(r){ r.items.sort(function(a,b){ return a.x - b.x; }); });
+
+            /* Une linhas de continuação de nome (ex: sobrenome sozinho na linha de baixo da mesma célula) */
+            var mergedRows = [];
+            for(var rIdx=0; rIdx<rows.length; rIdx++){
+              var cur = rows[rIdx];
+              var txtLine = cur.items.map(function(i){ return i.str; }).join(' ');
+              var soLetras = /^[A-ZÀ-Úa-zà-ú\s'.-]+$/.test(txtLine) && !/\b(ANO|BIMESTRE|NORMAL|MATRICULA|PREFEITURA|SECRETARIA|SITUACAO|TOTAL|PAG)\b/i.test(txtLine);
+              if(soLetras && mergedRows.length > 0 && Math.abs(mergedRows[mergedRows.length-1].y - cur.y) <= 15){
+                /* Insere o sobrenome complementar junto aos itens de nome da linha anterior */
+                var prev = mergedRows[mergedRows.length-1];
+                cur.items.forEach(function(ci){
+                  prev.items.push({ x: ci.x + 0.5, y: ci.y, str: ci.str, isWrap: true });
+                });
+                prev.items.sort(function(a,b){
+                  /* Mantém itens na mesma faixa de coluna Nome ordenados de cima para baixo */
+                  if(Math.abs(a.x - b.x) < 140 && a.x > 60 && a.x < 260 && b.x > 60 && b.x < 260){
+                    return b.y - a.y || a.x - b.x;
+                  }
+                  return a.x - b.x;
+                });
+              } else {
+                mergedRows.push(cur);
+              }
+            }
+
+            var coordLines = mergedRows.map(function(r){
+              return {
+                y: r.y,
+                items: r.items,
+                text: r.items.map(function(i){ return i.str; }).join(' ')
+              };
             });
+
+            return { page: pageNum, streamText: streamText, coordLines: coordLines };
           });
         }));
       })(p);
     }
-    return Promise.all(pagePromises).then(function(pagesLines){
-      var allLines = [];
-      pagesLines.forEach(function(pl){ allLines = allLines.concat(pl); });
-      return allLines;
-    });
+    return Promise.all(pagePromises);
   });
 }
 
-function extrairFaltaDaLinhaPdf(linha, restoAposNome, codAluno){
-  /* Remove datas (ex: 10/08/2026), porcentagens (ex: 95,5% ou 95 %) e códigos longos */
-  var limpo = String(restoAposNome || '')
-    .replace(/\b\d{1,2}[\/\-]\d{1,2}([\/\-]\d{2,4})?\b/g, ' ')
-    .replace(/\b\d+([.,]\d+)?\s*%/g, ' ')
-    .replace(/\b\d+[.,]\d+\b/g, ' ');
-  if(codAluno){
-    limpo = limpo.replace(new RegExp('\\b' + String(codAluno).replace(/\D/g,'') + '\\b', 'g'), ' ');
+/* Localiza aluno cadastrado no site por Código/Matrícula (prioritário) ou Nome + Turma */
+function acharAlunoNoSite(cod, nomeRaw, turmaHint, indices){
+  var codLimpo = String(cod || '').replace(/\D/g,'');
+  if(codLimpo && indices.porCod[codLimpo]){
+    return indices.porCod[codLimpo];
   }
-  var matches = limpo.match(/\b\d{1,3}\b/g) || [];
-  var nums = matches.map(function(n){ return parseInt(n, 10); }).filter(function(n){ return !isNaN(n) && n >= 0 && n <= 180; });
-  if(!nums.length){
-    /* Se o PDF colocou um traço "-" ou "0" para zero faltas */
-    if(/(?:^|\s)(-|--|0)(?:\s|$)/.test(limpo)) return 0;
-    return null;
+  var nm = normNomePdf(nomeRaw);
+  if(!nm || nm.length < 3) return null;
+  var trm = normTurmaPdf(turmaHint) || String(turmaHint || '').replace(/\s+/g,'').toUpperCase();
+
+  if(trm && indices.porNomeTurma[nm + '|' + trm]){
+    return indices.porNomeTurma[nm + '|' + trm];
   }
-  return nums[0];
+  if(indices.porNome[nm]){
+    var cand = indices.porNome[nm];
+    if(!trm || turmaDe(cand) === trm) return cand;
+  }
+
+  /* Busca aproximada por primeiro + segundo + último nome dentro da turma (ou geral) */
+  var partes = nm.split(' ').filter(function(p){ return p.length > 2 && ['DAS','DOS','DE','DA','DO'].indexOf(p) < 0; });
+  if(partes.length >= 2){
+    var pool = trm ? indices.lista.filter(function(a){ return turmaDe(a) === trm; }) : indices.lista;
+    var p0 = partes[0], p1 = partes[1], pLast = partes[partes.length - 1];
+    for(var i=0; i<pool.length; i++){
+      var al = pool[i];
+      var alNm = al._nmNorm;
+      if(alNm.indexOf(p0 + ' ' + p1) === 0 && alNm.indexOf(pLast) >= 0){
+        return al;
+      }
+    }
+  }
+  return null;
+}
+
+function construirIndicesAlunos(){
+  var lista = todosAlunos();
+  var porCod = {}, porNome = {}, porNomeTurma = {};
+  lista.forEach(function(al){
+    var c = String(codDe(al) || '').replace(/\D/g,'');
+    var nm = normNomePdf(nomeDe(al));
+    var trm = turmaDe(al);
+    al._nmNorm = nm;
+    if(c) porCod[c] = al;
+    if(nm){
+      porNome[nm] = al;
+      porNomeTurma[nm + '|' + trm] = al;
+    }
+  });
+  return { lista: lista, porCod: porCod, porNome: porNome, porNomeTurma: porNomeTurma };
+}
+
+/* Extrai registros tanto do PDF Tipo 1 (Relação Geral 1º-4º Bim) quanto do PDF Tipo 2 (Por Turma) */
+function extrairRegistrosDosPdfs(pages, indices){
+  var registrosPorAluno = {};
+  var ignoradosAnosFinais = 0;
+  var tipoDetectado = '';
+
+  /* PASSO 1: Parser para Relatório Multi-Bimestre (Tipo 1: "Relação de Alunos com a quantidade de dias de Atestado Médico" ou Boletim 1º ao 4º Bim) */
+  pages.forEach(function(pg){
+    /* 1A. Verifica primeiro via linhas coordenadas X/Y se há 10 números (1º ao 4º Bim Faltas + Atestados + Total) */
+    pg.coordLines.forEach(function(cl){
+      var txt = cl.text;
+      var mTurma = txt.match(/\b([1-9])\s*[º°o]?\s*ANO\s*([A-Z])\b/i);
+      var mCod   = txt.match(/^\s*(\d{5,7})\b/);
+      if(!mCod && !mTurma) return;
+      if(mTurma && +mTurma[1] >= 6){ ignoradosAnosFinais++; return; }
+
+      /* Pega todos os itens estritamente numéricos (1 a 3 dígitos) à direita da coluna de Nome/Data (x > 250) */
+      var numItems = cl.items.filter(function(it){
+        return /^\d{1,3}$/.test(it.str) && it.x > 240;
+      }).sort(function(a,b){ return a.x - b.x; });
+
+      if(numItems.length === 10){
+        var ns = numItems.map(function(it){ return parseInt(it.str, 10); });
+        /* Em ordem visual X da esquerda para a direita: f1, a1, f2, a2, f3, a3, f4, a4, totF, totA */
+        var f1=ns[0], a1=ns[1], f2=ns[2], a2=ns[3], f3=ns[4], a3=ns[5], f4=ns[6], a4=ns[7], tf=ns[8], ta=ns[9];
+        /* Caso o PDF tenha emitido coordenadas X agrupadas na ordem do stream (f1,f2,f3,f4, a1,a2,a3,a4, tf,ta) */
+        if((f1+f2+f3+f4 !== tf || a1+a2+a3+a4 !== ta) && (ns[0]+ns[1]+ns[2]+ns[3] === tf && ns[4]+ns[5]+ns[6]+ns[7] === ta)){
+          f1=ns[0]; f2=ns[1]; f3=ns[2]; f4=ns[3];
+          a1=ns[4]; a2=ns[5]; a3=ns[6]; a4=ns[7];
+        }
+        var cod = mCod ? mCod[1] : '';
+        var trmPdf = mTurma ? (mTurma[1] + 'º' + mTurma[2].toUpperCase()) : '';
+        var nomeItens = cl.items.filter(function(it){ return it.x > 55 && it.x < 255 && !/^\d+$/.test(it.str); });
+        var nomeExtraido = nomeItens.map(function(i){ return i.str; }).join(' ');
+        var al = acharAlunoNoSite(cod, nomeExtraido, trmPdf, indices);
+        if(al){
+          tipoDetectado = 'Relatório Geral (1º ao 4º Bimestre · Faltas e Atestados)';
+          var ak = al.aba + '|' + al.r;
+          registrosPorAluno[ak] = {
+            al: al,
+            multiBim: true,
+            temAte: true,
+            bims: {
+              '1B': { fal: f1, ate: a1 },
+              '2B': { fal: f2, ate: a2 },
+              '3B': { fal: f3, ate: a3 },
+              '4B': { fal: f4, ate: a4 }
+            }
+          };
+        }
+      }
+    });
+
+    /* 1B. Fallback/Complemento pelo Stream Text (captura linhas mesmo se o nome quebrou em 2 linhas fora da faixa Y) */
+    var reStream10 = /\b(\d{5,7})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+([A-ZÀ-Úa-zà-ú\s'.-]+?)\s+([1-9])\s*[º°o]?\s*ANO\s*([A-Z])\b/gi;
+    var m;
+    while((m = reStream10.exec(pg.streamText)) !== null){
+      var anoNum = parseInt(m[13], 10);
+      if(anoNum >= 6){ ignoradosAnosFinais++; continue; }
+      var codS = m[1];
+      var n = [ +m[2], +m[3], +m[4], +m[5], +m[6], +m[7], +m[8], +m[9], +m[10], +m[11] ];
+      var nomeS = m[12].trim();
+      var trmS  = anoNum + 'º' + m[14].toUpperCase();
+      var alS   = acharAlunoNoSite(codS, nomeS, trmS, indices);
+      if(!alS) continue;
+      var akS = alS.aba + '|' + alS.r;
+      if(registrosPorAluno[akS]) continue; /* Já extraído via coordenadas X/Y */
+
+      /* Na ordem do stream deste relatório: n[0..3]=Faltas 1º..4ºB, n[4..7]=Atestados 1º..4ºB, n[8]=TotF, n[9]=TotA */
+      var sf1=n[0], sf2=n[1], sf3=n[2], sf4=n[3], sa1=n[4], sa2=n[5], sa3=n[6], sa4=n[7];
+      if((sf1+sf2+sf3+sf4 !== n[8] || sa1+sa2+sa3+sa4 !== n[9]) && (n[0]+n[2]+n[4]+n[6] === n[8] && n[1]+n[3]+n[5]+n[7] === n[9])){
+        sf1=n[0]; sa1=n[1]; sf2=n[2]; sa2=n[3]; sf3=n[4]; sa3=n[5]; sf4=n[6]; sa4=n[7];
+      }
+      tipoDetectado = 'Relatório Geral (1º ao 4º Bimestre · Faltas e Atestados)';
+      registrosPorAluno[akS] = {
+        al: alS,
+        multiBim: true,
+        temAte: true,
+        bims: {
+          '1B': { fal: sf1, ate: sa1 },
+          '2B': { fal: sf2, ate: sa2 },
+          '3B': { fal: sf3, ate: sa3 },
+          '4B': { fal: sf4, ate: sa4 }
+        }
+      };
+    }
+  });
+
+  /* PASSO 2: Se ainda restam páginas/linhas de outro formato (Tipo 2: PDF que vem por Turma — Diário / Frequência por Turma / Boletim da Turma) */
+  if(Object.keys(registrosPorAluno).length === 0){
+    var turmaContexto = S.faTurma || '';
+    var bimContexto   = S.faBim || '4B';
+    var temColAteHeader = false;
+    var tem4BimHeader   = false;
+    var xColFalta = null;
+
+    pages.forEach(function(pg){
+      /* Detecta cabeçalho da página (Turma, Bimestre, Colunas) */
+      pg.coordLines.forEach(function(cl){
+        var tUp = cl.text.toUpperCase();
+        var mTHeader = tUp.match(/(?:TURMA|SERIE\/TURMA|ANO\/TURMA|CLASSE)?\s*[:\-]?\s*\b([1-5])\s*[º°O]?\s*(?:ANO\s*)?([A-G])\b/);
+        if(mTHeader && (tUp.indexOf('TURMA') >= 0 || tUp.indexOf('ANO') >= 0)){
+          turmaContexto = mTHeader[1] + 'º' + mTHeader[2];
+        }
+        var mBHeader = tUp.match(/\b([1-4])\s*[º°O]?\s*BIMESTRE\b/);
+        if(mBHeader && !/1.*2.*3.*4/.test(tUp)){
+          bimContexto = mBHeader[1] + 'B';
+        }
+        if(/1\s*[º°O]?\s*BIM/i.test(tUp) && /2\s*[º°O]?\s*BIM/i.test(tUp) && /3\s*[º°O]?\s*BIM/i.test(tUp)){
+          tem4BimHeader = true;
+        }
+        if(/ATESTAD/i.test(tUp)) temColAteHeader = true;
+        cl.items.forEach(function(it){
+          if(/^(QT\.?\s*)?FALTAS?$|^TOTAL\s*DE\s*FALTAS$|^AUSENCIAS$/i.test(edLow_(it.str))){
+            xColFalta = it.x;
+          }
+        });
+      });
+
+      /* Percorre as linhas da página procurando alunos da turma (por Matrícula ou por Nome) */
+      var candidatos = todosAlunos().filter(function(al){
+        return !turmaContexto || turmaDe(al) === turmaContexto;
+      });
+      if(!candidatos.length) candidatos = todosAlunos();
+
+      pg.coordLines.forEach(function(cl){
+        var raw = cl.text;
+        var normLine = normNomePdf(raw);
+        if(!normLine || normLine.length < 3) return;
+        if(/\b(PREFEITURA|SECRETARIA|RELACAO DE ALUNOS|ASSINATURA|PROFESSOR|DIRETOR)\b/.test(normLine)) return;
+
+        /* Tenta identificar o aluno na linha por Matrícula/Código ou pelo Nome */
+        var mCodLinha = raw.match(/\b(\d{5,7})\b/);
+        var alMatch = null;
+        if(mCodLinha && indices.porCod[mCodLinha[1]]){
+          alMatch = indices.porCod[mCodLinha[1]];
+        } else {
+          for(var cIdx=0; cIdx<candidatos.length; cIdx++){
+            var cand = candidatos[cIdx];
+            var nmC = cand._nmNorm || normNomePdf(nomeDe(cand));
+            if(!nmC || nmC.length < 3) continue;
+            if(normLine.indexOf(nmC) >= 0){ alMatch = cand; break; }
+            var pts = nmC.split(' ').filter(function(p){ return p.length > 2 && ['DAS','DOS','DE','DA','DO'].indexOf(p) < 0; });
+            if(pts.length >= 2 && normLine.indexOf(pts[0] + ' ' + pts[1]) >= 0 && normLine.indexOf(pts[pts.length - 1]) >= 0){
+              alMatch = cand;
+              break;
+            }
+          }
+        }
+
+        if(!alMatch) return;
+        var ak = alMatch.aba + '|' + alMatch.r;
+        if(registrosPorAluno[ak]) return;
+
+        /* Extrai os números da linha que ficam APÓS o nome do aluno (ou à direita do nome), removendo datas, % e "1º ANO A" */
+        var nmAlNorm = alMatch._nmNorm || normNomePdf(nomeDe(alMatch));
+        var ptsAl = nmAlNorm.split(' ').filter(Boolean);
+        var ultPal = ptsAl[ptsAl.length - 1] || nmAlNorm;
+        var rawSemAcento = raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+        var posFimNome = rawSemAcento.lastIndexOf(ultPal);
+        var trechoAposNome = posFimNome >= 0 ? rawSemAcento.slice(posFimNome + ultPal.length) : rawSemAcento;
+
+        /* Remove indicadores de série/turma ("1º ANO A"), bimestre ("3º BIM"), datas, decimais, porcentagens e o código do aluno */
+        var codAlStr = String(codDe(alMatch) || '').replace(/\D/g,'');
+        var limpo = trechoAposNome
+          .replace(/\b[1-9]\s*[º°O]?\s*ANO\s*[A-Z]?\b/g, ' ')
+          .replace(/\b[1-4]\s*[º°O]?\s*BIM(?:ESTRE)?\b/g, ' ')
+          .replace(/\b\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?\b/g, ' ')
+          .replace(/\b\d+(?:[.,]\d+)?\s*%/g, ' ')
+          .replace(/\b\d+[.,]\d+\b/g, ' ');
+        if(codAlStr){
+          limpo = limpo.replace(new RegExp('\\b' + codAlStr + '\\b', 'g'), ' ');
+        }
+
+        var mNums = limpo.match(/\b\d{1,3}\b/g) || [];
+        var nums = mNums.map(function(n){ return parseInt(n, 10); }).filter(function(n){ return !isNaN(n) && n >= 0 && n <= 180; });
+
+        /* Se os números vieram antes do nome no stream do PDF (ex: Matrícula + números + Nome) */
+        if(!nums.length && posFimNome > 0){
+          var trechoAntes = rawSemAcento.slice(0, rawSemAcento.indexOf(ptsAl[0] || nmAlNorm))
+            .replace(/\b[1-9]\s*[º°O]?\s*ANO\s*[A-Z]?\b/g, ' ')
+            .replace(/\b\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?\b/g, ' ')
+            .replace(/\b\d{5,7}\b/g, ' ');
+          if(codAlStr) trechoAntes = trechoAntes.replace(new RegExp('\\b' + codAlStr + '\\b', 'g'), ' ');
+          var mAntes = trechoAntes.match(/\b\d{1,3}\b/g) || [];
+          var nAntes = mAntes.map(function(n){ return parseInt(n, 10); }).filter(function(n){ return !isNaN(n) && n >= 0 && n <= 180; });
+          /* Se havia nº de chamada na frente e depois as faltas, ou só as faltas */
+          if(nAntes.length >= 2) nums = nAntes.slice(1);
+          else if(nAntes.length === 1) nums = nAntes;
+        }
+
+        if(!nums.length && /(?:^|\s)(-|--|0)(?:\s|$)/.test(limpo)){
+          nums = [0];
+        }
+        if(!nums.length) return;
+
+        /* Interpreta os números extraídos da linha no PDF por turma */
+        if(nums.length >= 10 && (nums[0]+nums[2]+nums[4]+nums[6] === nums[8] || nums[0]+nums[1]+nums[2]+nums[3] === nums[8])){
+          var isSt = (nums[0]+nums[1]+nums[2]+nums[3] === nums[8] && nums[0]+nums[2]+nums[4]+nums[6] !== nums[8]);
+          tipoDetectado = 'Relatório por Turma (1º ao 4º Bimestre · Faltas e Atestados)';
+          registrosPorAluno[ak] = {
+            al: alMatch,
+            multiBim: true,
+            temAte: true,
+            bims: {
+              '1B': { fal: nums[0], ate: isSt ? nums[4] : nums[1] },
+              '2B': { fal: isSt ? nums[1] : nums[2], ate: isSt ? nums[5] : nums[3] },
+              '3B': { fal: isSt ? nums[2] : nums[4], ate: isSt ? nums[6] : nums[5] },
+              '4B': { fal: isSt ? nums[3] : nums[6], ate: isSt ? nums[7] : nums[7] }
+            }
+          };
+        } else if(nums.length >= 5 && nums[0]+nums[1]+nums[2]+nums[3] === nums[4]){
+          tipoDetectado = 'Relatório por Turma (1º ao 4º Bimestre · Faltas)';
+          registrosPorAluno[ak] = {
+            al: alMatch,
+            multiBim: true,
+            temAte: false,
+            bims: {
+              '1B': { fal: nums[0], ate: null },
+              '2B': { fal: nums[1], ate: null },
+              '3B': { fal: nums[2], ate: null },
+              '4B': { fal: nums[3], ate: null }
+            }
+          };
+        } else if(tem4BimHeader && nums.length === 4){
+          tipoDetectado = 'Relatório por Turma (1º ao 4º Bimestre)';
+          registrosPorAluno[ak] = {
+            al: alMatch,
+            multiBim: true,
+            temAte: false,
+            bims: {
+              '1B': { fal: nums[0], ate: null },
+              '2B': { fal: nums[1], ate: null },
+              '3B': { fal: nums[2], ate: null },
+              '4B': { fal: nums[3], ate: null }
+            }
+          };
+        } else {
+          /* PDF por Turma de um único Bimestre (ex: Faltas da Turma no Bimestre) */
+          var biAlvo = bimContexto || S.faBim || '4B';
+          var falVal = nums[0];
+          var ateVal = null;
+          if(temColAteHeader && nums.length >= 2){
+            falVal = nums[0];
+            ateVal = nums[1];
+          } else if(nums.length === 3 && nums[0] - nums[1] === nums[2]){
+            falVal = nums[0];
+            ateVal = nums[1];
+          } else if(xColFalta != null){
+            /* Se o cabeçalho indicou a posição X exata da coluna de Faltas */
+            var numItensDir = cl.items.filter(function(it){ return /^\d{1,3}$/.test(it.str) && it.x > 180; });
+            if(numItensDir.length > 1){
+              numItensDir.sort(function(a,b){ return Math.abs(a.x - xColFalta) - Math.abs(b.x - xColFalta); });
+              falVal = parseInt(numItensDir[0].str, 10);
+            }
+          }
+          tipoDetectado = 'Relatório por Turma (' + (BIM_LBL[biAlvo] || biAlvo) + ')';
+          var bMap = {};
+          bMap[biAlvo] = { fal: falVal, ate: ateVal };
+          registrosPorAluno[ak] = {
+            al: alMatch,
+            multiBim: false,
+            temAte: ateVal != null,
+            bims: bMap
+          };
+        }
+      });
+    });
+  }
+
+  return {
+    registros: registrosPorAluno,
+    ignoradosAnosFinais: ignoradosAnosFinais,
+    tipoDetectado: tipoDetectado || 'Relatório de Faltas'
+  };
 }
 
 function processarPdfFaltas(file){
@@ -1857,85 +2322,281 @@ function processarPdfFaltas(file){
   var box = $('pdfStatusBox');
   box.classList.remove('hidden');
   box.style.color = 'var(--navy)';
-  box.textContent = '⏳ Lendo arquivo PDF "' + file.name + '" e identificando alunos da turma ' + S.faTurma + '…';
+  box.innerHTML = '⏳ Lendo arquivo PDF <b>"' + esc(file.name) + '"</b>, validando faltas existentes no site e verificando alterações sem duplicar…';
 
-  extrairLinhasDoPdf(file).then(function(linhas){
-    var trm = S.faTurma;
-    var bi  = S.faBim || '3B';
-    var alunosTurma = todosAlunos().filter(function(al){ return !trm || turmaDe(al) === trm; });
-    if(!alunosTurma.length){
+  var indices = construirIndicesAlunos();
+  var escopo = $('pdfEscopo') ? $('pdfEscopo').value : 'auto';
+
+  lerPaginasPdf(file).then(function(pages){
+    var extraido = extrairRegistrosDosPdfs(pages, indices);
+    var mapReg = extraido.registros || {};
+    var chaves = Object.keys(mapReg);
+
+    /* Se o usuário escolheu aplicar apenas à turma selecionada no filtro */
+    if(escopo === 'filtro' && S.faTurma){
+      chaves = chaves.filter(function(k){ return turmaDe(mapReg[k].al) === S.faTurma; });
+    }
+
+    if(!chaves.length){
       box.style.color = 'var(--alert)';
-      box.textContent = 'Nenhum aluno encontrado na turma selecionada (' + trm + ').';
+      box.innerHTML = '⚠️ O PDF foi lido ('+pages.length+' página(s)), mas nenhum aluno correspondente foi localizado' +
+        (escopo==='filtro' && S.faTurma ? ' na turma selecionada (<b>'+esc(S.faTurma)+'</b>). Dica: mude o seletor acima para <b>"🌐 Automático (Todas as turmas/bim. do PDF)"</b>.' : '.');
       return;
     }
 
-    var linhasPrep = linhas.map(function(l){
-      return { raw: l, norm: normNomePdf(l) };
-    });
-    var textoUnicoNorm = linhasPrep.map(function(x){ return x.raw; }).join('\n');
+    var itensValidacao = [];
+    var qtdMudou = 0, qtdIguais = 0;
+    var somaGeralAntF = 0, somaGeralAtuF = 0;
+    var somaGeralAntA = 0, somaGeralAtuA = 0;
+    var turmasAfetadas = {};
 
-    var encontrados = 0;
-    alunosTurma.forEach(function(al){
-      var nmNorm = normNomePdf(nomeDe(al));
-      if(!nmNorm || nmNorm.length < 3) return;
-      var partes = nmNorm.split(' ').filter(function(p){ return p.length > 2 && ['DAS','DOS','DE','DA','DO'].indexOf(p) < 0; });
+    chaves.forEach(function(ak){
+      var rec = mapReg[ak];
+      var al  = rec.al;
+      var trm = turmaDe(al);
+      turmasAfetadas[trm] = true;
 
-      var achouVal = null;
-      for(var i=0; i<linhasPrep.length; i++){
-        var lp = linhasPrep[i];
-        var idxPos = lp.norm.indexOf(nmNorm);
-        if(idxPos < 0 && partes.length >= 2){
-          /* Tenta casar pelo primeiro + segundo + último nome caso o PDF abrevie ou quebre linha */
-          var chaveCurta = partes[0] + ' ' + partes[1];
-          if(lp.norm.indexOf(chaveCurta) >= 0 && lp.norm.indexOf(partes[partes.length-1]) >= 0){
-            idxPos = lp.norm.indexOf(chaveCurta);
-          }
-        }
-        if(idxPos >= 0){
-          /* Pega o trecho da linha original após o nome do aluno */
-          var rawUpper = String(lp.raw).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
-          var ultPalavra = partes[partes.length - 1] || nmNorm;
-          var posUlt = rawUpper.lastIndexOf(ultPalavra);
-          var resto = posUlt >= 0 ? lp.raw.slice(posUlt + ultPalavra.length) : lp.raw;
-          var vExtraido = extrairFaltaDaLinhaPdf(lp.raw, resto, codDe(al));
-          /* Se o número estava na linha imediatamente seguinte (PDF com quebra de coluna) */
-          if(vExtraido == null && i + 1 < linhasPrep.length){
-            vExtraido = extrairFaltaDaLinhaPdf(linhasPrep[i+1].raw, linhasPrep[i+1].raw, codDe(al));
-          }
-          if(vExtraido != null){
-            achouVal = vExtraido;
-            break;
-          }
-        }
-      }
+      var totAntF = 0, totAtuF = 0;
+      var totAntA = 0, totAtuA = 0;
+      var mudancasBim = [];
+      var bimsDet = {};
 
-      if(achouVal != null){
+      ['1B','2B','3B','4B'].forEach(function(bi){
+        var o = al.b[bi] || {};
         var fId = fieldId(al, bi, 'FAL');
         var aId = fieldId(al, bi, 'ATE');
         var iId = fieldId(al, bi, 'INJ');
-        if(fId){
-          setDraft(fId, String(achouVal));
-          var vA = num(aId ? valor(aId) : (al.b[bi] && al.b[bi].ATE));
-          var novoI = Math.max(achouVal - vA, 0);
-          if(iId) setDraft(iId, String(novoI));
-          encontrados++;
+
+        /* Valor já salvo atualmente no site (sem contar rascunhos não salvos, para nunca duplicar) */
+        var antF = num(fId ? valorSalvo(fId) : o.FAL);
+        var antA = num(aId ? valorSalvo(aId) : o.ATE);
+        var rawAntI = iId ? valorSalvo(iId) : o.INJ;
+        var antI = (rawAntI != null && String(rawAntI).trim() !== '') ? num(rawAntI) : Math.max(antF - antA, 0);
+
+        var aplicarEsteBim = (escopo === 'filtro' && !rec.multiBim) ? (bi === S.faBim) : (rec.bims[bi] != null);
+        if(escopo === 'filtro' && rec.multiBim && S.faBim){
+          aplicarEsteBim = (bi === S.faBim);
         }
-      }
+
+        var pb = aplicarEsteBim ? rec.bims[bi] : null;
+        var atuF = (pb && pb.fal != null) ? num(pb.fal) : antF;
+        var atuA = (pb && pb.ate != null) ? num(pb.ate) : antA;
+        var atuI = Math.max(atuF - atuA, 0);
+
+        totAntF += antF; totAtuF += atuF;
+        totAntA += antA; totAtuA += atuA;
+
+        var fMudou = (pb && pb.fal != null && atuF !== antF);
+        var aMudou = (pb && pb.ate != null && atuA !== antA);
+
+        if(pb){
+          /* Só grava no draft se o valor realmente mudou em relação ao site — evita duplicação! */
+          if(fId){
+            if(fMudou) setDraft(fId, String(atuF));
+            else delete S.draft[fId];
+          }
+          if(aId && pb.ate != null){
+            if(aMudou) setDraft(aId, String(atuA));
+            else delete S.draft[aId];
+          }
+          if(iId){
+            if(fMudou || aMudou) setDraft(iId, String(atuI));
+            else delete S.draft[iId];
+          }
+        }
+
+        if(fMudou){
+          mudancasBim.push(bi.charAt(0)+'ºB Faltas: <b>'+antF+' ➔ '+atuF+'</b>');
+        }
+        if(aMudou){
+          mudancasBim.push(bi.charAt(0)+'ºB Atest.: <b>'+antA+' ➔ '+atuA+'</b>');
+        }
+
+        bimsDet[bi] = { antF: antF, atuF: atuF, antA: antA, atuA: atuA, fMudou: fMudou, aMudou: aMudou };
+      });
+
+      var mudou = mudancasBim.length > 0;
+      if(mudou) qtdMudou++; else qtdIguais++;
+
+      somaGeralAntF += totAntF; somaGeralAtuF += totAtuF;
+      somaGeralAntA += totAntA; somaGeralAtuA += totAtuA;
+
+      itensValidacao.push({
+        alKey: ak,
+        turma: trm,
+        cod: codDe(al) || '—',
+        nome: nomeDe(al),
+        totAntF: totAntF,
+        totAtuF: totAtuF,
+        difF: totAtuF - totAntF,
+        totAntA: totAntA,
+        totAtuA: totAtuA,
+        difA: totAtuA - totAntA,
+        mudou: mudou,
+        mudancasBim: mudancasBim,
+        bimsDet: bimsDet
+      });
     });
 
-    render();
-    if(encontrados > 0){
-      box.style.color = 'var(--green)';
-      box.innerHTML = '✓ PDF <b>'+esc(file.name)+'</b> lido com sucesso! Foram preenchidas as faltas de <b>'+encontrados+'</b> de <b>'+alunosTurma.length+'</b> alunos da turma <b>'+esc(trm)+'</b> no <b>'+esc(BIM_LBL[bi]||bi)+'</b>. Confira na tabela abaixo e clique em <b>Salvar Alterações</b>.';
-      toast(encontrados + ' alunos tiveram faltas preenchidas pelo PDF!');
-    } else {
-      box.style.color = 'var(--alert)';
-      box.innerHTML = '⚠️ O PDF foi lido ('+linhas.length+' linhas extraídas), mas nenhum aluno da turma <b>'+esc(trm)+'</b> foi localizado no arquivo. Verifique se a turma selecionada corresponde ao PDF enviado.';
+    itensValidacao.sort(function(a,b){
+      return cmpTurma(a.turma, b.turma) || low(a.nome).localeCompare(low(b.nome));
+    });
+
+    var listaTurmasAfetadas = Object.keys(turmasAfetadas).sort(cmpTurma);
+    if(listaTurmasAfetadas.length === 1 && S.faTurma !== listaTurmasAfetadas[0]){
+      S.faTurma = listaTurmasAfetadas[0];
+      if($('faTurma')) $('faTurma').value = S.faTurma;
     }
+
+    S.valPdf = {
+      arquivo: file.name,
+      tipo: extraido.tipoDetectado,
+      paginas: pages.length,
+      totalAlunos: itensValidacao.length,
+      qtdMudou: qtdMudou,
+      qtdIguais: qtdIguais,
+      ignoradosAnosFinais: extraido.ignoradosAnosFinais || 0,
+      somaGeralAntF: somaGeralAntF,
+      somaGeralAtuF: somaGeralAtuF,
+      somaGeralAntA: somaGeralAntA,
+      somaGeralAtuA: somaGeralAtuA,
+      turmas: listaTurmasAfetadas,
+      itens: itensValidacao
+    };
+    S.valPdfFiltro = qtdMudou > 0 ? 'mudou' : 'todos';
+    S.valPdfTurma = '';
+    S.valPdfBusca = '';
+
+    if($('valPdfTurma')){
+      $('valPdfTurma').innerHTML = '<option value="">Todas as turmas do PDF ('+listaTurmasAfetadas.length+')</option>' +
+        listaTurmasAfetadas.map(function(t){ return '<option value="'+esc(t)+'">Turma '+esc(t)+'</option>'; }).join('');
+    }
+
+    render();
+
+    box.style.color = 'var(--green)';
+    box.innerHTML = '✓ PDF <b>'+esc(file.name)+'</b> ('+esc(extraido.tipoDetectado)+') validado com sucesso! ' +
+      '<b>'+itensValidacao.length+'</b> alunos do 1º ao 5º ano conferidos: <b>'+qtdMudou+'</b> com novas atualizações e <b>'+qtdIguais+'</b> já estavam idênticos no site (não duplicados). ' +
+      'Confira o relatório detalhado abaixo e clique em <b>Confirmar e Salvar Atualizações</b>.';
+
+    if($('boxValidacaoPdf')){
+      $('boxValidacaoPdf').classList.remove('hidden');
+      setTimeout(function(){ $('boxValidacaoPdf').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 80);
+    }
+    toast(qtdMudou > 0 ? (qtdMudou + ' aluno(s) atualizados pelo PDF para conferência!') : 'Todos os alunos do PDF já estavam com valores idênticos no site!');
   }).catch(function(err){
     box.style.color = 'var(--alert)';
     box.textContent = 'Erro ao ler o PDF: ' + (err && err.message ? err.message : String(err));
   });
+}
+
+function renderRelatorioPdf(){
+  var vp = S.valPdf;
+  if(!vp || !$('boxValidacaoPdf')) return;
+  $('boxValidacaoPdf').classList.remove('hidden');
+
+  $('valPdfTitulo').textContent = '📊 Validação do PDF: ' + vp.arquivo + ' (' + vp.tipo + ')';
+  var difTotalF = vp.somaGeralAtuF - vp.somaGeralAntF;
+  var difTotalA = vp.somaGeralAtuA - vp.somaGeralAntA;
+  $('valPdfSub').innerHTML =
+    'Leitura sem duplicação concluída · <b>' + vp.totalAlunos + '</b> alunos de 1º ao 5º ano validados em <b>' + vp.turmas.length + '</b> turma(s)' +
+    (vp.ignoradosAnosFinais ? ' · (' + vp.ignoradosAnosFinais + ' registros de 6º ao 9º ano ignorados automaticamente)' : '') + '.';
+
+  $('valPdfKpis').innerHTML =
+    '<div class="kpi"><b>'+vp.totalAlunos+'</b><span>Alunos no PDF (1º-5º ano)</span></div>'+
+    '<div class="kpi" style="border-color:#b8d4f0;background:#f0f7ff"><b style="color:var(--navy)">'+vp.qtdMudou+'</b><span>Com atualização</span></div>'+
+    '<div class="kpi"><b style="color:var(--green)">'+vp.qtdIguais+'</b><span>Já idênticos (não duplicados)</span></div>'+
+    '<div class="kpi" style="border-color:var(--gold);background:#fffdf6"><b>'+vp.somaGeralAntF+' ➔ '+vp.somaGeralAtuF+'</b><span>Total Faltas ('+(difTotalF>=0?'+'+difTotalF:difTotalF)+')</span></div>'+
+    '<div class="kpi"><b>'+vp.somaGeralAntA+' ➔ '+vp.somaGeralAtuA+'</b><span>Total Atestados ('+(difTotalA>=0?'+'+difTotalA:difTotalA)+')</span></div>';
+
+  if($('segValPdf')){
+    [].forEach.call($('segValPdf').children, function(b){
+      var vf = b.getAttribute('data-vf');
+      b.classList.toggle('on', vf === S.valPdfFiltro);
+      if(vf === 'mudou') b.textContent = '🔄 Apenas o que atualizou (' + vp.qtdMudou + ')';
+      if(vf === 'todos') b.textContent = '📋 Todos do PDF (' + vp.totalAlunos + ')';
+      if(vf === 'iguais') b.textContent = '✔ Já idênticos (' + vp.qtdIguais + ')';
+    });
+  }
+
+  var q = low(S.valPdfBusca);
+  var lista = vp.itens.filter(function(it){
+    if(S.valPdfFiltro === 'mudou' && !it.mudou) return false;
+    if(S.valPdfFiltro === 'iguais' && it.mudou) return false;
+    if(S.valPdfTurma && it.turma !== S.valPdfTurma) return false;
+    if(q && low(it.nome + ' ' + it.cod + ' ' + it.turma).indexOf(q) < 0) return false;
+    return true;
+  });
+
+  $('cntValPdf').textContent = lista.length + ' aluno(s) exibidos';
+
+  var somaFiltroAntF = 0, somaFiltroAtuF = 0, somaFiltroAntA = 0, somaFiltroAtuA = 0;
+  lista.forEach(function(it){
+    somaFiltroAntF += it.totAntF;
+    somaFiltroAtuF += it.totAtuF;
+    somaFiltroAntA += it.totAntA;
+    somaFiltroAtuA += it.totAtuA;
+  });
+  var difFiltroF = somaFiltroAtuF - somaFiltroAntF;
+  var difFiltroA = somaFiltroAtuA - somaFiltroAntA;
+
+  var head = '<thead><tr>'+
+    '<th style="text-align:center">Turma</th>'+
+    '<th>Matrícula</th>'+
+    '<th>Nome do Aluno</th>'+
+    '<th>O que atualizou (Bimestres)</th>'+
+    '<th class="num">Total Faltas Anterior</th>'+
+    '<th class="num">Total Faltas Atual (PDF)</th>'+
+    '<th style="text-align:center">Dif. Faltas</th>'+
+    '<th style="text-align:center">Total Atestados (Ant ➔ Atual)</th>'+
+    '<th style="text-align:center">Status</th>'+
+  '</tr></thead>';
+
+  if(!lista.length){
+    $('tabValidacaoPdf').innerHTML = head + '<tbody><tr><td colspan="9" class="vazio">Nenhum aluno neste filtro.</td></tr></tbody>';
+    return;
+  }
+
+  var rowsHtml = lista.map(function(it){
+    var detHtml = it.mudou
+      ? it.mudancasBim.map(function(m){ return '<span class="tag dirty" style="margin:2px 3px 2px 0;display:inline-block">' + m + '</span>'; }).join('')
+      : '<span style="color:var(--muted);font-size:12px">1º ao 4º bim. já idênticos no site</span>';
+
+    var difBadge = it.difF > 0
+      ? '<span class="tag hi">+' + it.difF + '</span>'
+      : (it.difF < 0 ? '<span class="tag d">' + it.difF + '</span>' : '<span class="tag">0</span>');
+
+    var atestTxt = it.totAntA === it.totAtuA
+      ? '<span class="mono">' + it.totAtuA + '</span>'
+      : '<span class="mono" style="font-weight:700;color:var(--green)">' + it.totAntA + ' ➔ ' + it.totAtuA + ' (' + (it.difA>0?'+'+it.difA:it.difA) + ')</span>';
+
+    var statusHtml = it.mudou
+      ? '<span class="tag dirty">🔄 Atualizado</span>'
+      : '<span class="tag ok">✔ Já idêntico</span>';
+
+    return '<tr style="'+(it.mudou?'background:#FFFDF6':'')+'">'+
+      '<td class="mono" style="text-align:center;font-weight:700">'+esc(it.turma)+'</td>'+
+      '<td class="mono" style="font-size:12px;color:var(--muted)">'+esc(it.cod)+'</td>'+
+      '<td><span class="nmlink" data-ficha="'+esc(it.alKey)+'">'+esc(it.nome)+'</span></td>'+
+      '<td>'+detHtml+'</td>'+
+      '<td class="num" style="color:var(--muted)">'+it.totAntF+'</td>'+
+      '<td class="num" style="font-weight:700;color:var(--navy);font-size:14px">'+it.totAtuF+'</td>'+
+      '<td style="text-align:center">'+difBadge+'</td>'+
+      '<td style="text-align:center">'+atestTxt+'</td>'+
+      '<td style="text-align:center">'+statusHtml+'</td>'+
+    '</tr>';
+  }).join('');
+
+  var footHtml = '<tfoot><tr style="background:#EEF3FA;font-weight:700;border-top:2px solid var(--navy)">'+
+    '<td colspan="4" style="text-align:right;color:var(--navy)">SOMA TOTAL DOS ALUNOS LISTADOS ('+lista.length+'):</td>'+
+    '<td class="num" style="font-size:14px">'+somaFiltroAntF+'</td>'+
+    '<td class="num" style="font-size:14px;color:var(--navy)">'+somaFiltroAtuF+'</td>'+
+    '<td style="text-align:center"><span class="tag '+(difFiltroF!==0?'hi':'ok')+'">'+(difFiltroF>=0?'+'+difFiltroF:difFiltroF)+'</span></td>'+
+    '<td style="text-align:center" class="mono">'+somaFiltroAntA+' ➔ '+somaFiltroAtuA+' ('+(difFiltroA>=0?'+'+difFiltroA:difFiltroA)+')</td>'+
+    '<td></td>'+
+  '</tr></tfoot>';
+
+  $('tabValidacaoPdf').innerHTML = head + '<tbody>' + rowsHtml + '</tbody>' + footHtml;
 }
 
 /* ===== 2. Aba Gerenciar Alunos ===== */
@@ -2645,19 +3306,27 @@ document.addEventListener('click',function(e){
     return;
   }
 
+  /* Filtro segmentado do Relatório de Validação do PDF */
+  var svp = e.target.closest('#segValPdf button');
+  if(svp){
+    S.valPdfFiltro = svp.getAttribute('data-vf');
+    renderRelatorioPdf();
+    return;
+  }
+
   /* Editar Atestado Médico do compilado */
   var ate = e.target.closest('[data-at-edit]');
   if(ate){
     if(!temPerm('faltas')){ toast('Sem permissão para editar atestados.'); return; }
     var idAt = ate.getAttribute('data-at-edit');
-    var regAt = S.atestados && S.atestados[idAt];
+    var regAt = (S.atestados && S.atestados[idAt]) || (S.atestadosPlanilha && S.atestadosPlanilha[idAt]);
     if(!regAt) return;
     $('atEditId').value = idAt;
     $('atTurma').value = regAt.turma || '';
     S.atTurma = regAt.turma || '';
     popularSelectAlunosAt(regAt.alunoKey);
     $('atAluno').value = regAt.alunoKey || '';
-    $('atBim').value = regAt.bim || '3B';
+    $('atBim').value = regAt.bim || '4B';
     $('atPeriodo').value = regAt.periodo || '';
     $('atCid').value = regAt.cid || '';
     $('atDias').value = regAt.dias || 1;
@@ -2673,16 +3342,27 @@ document.addEventListener('click',function(e){
   if(atd){
     if(!temPerm('faltas')){ toast('Sem permissão para excluir atestados.'); return; }
     var idDel = atd.getAttribute('data-at-del');
-    var regDel = S.atestados && S.atestados[idDel];
+    var regDel = (S.atestados && S.atestados[idDel]) || (S.atestadosPlanilha && S.atestadosPlanilha[idDel]);
     if(!regDel) return;
     if(!confirm('Excluir o atestado de "' + (regDel.aluno||'') + '" (' + (regDel.periodo||'') + ')?')) return;
-    delete S.atestados[idDel];
-    db.ref('atestados_medicos/'+idDel).remove().then(function(){
-      return sincronizarAtestadoNoAluno(regDel.alunoKey, regDel.bim || '3B');
-    }).then(function(){
-      render();
-      toast('Atestado excluído e contador atualizado!');
-    });
+    if(/^plan_at_/.test(idDel)){
+      S.atestados = S.atestados || {};
+      S.atestados[idDel] = Object.assign({}, regDel, { _excluido: true });
+      db.ref('atestados_medicos/'+idDel).set(S.atestados[idDel]).then(function(){
+        if(regDel.alunoKey) return sincronizarAtestadoNoAluno(regDel.alunoKey, regDel.bim || '4B');
+      }).then(function(){
+        render();
+        toast('Atestado excluído e contador atualizado!');
+      });
+    } else {
+      delete S.atestados[idDel];
+      db.ref('atestados_medicos/'+idDel).remove().then(function(){
+        if(regDel.alunoKey) return sincronizarAtestadoNoAluno(regDel.alunoKey, regDel.bim || '4B');
+      }).then(function(){
+        render();
+        toast('Atestado excluído e contador atualizado!');
+      });
+    }
     return;
   }
 
@@ -2722,6 +3402,25 @@ document.addEventListener('click',function(e){
 });
 
 /* Eventos da Aba Faltas e Atestados */
+if($('bSalvarFaltasTopo')) $('bSalvarFaltasTopo').onclick = function(){
+  if(!sujos().length){ toast('Não há alterações pendentes para salvar no momento.'); return; }
+  salvar();
+};
+if($('bSalvarValPdf')) $('bSalvarValPdf').onclick = function(){
+  if(!sujos().length){ toast('Todas as alterações deste PDF já estão salvas no sistema!'); return; }
+  salvar();
+};
+if($('bFecharValPdf')) $('bFecharValPdf').onclick = function(){
+  $('boxValidacaoPdf').classList.add('hidden');
+};
+if($('valPdfTurma')) $('valPdfTurma').onchange = function(){
+  S.valPdfTurma = this.value;
+  renderRelatorioPdf();
+};
+if($('valPdfBusca')) $('valPdfBusca').oninput = function(){
+  S.valPdfBusca = this.value;
+  renderRelatorioPdf();
+};
 $('bAnexarPdf').onclick=function(){
   if(!temPerm('faltas')){ toast('Você não tem permissão para lançar faltas.'); return; }
   $('inpPdfFal').value = '';
