@@ -340,7 +340,10 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
           <span class="t-left"><span class="ico">📋</span><span>Busca Ativa e Faltosos</span></span>
         </button>
         <button class="tab" data-tab="fal" type="button">
-          <span class="t-left"><span class="ico">📅</span><span>Faltas e Atestados</span></span>
+          <span class="t-left"><span class="ico">📅</span><span>Faltas</span></span>
+        </button>
+        <button class="tab" data-tab="ate" type="button">
+          <span class="t-left"><span class="ico">🩺</span><span>Atestados</span></span>
         </button>
         <button class="tab" data-tab="sae" type="button">
           <span class="t-left"><span class="ico">🏥</span><span>Relatório SAE</span></span>
@@ -400,12 +403,12 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
         <div class="twrap"><table id="tabFal" class="t-std"></table></div>
       </section>
 
-      <!-- 1B. FALTAS E ATESTADOS -->
+      <!-- 1B. FALTAS -->
       <section id="pFal" class="panel-box hidden">
         <div class="sec-head">
           <div>
-            <h2>📅 Lançamento de Faltas e Atestados</h2>
-            <p>Importe o relatório de faltas em PDF por turma, ajuste manualmente a quantidade de faltas e atestados por aluno ou cadastre atestados médicos detalhados.</p>
+            <h2>📅 Lançamento e Validação de Faltas</h2>
+            <p>Importe o relatório de faltas em PDF (Geral 1º-4º Bimestre ou por Turma) para validar e atualizar sem duplicar, ou ajuste manualmente a quantidade de faltas por aluno.</p>
           </div>
           <button type="button" class="btn pri" id="bSalvarFaltasTopo">💾 Salvar Alterações de Faltas</button>
         </div>
@@ -477,43 +480,51 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
           <span>Altere manualmente <b>Qt. Faltas</b> ou <b>Qt. Atestados</b> de qualquer aluno abaixo (as faltas injustificadas são calculadas automaticamente) e clique em <b>Salvar Alterações</b>.</span>
           <b id="cntFa"></b>
         </div>
-        <div class="twrap" style="max-height:52vh;margin-bottom:26px">
+        <div class="twrap" style="max-height:58vh">
           <table class="t-std" id="tabLancFal"></table>
         </div>
+      </section>
 
-        <!-- Seção de Atestados Médicos (Cadastro + Compilado) -->
-        <div class="sec" style="border-top:2px solid var(--line);padding-top:20px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-          <span>🩺 Registro e Compilado de Atestados Médicos</span>
-          <span style="font:400 12.5px 'IBM Plex Sans',sans-serif;color:var(--muted)">Ao registrar um atestado, os dias letivos já atualizam os atestados do aluno no painel</span>
+      <!-- 1C. ATESTADOS -->
+      <section id="pAte" class="panel-box hidden">
+        <div class="sec-head">
+          <div>
+            <h2>🩺 Atestados Médicos</h2>
+            <p>Selecione a turma, o bimestre ou pesquise pelo nome do aluno para registrar um atestado. Os dias letivos atualizam automaticamente os atestados do aluno no painel.</p>
+          </div>
         </div>
 
-        <div class="card" style="background:#FFFDF7;border-color:var(--gold);margin-bottom:18px">
+        <div class="card" style="background:#FAFBFD;border-color:var(--line);margin-bottom:22px;padding:18px">
           <form id="fAtestado" autocomplete="off">
             <input type="hidden" id="atEditId" value="">
-            <div class="ctrls" style="grid-template-columns:1fr 2.2fr 1fr 1.4fr;margin-bottom:10px">
+            <div class="ctrls" style="grid-template-columns:1fr 1fr 1.6fr 2fr;margin-bottom:12px">
               <div>
-                <label for="atTurma">Turma</label>
+                <label for="atTurma">1. Turma</label>
                 <select id="atTurma"></select>
               </div>
               <div>
-                <label for="atAluno">Aluno</label>
-                <select id="atAluno" required></select>
-              </div>
-              <div>
-                <label for="atBim">Bimestre</label>
+                <label for="atBim">2. Bimestre</label>
                 <select id="atBim">
                   <option value="1B">1º bimestre</option>
                   <option value="2B">2º bimestre</option>
-                  <option value="3B" selected>3º bimestre</option>
-                  <option value="4B">4º bimestre</option>
+                  <option value="3B">3º bimestre</option>
+                  <option value="4B" selected>4º bimestre</option>
                 </select>
               </div>
               <div>
-                <label for="atPeriodo">Período do Atestado</label>
-                <input type="text" id="atPeriodo" placeholder="Ex.: 10/08/2026 a 14/08/2026" required>
+                <label for="atBuscaAluno">3. Pesquisar pelo nome</label>
+                <input type="search" id="atBuscaAluno" placeholder="Digite para encontrar o aluno…">
+              </div>
+              <div>
+                <label for="atAluno">4. Selecionar Aluno</label>
+                <select id="atAluno" required></select>
               </div>
             </div>
-            <div class="ctrls" style="grid-template-columns:1fr 1fr 2.4fr auto;align-items:end;margin-bottom:0">
+            <div class="ctrls" style="grid-template-columns:1.4fr .8fr .8fr 2.2fr auto;align-items:end;margin-bottom:0">
+              <div>
+                <label for="atPeriodo">Período do Atestado</label>
+                <input type="text" id="atPeriodo" placeholder="Ex.: 10/10/2026 a 12/10/2026" required>
+              </div>
               <div>
                 <label for="atCid">CID</label>
                 <input type="text" id="atCid" placeholder="Ex.: J00 / A09">
@@ -523,34 +534,35 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
                 <input type="number" id="atDias" min="1" max="180" value="1" required>
               </div>
               <div>
-                <label for="atObs">OBS</label>
-                <input type="text" id="atObs" placeholder="Observações, médico, unidade de saúde, entregue por…">
+                <label for="atObs">Observação (opcional)</label>
+                <input type="text" id="atObs" placeholder="Médico, unidade de saúde, entregue por…">
               </div>
               <div style="display:flex;gap:8px">
                 <button type="button" class="btn out-dark hidden" id="bCancAt">Cancelar</button>
-                <button type="submit" class="btn navy" id="bAddAt">+ Adicionar Atestado</button>
+                <button type="submit" class="btn navy" id="bAddAt">+ Salvar Atestado</button>
               </div>
             </div>
           </form>
         </div>
 
-        <!-- Filtros e Tabela do Compilado de Atestados -->
-        <div class="ctrls" style="grid-template-columns:1fr 1fr 2fr">
-          <div><label for="fltAtTurma">Filtrar Turma</label><select id="fltAtTurma"><option value="">Todas as turmas</option></select></div>
-          <div><label for="fltAtBim">Filtrar Bimestre</label><select id="fltAtBim">
+        <!-- Lista dos Últimos Atestados Enviados com Filtro Clean -->
+        <div class="sec" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+          <span>📋 Últimos Atestados Enviados</span>
+          <b id="cntAtestados" style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:var(--navy)"></b>
+        </div>
+
+        <div class="ctrls" style="grid-template-columns:1fr 1fr 2.2fr;margin-bottom:12px">
+          <div><label for="fltAtTurma">Filtrar por Turma</label><select id="fltAtTurma"><option value="">Todas as turmas</option></select></div>
+          <div><label for="fltAtBim">Filtrar por Bimestre</label><select id="fltAtBim">
             <option value="">Todos os bimestres</option>
             <option value="1B">1º bimestre</option>
             <option value="2B">2º bimestre</option>
             <option value="3B">3º bimestre</option>
             <option value="4B">4º bimestre</option>
           </select></div>
-          <div><label for="qAt">Buscar no compilado de atestados</label><input id="qAt" type="search" name="filtro_at_busca" autocomplete="off" placeholder="Aluno, CID, período, observação…"></div>
+          <div><label for="qAt">Pesquisar nos atestados enviados</label><input id="qAt" type="search" name="filtro_at_busca" autocomplete="off" placeholder="Digite nome do aluno, CID, período ou observação…"></div>
         </div>
-        <div class="hint">
-          <span id="resumoAtestados">Compilado de atestados lançados</span>
-          <b id="cntAtestados"></b>
-        </div>
-        <div class="twrap" style="max-height:50vh">
+        <div class="twrap" style="max-height:54vh">
           <table class="t-std" id="tabAtestados"></table>
         </div>
       </section>
@@ -1055,8 +1067,17 @@ function nomeEditor(raw){
 function carregarPerfil(u){
   var email = String(u.email||'').toLowerCase();
   var raw = lsGet('perfil_'+email);
-  var p = { nome: '', cargo: 'Equipe Escola e Família', foto: '', tel: '' };
-  if(raw){ try{ var parsed = JSON.parse(raw); if(parsed) p = Object.assign(p, parsed); }catch(_){} }
+  var fotoSalvaLocal = lsGet('foto_'+email) || '';
+  var p = { nome: '', cargo: 'Equipe Escola e Família', foto: fotoSalvaLocal, tel: '' };
+  if(raw){
+    try{
+      var parsed = JSON.parse(raw);
+      if(parsed){
+        p = Object.assign(p, parsed);
+        if(!p.foto && fotoSalvaLocal) p.foto = fotoSalvaLocal;
+      }
+    }catch(_){}
+  }
   if(u.displayName){
     var parts = String(u.displayName).split('||');
     if(!p.nome && parts[0]) p.nome = parts[0];
@@ -1067,15 +1088,35 @@ function carregarPerfil(u){
     p.nome = base.replace(/\b\w/g, function(l){ return l.toUpperCase(); });
   }
   S.perfil = p;
+  if(p.foto) lsSet('foto_'+email, p.foto);
   atualizarUIPerfil();
-  /* tenta buscar do Firebase caso exista */
+
   var mk = email.replace(/\./g,',');
+  var aplicarRemoto = function(rem){
+    if(!rem || typeof rem !== 'object') return;
+    if(rem.nome) S.perfil.nome = rem.nome;
+    if(rem.cargo) S.perfil.cargo = rem.cargo;
+    if(rem.tel) S.perfil.tel = rem.tel;
+    if(rem.foto && /^data:image\//i.test(rem.foto)){
+      S.perfil.foto = rem.foto;
+      lsSet('foto_'+email, rem.foto);
+    } else if(!S.perfil.foto && fotoSalvaLocal){
+      S.perfil.foto = fotoSalvaLocal;
+    }
+    lsSet('perfil_'+email, JSON.stringify(S.perfil));
+    atualizarUIPerfil();
+  };
+
+  /* 1. Tenta buscar de perfis/{mk} */
   db.ref('perfis/'+mk).once('value').then(function(s){
-    var rem = s.val();
-    if(rem && typeof rem === 'object'){
-      S.perfil = Object.assign(S.perfil, rem);
-      lsSet('perfil_'+email, JSON.stringify(S.perfil));
-      atualizarUIPerfil();
+    aplicarRemoto(s.val());
+  }).catch(function(){});
+
+  /* 2. Fallback compatível com regras antigas do Firebase (edicoes_pendentes/perfil_{mk}) */
+  db.ref('edicoes_pendentes/perfil_'+mk).once('value').then(function(s){
+    var v = s.val();
+    if(v && v.novo){
+      try{ aplicarRemoto(JSON.parse(v.novo)); }catch(_){}
     }
   }).catch(function(){});
 }
@@ -1106,14 +1147,20 @@ function comprimirImagem(file, cb){
     var img = new Image();
     img.onload = function(){
       var canvas = document.createElement('canvas');
-      var size = 180;
+      var size = 110;
       canvas.width = size; canvas.height = size;
       var ctx = canvas.getContext('2d');
       var minDim = Math.min(img.width, img.height);
       var sx = (img.width - minDim) / 2;
       var sy = (img.height - minDim) / 2;
       ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-      cb(canvas.toDataURL('image/jpeg', 0.82));
+      var q = 0.72;
+      var out = canvas.toDataURL('image/jpeg', q);
+      while(out.length > 4200 && q > 0.35){
+        q -= 0.1;
+        out = canvas.toDataURL('image/jpeg', q);
+      }
+      cb(out);
     };
     img.src = e.target.result;
   };
@@ -1164,14 +1211,18 @@ function iniciar(){
   };
   $('bRemoverFoto').onclick=function(){
     S.perfil.foto = '';
-    salvarPerfilAtual();
+    if(S.user) lsSet('foto_'+String(S.user.email).toLowerCase(), '');
+    salvarPerfilAtual(true);
     toast('Foto removida.');
   };
   $('fPerfil').onsubmit=function(ev){
     ev.preventDefault();
+    var email = S.user ? String(S.user.email).toLowerCase() : '';
+    var fotoAtual = S.perfil.foto || (email ? lsGet('foto_'+email) : '') || '';
     S.perfil.nome = $('pfNome').value.trim();
     S.perfil.cargo = $('pfCargo').value.trim();
     S.perfil.tel = $('pfTel').value.trim();
+    if(fotoAtual) S.perfil.foto = fotoAtual;
     salvarPerfilAtual();
     $('pfSalvoMsg').classList.remove('hidden');
     setTimeout(function(){ $('pfSalvoMsg').classList.add('hidden'); }, 3500);
@@ -1209,9 +1260,18 @@ function iniciar(){
   });
 }
 
-function salvarPerfilAtual(){
+function salvarPerfilAtual(forcarRemoverFoto){
   if(!S.user) return;
   var email = String(S.user.email).toLowerCase();
+  if(!forcarRemoverFoto && !S.perfil.foto){
+    var backupFoto = lsGet('foto_'+email);
+    if(backupFoto) S.perfil.foto = backupFoto;
+  }
+  if(S.perfil.foto){
+    lsSet('foto_'+email, S.perfil.foto);
+  } else if(forcarRemoverFoto){
+    lsSet('foto_'+email, '');
+  }
   lsSet('perfil_'+email, JSON.stringify(S.perfil));
   atualizarUIPerfil();
   if(S.user.updateProfile){
@@ -1219,6 +1279,20 @@ function salvarPerfilAtual(){
   }
   var mk = email.replace(/\./g,',');
   db.ref('perfis/'+mk).set(S.perfil).catch(function(){});
+  /* Salva também em edicoes_pendentes/perfil_{mk} (compatível com regras antigas do Firebase) */
+  var payloadStr = JSON.stringify(S.perfil);
+  if(payloadStr.length <= 4950){
+    db.ref('edicoes_pendentes/perfil_'+mk).set({
+      aba: 'PERFIL',
+      linha: 0,
+      col: 0,
+      nome: S.perfil.nome || email,
+      antes: '',
+      novo: payloadStr,
+      email: email,
+      ts: Date.now()
+    }).catch(function(){});
+  }
 }
 
 function entrou(u){
@@ -1323,10 +1397,21 @@ function ouvirPlanilha(){
   db.ref('atestados_medicos').on('value',function(s){
     S.atestados = s.val() || {};
     if(S.tab==='fal') renderFal();
+    if(S.tab==='ate') renderAte();
   },function(){});
   /* Perfis de editores para exibir sempre o nome em vez do e-mail */
   db.ref('perfis').on('value',function(s){
     S.mapaPerfis = s.val() || {};
+    /* Se o perfil remoto do usuário logado tiver foto válida e o local não, sincroniza sem apagar foto local */
+    if(S.user){
+      var myMk = String(S.user.email||'').toLowerCase().replace(/\./g,',');
+      var myRem = S.mapaPerfis[myMk];
+      if(myRem && myRem.foto && /^data:image\//i.test(myRem.foto) && !S.perfil.foto){
+        S.perfil.foto = myRem.foto;
+        lsSet('foto_'+String(S.user.email).toLowerCase(), myRem.foto);
+        atualizarUIPerfil();
+      }
+    }
     montarFiltrosHist();
     if(S.tab==='hist') renderHist();
     if(S.tab==='edt') renderEdt();
@@ -1508,7 +1593,7 @@ function carregarTudo(){
     montarFiltrosFal();
     montarFiltrosHist();
 
-    var lt=lsGet('tab'); irTab(['dev','fal','alu','sit','sae','hist','perf','edt'].indexOf(lt)>=0?lt:S.tab);
+    var lt=lsGet('tab'); irTab(['dev','fal','ate','alu','sit','sae','hist','perf','edt'].indexOf(lt)>=0?lt:S.tab);
     if(S.geradoEm) $('sub').textContent='Planilha sincronizada em '+new Date(S.geradoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   }).catch(function(e){ falha('Erro ao ler o Firebase: '+(e.message||e)); });
 }
@@ -1562,11 +1647,10 @@ function montarFiltrosAlu(){
 function montarFiltrosFal(){
   var allT = todasTurmasLista();
   if(!S.faTurma && allT.length) S.faTurma = allT[0];
-  if(!S.atTurma && allT.length) S.atTurma = allT[0];
   $('faTurma').innerHTML = allT.map(function(t){ return '<option value="'+esc(t)+'">'+esc(t)+'</option>'; }).join('');
   $('faTurma').value = S.faTurma;
   $('atTurma').innerHTML = '<option value="">Todas as turmas</option>' + allT.map(function(t){ return '<option value="'+esc(t)+'">'+esc(t)+'</option>'; }).join('');
-  $('atTurma').value = S.atTurma;
+  $('atTurma').value = S.atTurma || '';
   $('fltAtTurma').innerHTML = '<option value="">Todas as turmas</option>' + allT.map(function(t){ return '<option value="'+esc(t)+'">'+esc(t)+'</option>'; }).join('');
   $('fltAtTurma').value = S.fltAtTurma;
   popularSelectAlunosAt();
@@ -1575,14 +1659,23 @@ function montarFiltrosFal(){
 function popularSelectAlunosAt(manterVal){
   var selVal = manterVal || ($('atAluno') ? $('atAluno').value : '');
   var trm = $('atTurma') ? $('atTurma').value : '';
-  var alus = todosAlunos().filter(function(al){ return !trm || turmaDe(al) === trm; });
+  var qBusca = low($('atBuscaAluno') ? $('atBuscaAluno').value : '');
+  var alus = todosAlunos().filter(function(al){
+    if(trm && turmaDe(al) !== trm) return false;
+    if(qBusca && low(nomeDe(al)).indexOf(qBusca) < 0 && low(turmaDe(al)).indexOf(qBusca) < 0 && low(codDe(al)).indexOf(qBusca) < 0) return false;
+    return true;
+  });
   alus.sort(function(a,b){ return cmpTurma(turmaDe(a),turmaDe(b)) || low(nomeDe(a)).localeCompare(low(nomeDe(b))); });
   if($('atAluno')){
-    $('atAluno').innerHTML = '<option value="">Selecione o aluno…</option>' + alus.map(function(al){
+    $('atAluno').innerHTML = '<option value="">'+(alus.length ? 'Selecione o aluno ('+alus.length+')…' : 'Nenhum aluno encontrado…')+'</option>' + alus.map(function(al){
       var k = al.aba + '|' + al.r;
-      return '<option value="'+esc(k)+'">'+esc(nomeDe(al))+' ('+esc(turmaDe(al))+')</option>';
+      return '<option value="'+esc(k)+'">'+esc(nomeDe(al))+' — '+esc(turmaDe(al))+'</option>';
     }).join('');
-    if(selVal) $('atAluno').value = selVal;
+    if(selVal && alus.some(function(al){ return (al.aba+'|'+al.r)===selVal; })){
+      $('atAluno').value = selVal;
+    } else if(qBusca && alus.length === 1){
+      $('atAluno').value = alus[0].aba + '|' + alus[0].r;
+    }
   }
 }
 
@@ -1811,7 +1904,12 @@ function renderFal(){
       '</tr>';
     }).join('') + '</tbody>';
   }
+}
 
+function renderAte(){
+  var podeFal = temPerm('faltas');
+  if($('bAddAt')) $('bAddAt').disabled = !podeFal;
+  popularSelectAlunosAt();
   renderCompiladoAtestados();
 }
 
@@ -3049,6 +3147,7 @@ function irTab(t){
   [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===t); });
   $('pDev').classList.toggle('hidden',t!=='dev');
   $('pFal').classList.toggle('hidden',t!=='fal');
+  $('pAte').classList.toggle('hidden',t!=='ate');
   $('pAlu').classList.toggle('hidden',t!=='alu');
   $('pSit').classList.toggle('hidden',t!=='sit');
   $('pSae').classList.toggle('hidden',t!=='sae');
@@ -3068,6 +3167,7 @@ function render(){
   $('ficha').scrollTop=fy;
   if(S.tab==='dev') renderDev();
   else if(S.tab==='fal') renderFal();
+  else if(S.tab==='ate') renderAte();
   else if(S.tab==='alu') renderAlu();
   else if(S.tab==='sit') renderSit();
   else if(S.tab==='sae') renderSae();
@@ -3289,19 +3389,20 @@ document.addEventListener('click',function(e){
   var fk=e.target.closest('[data-ficha]'); if(fk){ abrirFicha(fk.getAttribute('data-ficha'), false); return; }
   var fkc=e.target.closest('[data-ficha-cad]'); if(fkc){ abrirFicha(fkc.getAttribute('data-ficha-cad'), true); return; }
 
-  /* Botão rápido "+ Atestado" na linha do aluno na aba Faltas e Atestados */
+  /* Botão rápido "+ Atestado" na linha do aluno na aba Faltas -> abre aba Atestados já preenchida */
   var naa = e.target.closest('[data-novo-at-aluno]');
   if(naa){
     var kAl = naa.getAttribute('data-novo-at-aluno');
     var alObj = S.alKey && S.alKey[kAl];
     if(alObj){
+      irTab('ate');
+      if($('atBuscaAluno')) $('atBuscaAluno').value = '';
       $('atTurma').value = turmaDe(alObj);
       S.atTurma = turmaDe(alObj);
       popularSelectAlunosAt(kAl);
       $('atAluno').value = kAl;
-      $('atBim').value = S.faBim || '3B';
+      $('atBim').value = S.faBim || '4B';
       $('atPeriodo').focus();
-      $('fAtestado').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     return;
   }
@@ -3434,6 +3535,14 @@ $('faTurma').onchange=function(){ S.faTurma=this.value; renderFal(); };
 $('faBim').onchange=function(){ S.faBim=this.value; renderFal(); };
 $('qFa').oninput=function(){ S.qFa=this.value; renderFal(); };
 $('atTurma').onchange=function(){ S.atTurma=this.value; popularSelectAlunosAt(); };
+if($('atBuscaAluno')) $('atBuscaAluno').oninput=function(){ popularSelectAlunosAt(); };
+if($('atAluno')) $('atAluno').onchange=function(){
+  var al = S.alKey && S.alKey[this.value];
+  if(al && $('atTurma') && !$('atTurma').value){
+    $('atTurma').value = turmaDe(al);
+    S.atTurma = turmaDe(al);
+  }
+};
 $('fltAtTurma').onchange=function(){ S.fltAtTurma=this.value; renderCompiladoAtestados(); };
 $('fltAtBim').onchange=function(){ S.fltAtBim=this.value; renderCompiladoAtestados(); };
 $('qAt').oninput=function(){ S.qAt=this.value; renderCompiladoAtestados(); };
@@ -3444,7 +3553,8 @@ $('bCancAt').onclick=function(){
   $('atCid').value = '';
   $('atDias').value = '1';
   $('atObs').value = '';
-  $('bAddAt').textContent = '+ Adicionar Atestado';
+  if($('atBuscaAluno')) $('atBuscaAluno').value = '';
+  $('bAddAt').textContent = '+ Salvar Atestado';
   $('bCancAt').classList.add('hidden');
 };
 
