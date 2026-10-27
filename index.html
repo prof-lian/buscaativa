@@ -319,14 +319,29 @@ tbody tr:hover td{background:var(--paper-2)}
     </div>
 
     <div class="panel wide no-print-dev">
-      <h2>Devolutivas das famílias</h2>
-      <p class="note">Texto da coluna "Devolutiva da família" da planilha, já vinculado ao aluno e ao bimestre. Categorização de motivo automática.</p>
-      <div class="controls" id="logFilters" style="margin-bottom:10px"></div>
-      <div class="controls">
-        <div class="search">🔎<input id="logSearch" placeholder="Buscar no texto, no nome ou na turma…"></div>
-        <span class="mono" id="logCount" style="font-size:12px;color:var(--soft)"></span>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:6px">
+        <div>
+          <h2>Devolutivas das famílias</h2>
+          <p class="note" style="margin-bottom:4px">Relatos registrados pelas famílias no acompanhamento da Busca Ativa.</p>
+        </div>
+        <button type="button" class="btn hidden" id="btnLockDev" style="background:var(--paper);color:var(--navy);border-color:var(--line-2)">🔒 Ocultar / Bloquear</button>
       </div>
-      <div class="log" id="log"></div>
+
+      <div id="boxDevLock" style="background:var(--paper);border:1px dashed var(--line-2);border-radius:10px;padding:24px;text-align:center;margin-top:10px">
+        <div style="font-size:26px;margin-bottom:6px">🔒</div>
+        <div style="font-weight:600;color:var(--navy);font-size:15px;margin-bottom:4px">Informações Sensíveis — Acesso Restrito</div>
+        <p style="font-size:13px;color:var(--soft);max-width:520px;margin:0 auto 14px">Os relatos das famílias contêm informações pessoais e sensíveis dos estudantes. Clique no botão abaixo e informe a senha da equipe para visualizar.</p>
+        <button type="button" class="btn" id="btnAbrirDevSenha" style="padding:10px 20px;font-size:13.5px">🔑 Relatório Devolutivas da Família</button>
+      </div>
+
+      <div id="boxDevConteudo" class="hidden" style="margin-top:14px">
+        <div class="controls" id="logFilters" style="margin-bottom:10px"></div>
+        <div class="controls">
+          <div class="search">🔎<input id="logSearch" placeholder="Buscar no texto, no nome ou na turma…"></div>
+          <span class="mono" id="logCount" style="font-size:12px;color:var(--soft)"></span>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
     </div>
 
     <div class="panel wide">
@@ -347,35 +362,49 @@ tbody tr:hover td{background:var(--paper-2)}
     </div>
     
     <div class="panel wide">
-      <h2>Relatório SAE — Encaminhamentos e Retornos</h2>
-      <p class="note">Detalhamento dos alunos encaminhados à rede de proteção (SAE), status das respostas e detalhamento de saúde/proteção baseados nos laudos.</p>
-      
-      <div id="kpiSae" style="margin-bottom:20px;"></div>
-      
-      <div class="grid" style="margin-bottom:26px; padding-bottom:24px; border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:6px">
         <div>
-          <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Situações Específicas Mencionadas</h3>
-          <ul class="alist" id="listSaeTratativas" style="padding-right:20px"></ul>
+          <h2>Relatório SAE — Encaminhamentos e Retornos</h2>
+          <p class="note" style="margin-bottom:4px">Detalhamento dos alunos encaminhados à rede de proteção (SAE), status das respostas e laudos.</p>
         </div>
-        <div>
-          <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Detalhamento: Saúde e Rede de Proteção</h3>
-          <div id="chartSaeDetalhe"></div>
-        </div>
+        <button type="button" class="btn hidden" id="btnLockSae" style="background:var(--paper);color:var(--navy);border-color:var(--line-2)">🔒 Ocultar / Bloquear</button>
       </div>
+      
+      <div id="kpiSae" style="margin-bottom:18px;margin-top:10px"></div>
 
-      <div class="controls">
-        <div class="search">🔎<input id="saeSearch" placeholder="Buscar aluno na SAE..."></div>
-        <span class="mono" id="saeCount" style="font-size:12px;color:var(--soft)"></span>
+      <div id="boxSaeLock" style="background:var(--paper);border:1px dashed var(--line-2);border-radius:10px;padding:24px;text-align:center;margin-top:10px">
+        <div style="font-size:26px;margin-bottom:6px">🔒</div>
+        <div style="font-weight:600;color:var(--navy);font-size:15px;margin-bottom:4px">Relatório Completo da SAE Protegido por Senha</div>
+        <p style="font-size:13px;color:var(--soft);max-width:540px;margin:0 auto 14px">Os pareceres técnicos, encaminhamentos de saúde e retornos da SAE contêm dados sensíveis. Clique abaixo e digite a senha para abrir o relatório completo.</p>
+        <button type="button" class="btn" id="btnAbrirSaeSenha" style="padding:10px 20px;font-size:13.5px">🔑 Relatório Completo SAE</button>
       </div>
-      <div class="twrap"><table style="width:100%">
-        <thead><tr>
-          <th style="width:25%">Nome</th>
-          <th style="text-align:center; width:10%">Turma</th>
-          <th class="num" style="width:10%">Injust.</th>
-          <th style="width:55%">Status / Retorno da SAE</th>
-        </tr></thead>
-        <tbody id="tbodySae"></tbody>
-      </table></div>
+      
+      <div id="boxSaeConteudo" class="hidden" style="margin-top:16px">
+        <div class="grid" style="margin-bottom:26px; padding-bottom:24px; border-bottom:1px solid var(--line)">
+          <div>
+            <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Situações Específicas Mencionadas</h3>
+            <ul class="alist" id="listSaeTratativas" style="padding-right:20px"></ul>
+          </div>
+          <div>
+            <h3 style="font-size:14px; color:var(--navy); margin-bottom:12px; font-family:'IBM Plex Sans'">Detalhamento: Saúde e Rede de Proteção</h3>
+            <div id="chartSaeDetalhe"></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="search">🔎<input id="saeSearch" placeholder="Buscar aluno na SAE..."></div>
+          <span class="mono" id="saeCount" style="font-size:12px;color:var(--soft)"></span>
+        </div>
+        <div class="twrap"><table style="width:100%">
+          <thead><tr>
+            <th style="width:25%">Nome</th>
+            <th style="text-align:center; width:10%">Turma</th>
+            <th class="num" style="width:10%">Injust.</th>
+            <th style="width:55%">Status / Retorno da SAE</th>
+          </tr></thead>
+          <tbody id="tbodySae"></tbody>
+        </table></div>
+      </div>
     </div>
 
     <div class="foot" id="foot"></div>
@@ -414,6 +443,25 @@ tbody tr:hover td{background:var(--paper-2)}
   </div>
 </div>
 
+<!-- Modal de Senha para Relatórios Sensíveis (Família e SAE) -->
+<div class="modal hidden" id="senhaModal">
+  <div class="card" style="width:min(420px,94vw);text-align:center;padding:26px">
+    <div style="font-size:32px;margin-bottom:6px">🔐</div>
+    <h3 id="senhaTitulo" style="margin-bottom:6px;color:var(--navy)">Acesso Restrito</h3>
+    <p id="senhaSub" style="font-size:13px;margin-bottom:16px">Digite a senha da equipe para visualizar os relatos completos.</p>
+    <form id="fSenhaRel" autocomplete="off">
+      <div class="search" style="margin-bottom:10px;justify-content:center">
+        🔑<input id="inpSenhaRel" type="password" placeholder="Digite a senha de acesso…" style="width:100%;font-size:14px" required>
+      </div>
+      <div id="senhaErro" style="color:var(--alert);font-size:12.5px;font-weight:600;min-height:18px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button type="button" class="b2" id="btnCancSenha">Cancelar</button>
+        <button type="submit" class="btn" id="btnConfSenha">Desbloquear Relatório</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script src="logic.js"></script>
 <script>
 /* ===== CONFIG ===== */
@@ -427,7 +475,8 @@ var ANOS_INI = ['PRIMEIROS','SEGUNDOS','TERCEIROS','QUARTOS','QUINTOS','QUINTOS 
 var LBL = {PRIMEIROS:'1º ano',SEGUNDOS:'2º ano',TERCEIROS:'3º ano',QUARTOS:'4º ano',QUINTOS:'5º ano','QUINTOS TARDE':'5º ano'};
 var COR = {navy:'#0B2545',navy2:'#14345E',navy3:'#1D4E89',soft:'#4C6789',line:'#C2CFDE',alert:'#B23A48',gold:'#C08A2E',green:'#2C7A5B'};
 var el=function(id){return document.getElementById(id);};
-var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logMotivo:'', logBusca:'', alFiltro:'todos', alBusca:'', saeBusca:'', dataFiltro:'', diarioLoaded:false, ordCol:'inj', ordDir:-1};
+var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logMotivo:'', logBusca:'', alFiltro:'todos', alBusca:'', saeBusca:'', dataFiltro:'', diarioLoaded:false, ordCol:'inj', ordDir:-1, devUnlocked:false, saeUnlocked:false, senhaTarget:'', ultimoAlunoChave:''};
+var SENHA_RELATORIO = 'Jgg2026@';
 
 function alunoKey(r){
   var cod = r.COD!=null? String(r.COD).replace(/[^0-9A-Za-z]/g,'') : '';
@@ -983,7 +1032,33 @@ function renderTabela(){
   });
 }
 
+window.abrirModalSenha = function(target){
+  S.senhaTarget = target || 'dev';
+  if(target === 'sae'){
+    el('senhaTitulo').textContent = 'Relatório Completo SAE';
+    el('senhaSub').textContent = 'Digite a senha de acesso para visualizar os encaminhamentos e devolutivas da SAE.';
+  } else if(target === 'ambos'){
+    el('senhaTitulo').textContent = 'Desbloquear Relatos do Aluno';
+    el('senhaSub').textContent = 'Digite a senha de acesso para ler os relatos da família e da SAE deste aluno.';
+  } else {
+    el('senhaTitulo').textContent = 'Relatório Devolutivas da Família';
+    el('senhaSub').textContent = 'Digite a senha de acesso para visualizar os relatos completos das famílias.';
+  }
+  el('inpSenhaRel').value = '';
+  el('senhaErro').textContent = '';
+  el('senhaModal').classList.remove('hidden');
+  setTimeout(function(){ el('inpSenhaRel').focus(); }, 50);
+};
+
+function atualizarVisibilidadeRelatorios(){
+  if(el('boxDevLock')) el('boxDevLock').classList.toggle('hidden', !!S.devUnlocked);
+  if(el('boxDevConteudo')) el('boxDevConteudo').classList.toggle('hidden', !S.devUnlocked);
+  if(el('boxSaeLock')) el('boxSaeLock').classList.toggle('hidden', !!S.saeUnlocked);
+  if(el('boxSaeConteudo')) el('boxSaeConteudo').classList.toggle('hidden', !S.saeUnlocked);
+}
+
 window.abrirAluno = function(chave) {
+    S.ultimoAlunoChave = chave;
     var r = S.data.ini.find(function(x) { return x.nomeChave === chave; });
     if(!r) return;
     
@@ -995,6 +1070,7 @@ window.abrirAluno = function(chave) {
     el('detAtest').textContent = 'Atestados: ' + r.atestTot;
 
     var hist = [];
+    var temSensivelOculto = false;
     [1,2,3,4].forEach(function(b){
         var f = r[b+'B_f']||0, i = r[b+'B_i']||0, a = r[b+'B_a']||0;
         var bus = r[b+'B_BUS'], dev = r[b+'B_DEV'], sae = r[b+'B_SAE'], ret = r[b+'B_RET'], bil = r[b+'B_BIL'];
@@ -1003,8 +1079,22 @@ window.abrirAluno = function(chave) {
         if (temAcao(bus)) acts.push('<b>Busca Ativa (Ligação):</b> <span style="color:var(--soft)">' + esc(bus) + '</span>');
         if (temAcao(bil)) acts.push('<b>Bilhete enviado:</b> <span style="color:var(--soft)">' + esc(bil) + '</span>');
         if (temAcao(sae)) acts.push('<b>Encaminhado à SAE:</b> <span style="color:var(--soft)">' + esc(sae) + '</span>');
-        if (temAcao(ret)) acts.push('<b>Retorno da SAE:</b> <span style="color:var(--soft)">' + esc(ret) + '</span>');
-        if (temDev(dev)) acts.push('<b>Devolutiva da Família:</b><br><span style="color:var(--soft); display:inline-block; margin-top:4px">' + esc(dev) + '</span>');
+        if (temAcao(ret)) {
+            if (S.saeUnlocked) {
+                acts.push('<b>Retorno da SAE:</b> <span style="color:var(--soft)">' + esc(ret) + '</span>');
+            } else {
+                temSensivelOculto = true;
+                acts.push('<b>Retorno da SAE:</b> <span style="color:var(--gold);font-style:italic">🔒 Conteúdo protegido por senha</span>');
+            }
+        }
+        if (temDev(dev)) {
+            if (S.devUnlocked) {
+                acts.push('<b>Devolutiva da Família:</b><br><span style="color:var(--soft); display:inline-block; margin-top:4px">' + esc(dev) + '</span>');
+            } else {
+                temSensivelOculto = true;
+                acts.push('<b>Devolutiva da Família:</b> <span style="color:var(--gold);font-style:italic">🔒 Relato familiar protegido por senha</span>');
+            }
+        }
         
         if(f > 0 || acts.length > 0) {
             var content = `<div style="margin-bottom:8px; font-size:12.5px; color:var(--soft)">Faltas registradas: <b style="color:var(--navy)">${f}</b> (Atestados: ${a} | Injustificadas: ${i})</div>`;
@@ -1023,6 +1113,13 @@ window.abrirAluno = function(chave) {
         }
     });
     
+    if (temSensivelOculto) {
+        hist.unshift(`<div style="padding:12px 14px; border:1px dashed var(--navy-3); border-radius:6px; background:#F7FAFD; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap">
+            <span style="font-size:12.5px; color:var(--navy)">🔒 Há relatos sensíveis (Família / SAE) ocultos neste histórico.</span>
+            <button type="button" class="btn" style="padding:6px 12px; font-size:12px" onclick="window.abrirModalSenha('ambos')">🔑 Inserir senha para ler relatos</button>
+        </div>`);
+    }
+
     if (temAcao(r.RECLASS)) {
          hist.push(`<div style="padding:14px; border:1px dashed var(--gold); border-radius:6px; background:#fffdf5">
                 <h4 style="font-size:13px; margin-bottom:6px; color:var(--gold)">Anotações Gerais / Reclassificação</h4>
@@ -1035,6 +1132,31 @@ window.abrirAluno = function(chave) {
 };
 
 el('detClose').addEventListener('click', function(){ el('alunoModal').classList.add('hidden'); });
+
+if(el('btnAbrirDevSenha')) el('btnAbrirDevSenha').addEventListener('click', function(){ window.abrirModalSenha('dev'); });
+if(el('btnAbrirSaeSenha')) el('btnAbrirSaeSenha').addEventListener('click', function(){ window.abrirModalSenha('sae'); });
+if(el('btnLockDev')) el('btnLockDev').addEventListener('click', function(){ S.devUnlocked = false; atualizarVisibilidadeRelatorios(); });
+if(el('btnLockSae')) el('btnLockSae').addEventListener('click', function(){ S.saeUnlocked = false; atualizarVisibilidadeRelatorios(); });
+if(el('btnCancSenha')) el('btnCancSenha').addEventListener('click', function(){ el('senhaModal').classList.add('hidden'); });
+if(el('fSenhaRel')) el('fSenhaRel').addEventListener('submit', function(ev){
+  ev.preventDefault();
+  var dig = (el('inpSenhaRel').value || '').trim();
+  if(dig !== SENHA_RELATORIO){
+    el('senhaErro').textContent = 'Senha incorreta. Tente novamente.';
+    el('inpSenhaRel').select();
+    return;
+  }
+  if(S.senhaTarget === 'dev') S.devUnlocked = true;
+  else if(S.senhaTarget === 'sae') S.saeUnlocked = true;
+  else { S.devUnlocked = true; S.saeUnlocked = true; }
+  el('senhaModal').classList.add('hidden');
+  atualizarVisibilidadeRelatorios();
+  renderLog();
+  renderSae();
+  if(!el('alunoModal').classList.contains('hidden') && S.ultimoAlunoChave){
+    window.abrirAluno(S.ultimoAlunoChave);
+  }
+});
 
 function initSelectors(){
   var anos=['Todas','1º ano','2º ano','3º ano','4º ano','5º ano'];
