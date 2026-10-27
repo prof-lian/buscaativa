@@ -2931,7 +2931,6 @@ function montarFiltrosHist(){
   $('hTurma').innerHTML='<option value="">Todas as turmas</option>'+Object.keys(turmas).sort(cmpTurma).map(function(x){return '<option value="'+esc(x)+'">'+esc(x)+'</option>';}).join('');
   $('hCampo').innerHTML='<option value="">Todos os campos</option>'+Object.keys(campos).sort().map(function(x){return '<option value="'+esc(x)+'">'+esc(x)+'</option>';}).join('');
   $('hQuem').value=S.hQuem; $('hTurma').value=S.hTurma; $('hCampo').value=S.hCampo;
-  $('nHist').textContent = all.length || '';
 }
 function a1ToRC(cel){
   var m1 = /^L(\d+)C(\d+)$/i.exec(String(cel||'').trim());
@@ -2952,7 +2951,6 @@ function renderHist(){
   var all = todosRegistrosHist();
   S.histMap = {};
   all.forEach(function(r){ S.histMap[r._sig] = r; });
-  $('nHist').textContent = all.length || '';
   var q = low(S.qHist);
   var list = all.filter(function(r){
     var nmEditor = nomeEditor(r.quem);
