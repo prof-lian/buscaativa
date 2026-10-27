@@ -224,7 +224,9 @@ tbody tr:hover td{background:var(--paper-2)}
   .topbar{background:#fff!important;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .eyebrow,.subtitle,.top-meta{color:var(--soft)!important}
   h1.title{color:var(--navy)!important}
-  .selbar,.controls,.btn,.no-print-dev{display:none!important}
+  .selbar,.controls,.btn,.modal,#boxDevLock,#boxSaeLock{display:none!important}
+  .no-print-sec{display:none!important}
+  .force-print-show{display:block!important}
   .panel,.kpi,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .panel{break-inside:avoid;box-shadow:none!important}
   .log,.twrap{max-height:none;overflow:visible}
@@ -275,16 +277,18 @@ tbody tr:hover td{background:var(--paper-2)}
 
   <div id="dash" class="hidden">
 
-    <div class="section">
-      <p class="blocklabel">Frequência — <span id="lblFreq">todas as turmas</span></p>
-      <div class="kpis cinco" id="kpiFreq"></div>
-    </div>
-    <div class="section">
-      <p class="blocklabel">Trabalho de busca ativa realizado</p>
-      <div class="kpis" id="kpiAcao"></div>
+    <div id="secPrintKpi">
+      <div class="section">
+        <p class="blocklabel">Frequência — <span id="lblFreq">todas as turmas</span></p>
+        <div class="kpis cinco" id="kpiFreq"></div>
+      </div>
+      <div class="section">
+        <p class="blocklabel">Trabalho de busca ativa realizado</p>
+        <div class="kpis" id="kpiAcao"></div>
+      </div>
     </div>
 
-    <div class="grid">
+    <div class="grid" id="secPrintGrafBim">
       <div class="panel">
         <h2>Busca ativa realizada por bimestre</h2>
         <p class="note">Bilhetes, ligações e encaminhamentos à SAE registrados em cada bimestre.</p>
@@ -298,14 +302,14 @@ tbody tr:hover td{background:var(--paper-2)}
       </div>
     </div>
 
-    <div class="panel wide">
+    <div class="panel wide" id="secPrintTurmas">
       <h2>Alunos e acompanhamento por turma</h2>
       <p class="note">Total de alunos monitorados e quantos têm ao menos uma ação de busca ativa registrada. Clique numa barra para filtrar a turma.</p>
       <div id="chartTurmas"></div>
       <div class="legend"><span><i style="background:var(--line-2)"></i>Alunos monitorados</span><span><i style="background:var(--navy)"></i>Com acompanhamento</span></div>
     </div>
     
-    <div class="grid">
+    <div class="grid" id="secPrintAlertas">
       <div class="panel">
         <h2>⚠ Alunos com 10+ faltas</h2>
         <p class="note">Acompanhamento de alunos com muitas faltas injustificadas.</p>
@@ -318,7 +322,7 @@ tbody tr:hover td{background:var(--paper-2)}
       </div>
     </div>
 
-    <div class="panel wide no-print-dev">
+    <div class="panel wide no-print-dev" id="secPrintDev">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:6px">
         <div>
           <h2>Devolutivas das famílias</h2>
@@ -344,7 +348,7 @@ tbody tr:hover td{background:var(--paper-2)}
       </div>
     </div>
 
-    <div class="panel wide">
+    <div class="panel wide" id="secPrintTabela">
       <h2>Lista de alunos</h2>
       <p class="note"><span id="lblLista"></span> — clique no nome do aluno para abrir o dossiê detalhado com todo o histórico.</p>
       <div class="controls">
@@ -361,7 +365,7 @@ tbody tr:hover td{background:var(--paper-2)}
       <div class="twrap"><table id="tabela"></table></div>
     </div>
     
-    <div class="panel wide">
+    <div class="panel wide" id="secPrintSae">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:6px">
         <div>
           <h2>Relatório SAE — Encaminhamentos e Retornos</h2>
@@ -462,6 +466,31 @@ tbody tr:hover td{background:var(--paper-2)}
   </div>
 </div>
 
+<!-- Modal de Seleção do que Imprimir -->
+<div class="modal hidden" id="printModal">
+  <div class="card" style="width:min(480px,94vw);padding:24px">
+    <h3 style="margin-bottom:4px;color:var(--navy)">🖨️ Selecionar o que Imprimir / PDF</h3>
+    <p style="font-size:13px;margin-bottom:14px">Marque abaixo quais seções do painel você deseja incluir na impressão:</p>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button type="button" class="b2" id="btnPrTodos" style="padding:5px 10px;font-size:12px">Marcar tudo</button>
+      <button type="button" class="b2" id="btnPrLimpar" style="padding:5px 10px;font-size:12px">Desmarcar tudo</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px;font-size:13.5px;color:var(--navy)">
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrKpi" checked> 📊 Indicadores Gerais (Frequência e Busca Ativa)</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrGrafBim" checked> 📈 Gráficos por Bimestre (Busca Ativa e Faltas × Atestados)</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrTurmas" checked> 🏫 Gráfico de Alunos e Acompanhamento por Turma</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrAlertas" checked> ⚠ Alunos com 10+ Faltas e Gráfico de Motivos</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrTabela" checked> 📋 Tabela / Lista Geral de Alunos</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrSae" checked> 🏥 Relatório SAE (Indicadores e Tabela SAE)</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrDev"> 💬 Relatório de Devolutivas das Famílias</label>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button type="button" class="b2" id="btnCancPrint">Cancelar</button>
+      <button type="button" class="btn" id="btnConfPrint">🖨️ Imprimir Selecionados</button>
+    </div>
+  </div>
+</div>
+
 <script src="logic.js"></script>
 <script>
 /* ===== CONFIG ===== */
@@ -475,7 +504,9 @@ var ANOS_INI = ['PRIMEIROS','SEGUNDOS','TERCEIROS','QUARTOS','QUINTOS','QUINTOS 
 var LBL = {PRIMEIROS:'1º ano',SEGUNDOS:'2º ano',TERCEIROS:'3º ano',QUARTOS:'4º ano',QUINTOS:'5º ano','QUINTOS TARDE':'5º ano'};
 var COR = {navy:'#0B2545',navy2:'#14345E',navy3:'#1D4E89',soft:'#4C6789',line:'#C2CFDE',alert:'#B23A48',gold:'#C08A2E',green:'#2C7A5B'};
 var el=function(id){return document.getElementById(id);};
-var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logMotivo:'', logBusca:'', alFiltro:'todos', alBusca:'', saeBusca:'', dataFiltro:'', diarioLoaded:false, ordCol:'inj', ordDir:-1, devUnlocked:false, saeUnlocked:false, senhaTarget:'', ultimoAlunoChave:''};
+var jaDesbloqueadoSessao = false;
+try{ jaDesbloqueadoSessao = (sessionStorage.getItem('ba_rel_unlocked') === '1' || localStorage.getItem('ba_rel_unlocked') === '1'); }catch(_){}
+var S={data:null, ano:'Todas', turma:'', bim:'ambos', logFiltro:'todos', logMotivo:'', logBusca:'', alFiltro:'todos', alBusca:'', saeBusca:'', dataFiltro:'', diarioLoaded:false, ordCol:'inj', ordDir:-1, devUnlocked:jaDesbloqueadoSessao, saeUnlocked:jaDesbloqueadoSessao, senhaTarget:'', ultimoAlunoChave:''};
 var SENHA_RELATORIO = 'Jgg2026@';
 
 function alunoKey(r){
@@ -1053,8 +1084,10 @@ window.abrirModalSenha = function(target){
 function atualizarVisibilidadeRelatorios(){
   if(el('boxDevLock')) el('boxDevLock').classList.toggle('hidden', !!S.devUnlocked);
   if(el('boxDevConteudo')) el('boxDevConteudo').classList.toggle('hidden', !S.devUnlocked);
+  if(el('btnLockDev')) el('btnLockDev').classList.toggle('hidden', !S.devUnlocked);
   if(el('boxSaeLock')) el('boxSaeLock').classList.toggle('hidden', !!S.saeUnlocked);
   if(el('boxSaeConteudo')) el('boxSaeConteudo').classList.toggle('hidden', !S.saeUnlocked);
+  if(el('btnLockSae')) el('btnLockSae').classList.toggle('hidden', !S.saeUnlocked);
 }
 
 window.abrirAluno = function(chave) {
@@ -1135,8 +1168,16 @@ el('detClose').addEventListener('click', function(){ el('alunoModal').classList.
 
 if(el('btnAbrirDevSenha')) el('btnAbrirDevSenha').addEventListener('click', function(){ window.abrirModalSenha('dev'); });
 if(el('btnAbrirSaeSenha')) el('btnAbrirSaeSenha').addEventListener('click', function(){ window.abrirModalSenha('sae'); });
-if(el('btnLockDev')) el('btnLockDev').addEventListener('click', function(){ S.devUnlocked = false; atualizarVisibilidadeRelatorios(); });
-if(el('btnLockSae')) el('btnLockSae').addEventListener('click', function(){ S.saeUnlocked = false; atualizarVisibilidadeRelatorios(); });
+if(el('btnLockDev')) el('btnLockDev').addEventListener('click', function(){
+  S.devUnlocked = false;
+  try{ sessionStorage.removeItem('ba_rel_unlocked'); localStorage.removeItem('ba_rel_unlocked'); }catch(_){}
+  atualizarVisibilidadeRelatorios();
+});
+if(el('btnLockSae')) el('btnLockSae').addEventListener('click', function(){
+  S.saeUnlocked = false;
+  try{ sessionStorage.removeItem('ba_rel_unlocked'); localStorage.removeItem('ba_rel_unlocked'); }catch(_){}
+  atualizarVisibilidadeRelatorios();
+});
 if(el('btnCancSenha')) el('btnCancSenha').addEventListener('click', function(){ el('senhaModal').classList.add('hidden'); });
 if(el('fSenhaRel')) el('fSenhaRel').addEventListener('submit', function(ev){
   ev.preventDefault();
@@ -1146,9 +1187,13 @@ if(el('fSenhaRel')) el('fSenhaRel').addEventListener('submit', function(ev){
     el('inpSenhaRel').select();
     return;
   }
-  if(S.senhaTarget === 'dev') S.devUnlocked = true;
-  else if(S.senhaTarget === 'sae') S.saeUnlocked = true;
-  else { S.devUnlocked = true; S.saeUnlocked = true; }
+  /* Após digitar a senha correta uma vez, libera na sessão para não precisar preencher novamente */
+  S.devUnlocked = true;
+  S.saeUnlocked = true;
+  try{
+    sessionStorage.setItem('ba_rel_unlocked', '1');
+    localStorage.setItem('ba_rel_unlocked', '1');
+  }catch(_){}
   el('senhaModal').classList.add('hidden');
   atualizarVisibilidadeRelatorios();
   renderLog();
@@ -1186,7 +1231,7 @@ function fillTurmas(){
   if(el('selTurma2')){ el('selTurma2').innerHTML=opts; el('selTurma2').value=S.turma; }
 }
 
-function renderAll(){ renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderSae(); renderFoot(); }
+function renderAll(){ atualizarVisibilidadeRelatorios(); renderKpis(); renderCharts(); renderAlertas(); renderLog(); renderTabela(); renderSae(); renderFoot(); }
 
 function renderFoot(){
   el('foot').innerHTML = S.atualizadoEm ? 'Atualizado em ' + S.atualizadoEm : '';
@@ -1194,7 +1239,50 @@ function renderFoot(){
 
 el('selTurma').addEventListener('change',function(){ S.turma=el('selTurma').value; if(el('selTurma2'))el('selTurma2').value=S.turma; renderAll(); });
 el('btnRetry').addEventListener('click',load);
-el('btnPrint').addEventListener('click',function(){ window.print(); });
+
+/* Modal para escolher o que imprimir */
+el('btnPrint').addEventListener('click',function(){
+  el('printModal').classList.remove('hidden');
+});
+if(el('btnCancPrint')) el('btnCancPrint').addEventListener('click',function(){
+  el('printModal').classList.add('hidden');
+});
+if(el('btnPrTodos')) el('btnPrTodos').addEventListener('click',function(){
+  ['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPrAlertas','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = true; });
+});
+if(el('btnPrLimpar')) el('btnPrLimpar').addEventListener('click',function(){
+  ['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPrAlertas','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = false; });
+});
+if(el('btnConfPrint')) el('btnConfPrint').addEventListener('click',function(){
+  var mapaSec = [
+    ['chkPrKpi', 'secPrintKpi'],
+    ['chkPrGrafBim', 'secPrintGrafBim'],
+    ['chkPrTurmas', 'secPrintTurmas'],
+    ['chkPrAlertas', 'secPrintAlertas'],
+    ['chkPrTabela', 'secPrintTabela'],
+    ['chkPrSae', 'secPrintSae'],
+    ['chkPrDev', 'secPrintDev']
+  ];
+  mapaSec.forEach(function(par){
+    var chk = el(par[0]), sec = el(par[1]);
+    if(sec) sec.classList.toggle('no-print-sec', !(chk && chk.checked));
+  });
+  var wantDev = el('chkPrDev') && el('chkPrDev').checked;
+  var wantSae = el('chkPrSae') && el('chkPrSae').checked;
+  if(wantDev && el('boxDevConteudo')) el('boxDevConteudo').classList.add('force-print-show');
+  if(wantSae && el('boxSaeConteudo')) el('boxSaeConteudo').classList.add('force-print-show');
+
+  el('printModal').classList.add('hidden');
+  setTimeout(function(){
+    window.print();
+    mapaSec.forEach(function(par){
+      var sec = el(par[1]);
+      if(sec) sec.classList.remove('no-print-sec');
+    });
+    if(el('boxDevConteudo')) el('boxDevConteudo').classList.remove('force-print-show');
+    if(el('boxSaeConteudo')) el('boxSaeConteudo').classList.remove('force-print-show');
+  }, 120);
+});
 el('logSearch').addEventListener('input',function(){ S.logBusca=this.value; renderLog(); });
 el('alSearch').addEventListener('input',function(){ S.alBusca=this.value; renderTabela(); });
 el('saeSearch').addEventListener('input',function(){ S.saeBusca=this.value; renderSae(); });
