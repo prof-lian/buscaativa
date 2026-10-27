@@ -286,6 +286,7 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
     <div class="brand-right">
       <div class="top-actions">
         <a href="index.html" class="btn-top" title="Abrir painel de visualização">📊 Ver Painel</a>
+        <button type="button" class="btn-top" id="bHeaderEntrar" title="Entrar ou trocar de conta" style="cursor:pointer;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35)">🔑 Entrar</button>
       </div>
     </div>
   </div>
@@ -1189,6 +1190,22 @@ function iniciar(){
     }).catch(function(e){ $('verifErro').textContent=traduz(e); });
   };
   $('bSair').onclick=function(){ if(sujos().length && !confirm('Há alterações não salvas. Sair mesmo assim?')) return; auth.signOut(); };
+  if($('bHeaderEntrar')) $('bHeaderEntrar').onclick=function(){
+    if(S.user){
+      if(sujos().length && !confirm('Há alterações não salvas. Deseja sair da conta atual para entrar com outra?')) return;
+      $('msgGeral').innerHTML='';
+      auth.signOut().then(function(){
+        $('telaLogin').classList.remove('hidden');
+        $('app').classList.add('hidden');
+        if($('lEmail')) $('lEmail').focus();
+      });
+    } else {
+      $('msgGeral').innerHTML='';
+      $('telaVerif').classList.add('hidden');
+      $('telaLogin').classList.remove('hidden');
+      if($('lEmail')) $('lEmail').focus();
+    }
+  };
 
   /* Eventos de Perfil */
   $('profBox').onclick=function(){ irTab('perf'); };
@@ -1237,6 +1254,9 @@ function iniciar(){
   auth.onAuthStateChanged(function(u){
     S.user=u; $('msgGeral').innerHTML='';
     $('telaVerif').classList.add('hidden');
+    if($('bHeaderEntrar')){
+      $('bHeaderEntrar').innerHTML = u ? '🔑 Trocar Conta / Entrar' : '🔑 Entrar';
+    }
     if(!u){
       $('telaLogin').classList.remove('hidden'); $('app').classList.add('hidden');
       $('sub').textContent='Faça login para gerenciar e editar'; return;
@@ -1292,8 +1312,24 @@ function entrou(u){
   carregarPerfil(u);
   $('sub').textContent='Conectado como '+(S.perfil.nome || nomeEditor(u.email));
   var k=String(u.email).toLowerCase().replace(/\./g,',');
-  db.ref('editores/'+k).once('value').then(function(s){
-    if(s.val()!==true) throw new Error('A conta '+u.email+' ainda não está liberada para editar. Peça ao administrador para liberar este e-mail.');
+  Promise.all([
+    db.ref('editores/'+k).once('value').catch(function(){ return {val:function(){return null;}}; }),
+    db.ref('admins/'+k).once('value').catch(function(){ return {val:function(){return null;}}; }),
+    db.ref('editores_extra/'+k).once('value').catch(function(){ return {val:function(){return null;}}; }),
+    db.ref('permissoes_usuarios/'+k).once('value').catch(function(){ return {val:function(){return null;}}; }),
+    db.ref('usuarios_excluidos/'+k).once('value').catch(function(){ return {val:function(){return null;}}; })
+  ]).then(function(res){
+    var isEdit = res[0] && res[0].val() === true;
+    var isAdm  = (res[1] && res[1].val() === true) || k === 'lian,ribeiro@edu,uberabadigital,com,br';
+    var isExt  = !!(res[2] && res[2].val());
+    var hasPerm = !!(res[3] && res[3].val());
+    var isExcl = !!(res[4] && res[4].val() === true);
+    if(isExcl && !isAdm){
+      throw new Error('O acesso da conta '+u.email+' foi removido pelo administrador.');
+    }
+    if(!isEdit && !isAdm && !isExt && !hasPerm){
+      throw new Error('A conta '+u.email+' ainda não está liberada para editar. Peça ao administrador para liberar este e-mail ou clique em "Entrar" no topo para trocar de conta.');
+    }
     $('app').classList.remove('hidden');
     ouvirPlanilha();
   }).catch(function(e){ falha(e.message||e); });
@@ -1309,7 +1345,13 @@ function traduz(e){
   if(c==='auth/unauthorized-domain') return 'Domínio não autorizado no Firebase Authentication.';
   return (e&&e.message)||String(e);
 }
-function falha(t){ $('msgGeral').innerHTML='<div class="erro">'+esc(t)+'</div>'; $('app').classList.add('hidden'); }
+function falha(t){
+  $('msgGeral').innerHTML='<div class="erro" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">'+
+    '<span>'+esc(t)+'</span>'+
+    '<button type="button" class="btn navy" onclick="document.getElementById(\'bHeaderEntrar\').click()" style="padding:7px 14px;font-size:12.5px">🔑 Entrar com outra conta</button>'+
+  '</div>';
+  $('app').classList.add('hidden');
+}
 
 /* ===== Controle Dinâmico de Permissões e Visibilidade do Menu Lateral ===== */
 /* A lista de permissões é sincronizada automaticamente com os itens existentes no menu lateral (#tabs) */
@@ -1457,8 +1499,9 @@ function atualizarMeuStatusPerm(){
   S.admin = novoAdmin;
   aplicarVisibilidadeMenu();
   if(S.admin && !era){
-    db.ref('editores').on('value',function(x){ S.edPub=x.val()||{}; if(S.tab==='edt') renderEdt(); });
-    db.ref('editores_extra').on('value',function(x){ S.edExtra=x.val()||{}; if(S.tab==='edt') renderEdt(); });
+    db.ref('editores').on('value',function(x){ S.edPub=x.val()||{}; if(S.tab==='edt') renderEdt(); },function(){});
+    db.ref('editores_extra').on('value',function(x){ S.edExtra=x.val()||{}; if(S.tab==='edt') renderEdt(); },function(){});
+    db.ref('usuarios_excluidos').on('value',function(x){ S.usrExcl=x.val()||{}; if(S.tab==='edt') renderEdt(); },function(){});
   }
   if(Object.keys(S.dados).length) render();
 }
@@ -1466,6 +1509,10 @@ function atualizarMeuStatusPerm(){
 /* ===== Leitura do Firebase ===== */
 function ouvirPlanilha(){
   var mk=String(S.user.email).toLowerCase().replace(/\./g,',');
+  db.ref('usuarios_excluidos').on('value',function(s){
+    S.usrExcl = s.val() || {};
+    if(S.tab==='edt') renderEdt();
+  },function(){});
   db.ref('admins').on('value',function(s){
     S.adminsMap = s.val() || {};
     atualizarMeuStatusPerm();
@@ -3110,30 +3157,35 @@ document.addEventListener('input',function(e){ if(e.target.classList && e.target
 function chaveEmail(e){ return String(e).toLowerCase().trim().replace(/\./g,','); }
 function renderEdt(){
   renderizarCheckboxesNovoEditor();
-  var pub=S.edPub||{}, ext=S.edExtra||{}, adms=S.adminsMap||{}, pms=S.permsAll||{}, todos={};
+  var pub=S.edPub||{}, ext=S.edExtra||{}, adms=S.adminsMap||{}, pms=S.permsAll||{}, excl=S.usrExcl||{}, perf=S.mapaPerfis||{}, todos={};
   Object.keys(pub).forEach(function(k){ if(pub[k]) todos[k]={email:k.replace(/,/g,'.'), pub:true}; });
   Object.keys(ext).forEach(function(k){ var e=ext[k]||{}; todos[k]=todos[k]||{email:e.email||k.replace(/,/g,'.'), pub:false}; todos[k].extra=e; });
   Object.keys(adms).forEach(function(k){ if(adms[k]) todos[k]=todos[k]||{email:k.replace(/,/g,'.'), pub:true}; });
-  Object.keys(pms).forEach(function(k){ todos[k]=todos[k]||{email:k.replace(/,/g,'.'), pub:true}; });
+  Object.keys(pms).forEach(function(k){ if(pms[k] && !pms[k]._excluido) todos[k]=todos[k]||{email:(pms[k].email||k.replace(/,/g,'.')), pub:true}; });
+  Object.keys(perf).forEach(function(k){ if(perf[k] && (pub[k]||ext[k]||adms[k]||pms[k])) todos[k]=todos[k]||{email:k.replace(/,/g,'.'), pub:true}; });
 
-  var ks=Object.keys(todos).sort(function(a,b){ return (todos[a].email||'').localeCompare(todos[b].email||''); });
+  /* Remove da lista quem foi excluído pelo administrador */
+  Object.keys(todos).forEach(function(k){
+    if(excl[k] === true || (pms[k] && pms[k]._excluido === true)){
+      delete todos[k];
+    }
+  });
+
+  var ks=Object.keys(todos).sort(function(a,b){
+    return low(nomeEditor(todos[a].email||'')).localeCompare(low(nomeEditor(todos[b].email||'')));
+  });
   if(!ks.length){ $('listaEdt').innerHTML='<div class="vazio">Nenhum usuário cadastrado ainda.</div>'; return; }
 
   var itensMenu = obterItensMenuPerm();
+  S.edtExpanded = S.edtExpanded || {};
 
   $('listaEdt').innerHTML=ks.map(function(k){
     var t=todos[k], p=permsDeKey(k), tags=[];
+    var aberto = !!S.edtExpanded[k];
     if(p.adm) tags.push('<span class="tag ok">👑 ADM</span>');
-    if(t.extra){
-      tags.push(t.pub? '<span class="tag ok">liberado</span>' : '<span class="tag d">liberando… (até 1 min)</span>');
-      tags.push('<button type="button" class="chip" data-rmedt="'+esc(k)+'">Remover acesso</button>');
-    } else {
-      tags.push('<span class="tag">autorizado</span>');
-    }
+    else tags.push('<span class="tag">Membro</span>');
+
     var nmExib = nomeEditor(t.email);
-    var sub = t.extra
-      ? 'adicionado por '+esc(nomeEditor(t.extra.por||'?'))+(t.extra.em?' em '+new Date(t.extra.em).toLocaleDateString('pt-BR'):'')
-      : 'usuário autorizado da equipe';
 
     var chk = function(campoKey, labelTxt, isAdmBox){
       var on = !!p[campoKey];
@@ -3147,15 +3199,24 @@ function renderEdt(){
       return chk(it.key, it.label, false);
     }).join('');
 
-    return '<div class="sitrow" style="flex-direction:column;align-items:stretch;gap:8px">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
-        '<div class="nm"><b>'+esc(nmExib)+'</b> <span style="color:var(--muted);font-weight:400;font-size:12.5px">('+esc(t.email)+')</span><small>'+sub+'</small></div>'+
-        '<div class="tags">'+tags.join('')+'</div>'+
+    return '<div class="sitrow" style="flex-direction:column;align-items:stretch;gap:0;padding:12px 16px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">'+
+        '<div class="nm" style="cursor:pointer;display:flex;align-items:center;gap:10px" data-toggle-perm="'+esc(k)+'" title="Clique para ver ou ocultar as permissões de '+esc(nmExib)+'">'+
+          '<b style="font-size:15px;color:var(--navy)">👤 '+esc(nmExib)+'</b> '+
+          tags.join(' ')+
+        '</div>'+
+        '<div class="tags" style="display:flex;gap:8px;align-items:center">'+
+          '<button type="button" class="btn-hist" data-toggle-perm="'+esc(k)+'">'+(aberto ? '▲ Ocultar permissões' : '⚙️ Permissões ▼')+'</button>'+
+          '<button type="button" class="btn-hist del" data-rmedt="'+esc(k)+'" title="Excluir membro">🗑️ Excluir</button>'+
+        '</div>'+
       '</div>'+
-      '<div class="perm-grid">'+
-        chk('adm', '👑 Administrador (ADM)', true)+
-        chksMenu+
-        chk('devolutiva_familia', '💬 Devolutiva da Família', false)+
+      '<div class="'+(aberto ? '' : 'hidden')+'" id="permBox_'+esc(k)+'" style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)">'+
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">E-mail de login: <b>'+esc(t.email)+'</b> · Selecione abaixo o que <b>'+esc(nmExib)+'</b> pode ver no menu e editar:</div>'+
+        '<div class="perm-grid" style="border-top:0;padding-top:0">'+
+          chk('adm', '👑 Administrador (ADM)', true)+
+          chksMenu+
+          chk('devolutiva_familia', '💬 Devolutiva da Família', false)+
+        '</div>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -3167,9 +3228,16 @@ function appSec(){
 }
 $('fEdt').onsubmit=function(ev){
   ev.preventDefault();
+  if(!S.admin){ $('edtErro').textContent='Apenas administradores podem adicionar membros.'; return; }
   var email=$('eEmail').value.trim().toLowerCase(), senha=$('eSenha').value;
   var kUser = chaveEmail(email);
-  var initPerms = { adm: !!($('np_adm') && $('np_adm').checked) };
+  var initPerms = {
+    adm: !!($('np_adm') && $('np_adm').checked),
+    email: email,
+    por: String(S.user.email).toLowerCase(),
+    em: Date.now(),
+    _excluido: false
+  };
   obterItensMenuPerm().forEach(function(it){
     var elChk = $('np_' + it.key);
     initPerms[it.key] = !elChk || !!elChk.checked;
@@ -3185,21 +3253,29 @@ $('fEdt').onsubmit=function(ev){
     .catch(function(e){ if(e && e.code==='auth/email-already-in-use'){ jaExistia=true; return; } throw e; })
     .then(function(){ return sa.signOut().catch(function(){}); })
     .then(function(){
-      var p1 = db.ref('editores_extra/'+kUser).set({email:email, por:String(S.user.email).toLowerCase(), em:Date.now()});
-      var p2 = db.ref('permissoes_usuarios/'+kUser).set(initPerms).catch(function(){});
-      var p3 = initPerms.adm ? db.ref('admins/'+kUser).set(true).catch(function(){}) : Promise.resolve();
-      return Promise.all([p1, p2, p3]);
+      /* Grava em permissoes_usuarios, editores, editores_extra e remove de usuarios_excluidos (com catch individual para funcionar para qualquer ADM) */
+      S.permsAll = S.permsAll || {};
+      S.permsAll[kUser] = initPerms;
+      if(S.usrExcl) delete S.usrExcl[kUser];
+      var p1 = db.ref('permissoes_usuarios/'+kUser).set(initPerms).catch(function(){});
+      var p2 = db.ref('editores_extra/'+kUser).set({email:email, por:String(S.user.email).toLowerCase(), em:Date.now()}).catch(function(){});
+      var p3 = db.ref('editores/'+kUser).set(true).catch(function(){});
+      var p4 = db.ref('usuarios_excluidos/'+kUser).remove().catch(function(){});
+      var p5 = initPerms.adm ? db.ref('admins/'+kUser).set(true).catch(function(){}) : Promise.resolve();
+      return Promise.all([p1, p2, p3, p4, p5]);
     })
     .then(function(){
       var link=location.href.split('?')[0].split('#')[0];
       $('edtOkTit').textContent= jaExistia
-        ? '✓ '+email+' liberado com as permissões selecionadas. Essa pessoa já tinha conta.'
-        : '✓ Conta criada para '+email+'. Fica liberada para editar em até 1 minuto.';
+        ? '✓ '+nomeEditor(email)+' ('+email+') liberado com as permissões selecionadas!'
+        : '✓ Conta criada e liberada para '+email+'!';
       $('edtMsg').value= jaExistia
-        ? 'Olá! Você já pode acessar o Painel Escola e Família:\n'+link+'\n\nEntre com seu e-mail ('+email+') e sua senha.'
+        ? 'Olá! Seu acesso ao Painel Escola e Família já está liberado:\n'+link+'\n\nEntre com seu e-mail ('+email+') e sua senha.'
         : 'Olá! Você foi cadastrado(a) no Painel Escola e Família.\n\nSite: '+link+'\nE-mail: '+email+'\nSenha provisória: '+senha;
       $('edtOk').classList.remove('hidden');
       $('eEmail').value=''; $('eSenha').value='';
+      renderEdt();
+      toast('Membro adicionado com sucesso!');
     })
     .catch(function(e){ $('edtErro').textContent=traduzEdt(e); })
     .then(function(){ $('bAddEdt').disabled=false; $('bAddEdt').textContent='+ Liberar Acesso'; });
@@ -3208,7 +3284,7 @@ function traduzEdt(e){
   var c=e&&e.code||'';
   if(c==='auth/invalid-email') return 'E-mail inválido.';
   if(c==='auth/weak-password') return 'Senha fraca: use pelo menos 6 caracteres.';
-  if(/PERMISSION_DENIED/i.test(e&&e.message||'')) return 'Sem permissão para gerenciar editores.';
+  if(/PERMISSION_DENIED/i.test(e&&e.message||'')) return 'Sem permissão no banco para esta operação.';
   return (e&&e.message)||String(e);
 }
 $('bCopiar').onclick=function(){
@@ -3217,11 +3293,40 @@ $('bCopiar').onclick=function(){
     .catch(function(){ try{ document.execCommand('copy'); toast('Mensagem copiada.'); }catch(_){} });
 };
 document.addEventListener('click',function(e){
+  var tp=e.target.closest('[data-toggle-perm]');
+  if(tp){
+    var kExp = tp.getAttribute('data-toggle-perm');
+    S.edtExpanded = S.edtExpanded || {};
+    S.edtExpanded[kExp] = !S.edtExpanded[kExp];
+    renderEdt();
+    return;
+  }
   var b=e.target.closest('[data-rmedt]'); if(!b) return;
-  var k=b.getAttribute('data-rmedt'), em=k.replace(/,/g,'.');
-  if(!confirm('Tirar a permissão de edição de '+em+'?')) return;
-  db.ref('editores_extra/'+k).remove().then(function(){ toast(em+' removido.'); })
-    .catch(function(e){ toast(traduzEdt(e),6000); });
+  if(!S.admin){ toast('Apenas administradores podem excluir membros.'); return; }
+  var k=b.getAttribute('data-rmedt'), em=k.replace(/,/g,'.'), nm=nomeEditor(em);
+  if(S.user && String(S.user.email).toLowerCase() === em.toLowerCase()){
+    toast('Você não pode excluir a sua própria conta em uso.');
+    return;
+  }
+  if(!confirm('Deseja excluir o membro "'+nm+'" ('+em+') e retirar seu acesso?')) return;
+  S.usrExcl = S.usrExcl || {};
+  S.usrExcl[k] = true;
+  if(S.edPub) delete S.edPub[k];
+  if(S.edExtra) delete S.edExtra[k];
+  if(S.adminsMap) delete S.adminsMap[k];
+  if(S.permsAll) S.permsAll[k] = { _excluido: true };
+  renderEdt();
+
+  Promise.all([
+    db.ref('usuarios_excluidos/'+k).set(true).catch(function(){}),
+    db.ref('permissoes_usuarios/'+k).set({ _excluido: true, em: Date.now() }).catch(function(){}),
+    db.ref('editores_extra/'+k).remove().catch(function(){}),
+    db.ref('editores/'+k).remove().catch(function(){}),
+    db.ref('admins/'+k).remove().catch(function(){})
+  ]).then(function(){
+    renderEdt();
+    toast('Membro "'+nm+'" excluído com sucesso.');
+  });
 });
 
 /* ===== Navegação por Menu Lateral ===== */
