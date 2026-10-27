@@ -335,7 +335,7 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
       </div>
 
       <nav class="sidenav" id="tabs">
-        <div class="nav-lbl">Acompanhamento</div>
+        <div class="nav-lbl" id="navLblAcomp">Acompanhamento</div>
         <button class="tab on" data-tab="dev" type="button">
           <span class="t-left"><span class="ico">📋</span><span>Busca Ativa e Faltosos</span></span>
         </button>
@@ -352,13 +352,12 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
           <span class="t-left"><span class="ico">🔄</span><span>Transferidos</span></span>
         </button>
 
-        <div class="nav-lbl">Administração</div>
+        <div class="nav-lbl" id="navLblAdmin">Administração</div>
         <button class="tab" data-tab="alu" type="button">
           <span class="t-left"><span class="ico">🎓</span><span>Gerenciar Alunos</span></span>
         </button>
         <button class="tab" data-tab="hist" type="button">
           <span class="t-left"><span class="ico">🕒</span><span>Histórico de Edições</span></span>
-          <span class="n" id="nHist" style="background:#e9eff6;color:var(--navy)"></span>
         </button>
         <button class="tab" data-tab="perf" type="button">
           <span class="t-left"><span class="ico">👤</span><span>Meu Perfil e Foto</span></span>
@@ -751,15 +750,8 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
               <div><label for="eSenha">Senha provisória</label><input type="text" id="eSenha" placeholder="mínimo 6 caracteres" minlength="6" required autocomplete="off"></div>
               <div><button class="btn navy" type="submit" id="bAddEdt">+ Liberar Acesso</button></div>
             </div>
-            <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px">Permissões iniciais para este usuário:</div>
-            <div class="perm-grid" id="newEdtPerms" style="border-top:0;padding-top:2px">
-              <label class="perm-chk adm-chk"><input type="checkbox" id="np_adm"> 👑 Administrador (ADM)</label>
-              <label class="perm-chk"><input type="checkbox" id="np_dados_aluno" checked> 🎓 Dados do aluno</label>
-              <label class="perm-chk"><input type="checkbox" id="np_faltas" checked> 📅 Faltas e Atestados</label>
-              <label class="perm-chk"><input type="checkbox" id="np_busca_ativa" checked> 📋 Informações da Busca Ativa</label>
-              <label class="perm-chk"><input type="checkbox" id="np_devolutiva_familia" checked> 💬 Devolutiva da Família</label>
-              <label class="perm-chk"><input type="checkbox" id="np_devolutiva_sae" checked> 🏥 Devolutivas da SAE</label>
-            </div>
+            <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px">Permissões iniciais e menus visíveis para este usuário ("Meu Perfil e Foto" já fica liberado por padrão):</div>
+            <div class="perm-grid" id="newEdtPerms" style="border-top:0;padding-top:2px"></div>
           </form>
           <div class="msg" id="edtErro"></div>
           <div id="edtOk" class="hidden" style="margin-top:12px">
@@ -1319,37 +1311,132 @@ function traduz(e){
 }
 function falha(t){ $('msgGeral').innerHTML='<div class="erro">'+esc(t)+'</div>'; $('app').classList.add('hidden'); }
 
-/* ===== Controle de Permissões de Usuário ===== */
-function permsPadrao(isAdm){
-  return {
-    adm: !!isAdm,
-    dados_aluno: true,
-    faltas: true,
-    busca_ativa: true,
-    devolutiva_familia: true,
-    devolutiva_sae: true
-  };
+/* ===== Controle Dinâmico de Permissões e Visibilidade do Menu Lateral ===== */
+/* A lista de permissões é sincronizada automaticamente com os itens existentes no menu lateral (#tabs) */
+function obterItensMenuPerm(){
+  var lista = [];
+  var btns = document.querySelectorAll('#tabs .tab[data-tab]');
+  [].forEach.call(btns, function(b){
+    var tabId = b.getAttribute('data-tab');
+    if(!tabId || tabId === 'perf' || tabId === 'edt') return; /* 'perf' é padrão para todos; 'edt' é controlado por ADM */
+    var icoEl = b.querySelector('.ico');
+    var spans = b.querySelectorAll('.t-left span');
+    var txtEl = spans.length > 1 ? spans[1] : b;
+    var ico = icoEl ? icoEl.textContent.trim() : '';
+    var lbl = txtEl ? txtEl.textContent.trim() : tabId;
+    var permKey = 'tab_' + tabId;
+    if(tabId === 'dev') permKey = 'busca_ativa';
+    else if(tabId === 'fal') permKey = 'faltas';
+    else if(tabId === 'ate') permKey = 'atestados';
+    else if(tabId === 'sae') permKey = 'devolutiva_sae';
+    else if(tabId === 'sit') permKey = 'transferidos';
+    else if(tabId === 'alu') permKey = 'dados_aluno';
+    else if(tabId === 'hist') permKey = 'historico';
+    lista.push({ tab: tabId, key: permKey, label: (ico ? ico + ' ' : '') + lbl });
+  });
+  return lista;
 }
+
+function renderizarCheckboxesNovoEditor(){
+  var box = $('newEdtPerms');
+  if(!box) return;
+  var itensMenu = obterItensMenuPerm();
+  var html = '<label class="perm-chk adm-chk"><input type="checkbox" id="np_adm"> 👑 Administrador (ADM)</label>';
+  itensMenu.forEach(function(it){
+    html += '<label class="perm-chk"><input type="checkbox" id="np_'+esc(it.key)+'" data-np-key="'+esc(it.key)+'" checked> '+esc(it.label)+'</label>';
+  });
+  html += '<label class="perm-chk"><input type="checkbox" id="np_devolutiva_familia" data-np-key="devolutiva_familia" checked> 💬 Devolutiva da Família</label>';
+  box.innerHTML = html;
+}
+
+function permsPadrao(isAdm){
+  var p = {
+    adm: !!isAdm,
+    busca_ativa: true,
+    faltas: true,
+    atestados: true,
+    devolutiva_sae: true,
+    transferidos: true,
+    dados_aluno: true,
+    historico: true,
+    devolutiva_familia: true
+  };
+  obterItensMenuPerm().forEach(function(it){ p[it.key] = true; });
+  return p;
+}
+
 function permsDeKey(mk){
   var isAdmFixo = !!(S.adminsMap && S.adminsMap[mk] === true) || mk === 'lian,ribeiro@edu,uberabadigital,com,br';
   var salvo = (S.permsAll && S.permsAll[mk]) || null;
-  if(!salvo) return permsPadrao(isAdmFixo);
-  return {
+  var base = permsPadrao(isAdmFixo);
+  if(!salvo) return base;
+  var out = {
     adm: isAdmFixo ? (salvo.adm !== false) : !!salvo.adm,
-    dados_aluno: salvo.dados_aluno !== false,
-    faltas: salvo.faltas !== false,
     busca_ativa: salvo.busca_ativa !== false,
-    devolutiva_familia: salvo.devolutiva_familia !== false,
-    devolutiva_sae: salvo.devolutiva_sae !== false
+    faltas: salvo.faltas !== false,
+    atestados: salvo.atestados !== undefined ? (salvo.atestados !== false) : (salvo.faltas !== false),
+    devolutiva_sae: salvo.devolutiva_sae !== false,
+    transferidos: salvo.transferidos !== undefined ? (salvo.transferidos !== false) : (salvo.dados_aluno !== false),
+    dados_aluno: salvo.dados_aluno !== false,
+    historico: salvo.historico !== undefined ? (salvo.historico !== false) : true,
+    devolutiva_familia: salvo.devolutiva_familia !== false
   };
+  obterItensMenuPerm().forEach(function(it){
+    if(!(it.key in out)){
+      out[it.key] = salvo[it.key] !== false;
+    }
+  });
+  return out;
 }
+
 function temPerm(tipo){
+  if(S.admin) return true;
   if(!S.minhasPerms) return true;
   return S.minhasPerms[tipo] !== false;
 }
+
+function podeVerTab(tabId){
+  if(tabId === 'perf') return true; /* Meu Perfil e Foto sempre visível para todos */
+  if(tabId === 'edt') return !!S.admin;
+  if(S.admin) return true;
+  if(tabId === 'dev') return temPerm('busca_ativa') || temPerm('devolutiva_familia');
+  if(tabId === 'fal') return temPerm('faltas');
+  if(tabId === 'ate') return temPerm('atestados');
+  if(tabId === 'sae') return temPerm('devolutiva_sae');
+  if(tabId === 'sit') return temPerm('transferidos');
+  if(tabId === 'alu') return temPerm('dados_aluno');
+  if(tabId === 'hist') return temPerm('historico');
+  return temPerm('tab_' + tabId);
+}
+
+function primeiraTabPermitida(){
+  var ordem = ['dev','fal','ate','sae','sit','alu','hist','perf'];
+  for(var i = 0; i < ordem.length; i++){
+    if(podeVerTab(ordem[i])) return ordem[i];
+  }
+  return 'perf';
+}
+
+function aplicarVisibilidadeMenu(){
+  var btns = document.querySelectorAll('#tabs .tab[data-tab]');
+  var acompVis = 0;
+  [].forEach.call(btns, function(b){
+    var t = b.getAttribute('data-tab');
+    var vis = podeVerTab(t);
+    b.classList.toggle('hidden', !vis);
+    if(vis && (t==='dev'||t==='fal'||t==='ate'||t==='sae'||t==='sit')) acompVis++;
+  });
+  if($('navLblAcomp')) $('navLblAcomp').classList.toggle('hidden', acompVis === 0);
+  if(S.tab && !podeVerTab(S.tab)){
+    irTab(primeiraTabPermitida());
+  }
+}
+
 function temPermCampo(campo){
-  if(campo==='NOME'||campo==='COD'||campo==='MATRIC'||campo==='RECLASS'||campo==='SIT') return temPerm('dados_aluno');
-  if(campo==='FAL'||campo==='ATE'||campo==='INJ') return temPerm('faltas');
+  if(campo==='NOME'||campo==='COD'||campo==='MATRIC'||campo==='RECLASS') return temPerm('dados_aluno');
+  if(campo==='SIT') return temPerm('dados_aluno') || temPerm('transferidos');
+  if(campo==='FAL'||campo==='INJ') return temPerm('faltas');
+  if(campo==='ATE') return temPerm('faltas') || temPerm('atestados');
   if(campo==='BIL'||campo==='BUS'||campo==='SAE') return temPerm('busca_ativa');
   if(campo==='DEV') return temPerm('devolutiva_familia');
   if(campo==='RET') return temPerm('devolutiva_sae');
@@ -1361,13 +1448,14 @@ function podeEditarId(id){
   return temPermCampo(x.campo);
 }
 function atualizarMeuStatusPerm(){
+  renderizarCheckboxesNovoEditor();
   if(!S.user) return;
   var mk = String(S.user.email).toLowerCase().replace(/\./g,',');
   S.minhasPerms = permsDeKey(mk);
   var novoAdmin = !!S.minhasPerms.adm || !!(S.adminsMap && S.adminsMap[mk] === true) || mk === 'lian,ribeiro@edu,uberabadigital,com,br';
   var era = S.admin;
   S.admin = novoAdmin;
-  $('tabEdt').classList.toggle('hidden', !S.admin);
+  aplicarVisibilidadeMenu();
   if(S.admin && !era){
     db.ref('editores').on('value',function(x){ S.edPub=x.val()||{}; if(S.tab==='edt') renderEdt(); });
     db.ref('editores_extra').on('value',function(x){ S.edExtra=x.val()||{}; if(S.tab==='edt') renderEdt(); });
@@ -1907,15 +1995,15 @@ function renderFal(){
 }
 
 function renderAte(){
-  var podeFal = temPerm('faltas');
-  if($('bAddAt')) $('bAddAt').disabled = !podeFal;
+  var podeAt = temPerm('atestados') || temPerm('faltas');
+  if($('bAddAt')) $('bAddAt').disabled = !podeAt;
   popularSelectAlunosAt();
   renderCompiladoAtestados();
 }
 
 function renderCompiladoAtestados(){
-  var podeFal = temPerm('faltas');
-  var disAttr = podeFal ? '' : ' disabled';
+  var podeAt = temPerm('atestados') || temPerm('faltas');
+  var disAttr = podeAt ? '' : ' disabled';
   var all = atestadosLista();
   var q = low(S.qAt);
   var filtrados = all.filter(function(r){
@@ -3023,6 +3111,7 @@ document.addEventListener('input',function(e){ if(e.target.classList && e.target
 /* ===== Aba Editores e Permissões de Usuários (só administradores) ===== */
 function chaveEmail(e){ return String(e).toLowerCase().trim().replace(/\./g,','); }
 function renderEdt(){
+  renderizarCheckboxesNovoEditor();
   var pub=S.edPub||{}, ext=S.edExtra||{}, adms=S.adminsMap||{}, pms=S.permsAll||{}, todos={};
   Object.keys(pub).forEach(function(k){ if(pub[k]) todos[k]={email:k.replace(/,/g,'.'), pub:true}; });
   Object.keys(ext).forEach(function(k){ var e=ext[k]||{}; todos[k]=todos[k]||{email:e.email||k.replace(/,/g,'.'), pub:false}; todos[k].extra=e; });
@@ -3031,6 +3120,8 @@ function renderEdt(){
 
   var ks=Object.keys(todos).sort(function(a,b){ return (todos[a].email||'').localeCompare(todos[b].email||''); });
   if(!ks.length){ $('listaEdt').innerHTML='<div class="vazio">Nenhum usuário cadastrado ainda.</div>'; return; }
+
+  var itensMenu = obterItensMenuPerm();
 
   $('listaEdt').innerHTML=ks.map(function(k){
     var t=todos[k], p=permsDeKey(k), tags=[];
@@ -3050,9 +3141,13 @@ function renderEdt(){
       var on = !!p[campoKey];
       return '<label class="perm-chk'+(isAdmBox?' adm-chk':'')+'">'+
         '<input type="checkbox" data-perm-user="'+esc(k)+'" data-perm-key="'+esc(campoKey)+'"'+(on?' checked':'')+'> '+
-        labelTxt+
+        esc(labelTxt)+
       '</label>';
     };
+
+    var chksMenu = itensMenu.map(function(it){
+      return chk(it.key, it.label, false);
+    }).join('');
 
     return '<div class="sitrow" style="flex-direction:column;align-items:stretch;gap:8px">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
@@ -3061,11 +3156,8 @@ function renderEdt(){
       '</div>'+
       '<div class="perm-grid">'+
         chk('adm', '👑 Administrador (ADM)', true)+
-        chk('dados_aluno', '🎓 Dados do aluno', false)+
-        chk('faltas', '📅 Faltas e Atestados', false)+
-        chk('busca_ativa', '📋 Informações da Busca Ativa', false)+
+        chksMenu+
         chk('devolutiva_familia', '💬 Devolutiva da Família', false)+
-        chk('devolutiva_sae', '🏥 Devolutivas da SAE', false)+
       '</div>'+
     '</div>';
   }).join('');
@@ -3079,14 +3171,12 @@ $('fEdt').onsubmit=function(ev){
   ev.preventDefault();
   var email=$('eEmail').value.trim().toLowerCase(), senha=$('eSenha').value;
   var kUser = chaveEmail(email);
-  var initPerms = {
-    adm: !!($('np_adm') && $('np_adm').checked),
-    dados_aluno: !$('np_dados_aluno') || $('np_dados_aluno').checked,
-    faltas: !$('np_faltas') || $('np_faltas').checked,
-    busca_ativa: !$('np_busca_ativa') || $('np_busca_ativa').checked,
-    devolutiva_familia: !$('np_devolutiva_familia') || $('np_devolutiva_familia').checked,
-    devolutiva_sae: !$('np_devolutiva_sae') || $('np_devolutiva_sae').checked
-  };
+  var initPerms = { adm: !!($('np_adm') && $('np_adm').checked) };
+  obterItensMenuPerm().forEach(function(it){
+    var elChk = $('np_' + it.key);
+    initPerms[it.key] = !elChk || !!elChk.checked;
+  });
+  initPerms.devolutiva_familia = !$('np_devolutiva_familia') || !!$('np_devolutiva_familia').checked;
   $('edtErro').textContent=''; $('edtOk').classList.add('hidden');
   if(senha.length<6){ $('edtErro').textContent='A senha precisa ter pelo menos 6 caracteres.'; return; }
   $('bAddEdt').disabled=true; $('bAddEdt').textContent='Criando…';
@@ -3138,7 +3228,7 @@ document.addEventListener('click',function(e){
 
 /* ===== Navegação por Menu Lateral ===== */
 function irTab(t){
-  if(t==='edt' && !S.admin) t='dev';
+  if(!podeVerTab(t)) t = primeiraTabPermitida();
   S.tab=t; lsSet('tab',t);
   if(t==='hist' && $('qHist') && /@/.test($('qHist').value)){
     $('qHist').value = '';
@@ -3173,7 +3263,6 @@ function render(){
   else if(S.tab==='sae') renderSae();
   else if(S.tab==='hist') renderHist();
   else if(S.tab==='edt') renderEdt();
-  $('nHist').textContent = todosRegistrosHist().length || '';
   atualizarBarra();
 }
 
@@ -3418,7 +3507,7 @@ document.addEventListener('click',function(e){
   /* Editar Atestado Médico do compilado */
   var ate = e.target.closest('[data-at-edit]');
   if(ate){
-    if(!temPerm('faltas')){ toast('Sem permissão para editar atestados.'); return; }
+    if(!temPerm('atestados') && !temPerm('faltas')){ toast('Sem permissão para editar atestados.'); return; }
     var idAt = ate.getAttribute('data-at-edit');
     var regAt = (S.atestados && S.atestados[idAt]) || (S.atestadosPlanilha && S.atestadosPlanilha[idAt]);
     if(!regAt) return;
@@ -3441,7 +3530,7 @@ document.addEventListener('click',function(e){
   /* Excluir Atestado Médico do compilado */
   var atd = e.target.closest('[data-at-del]');
   if(atd){
-    if(!temPerm('faltas')){ toast('Sem permissão para excluir atestados.'); return; }
+    if(!temPerm('atestados') && !temPerm('faltas')){ toast('Sem permissão para excluir atestados.'); return; }
     var idDel = atd.getAttribute('data-at-del');
     var regDel = (S.atestados && S.atestados[idDel]) || (S.atestadosPlanilha && S.atestadosPlanilha[idDel]);
     if(!regDel) return;
@@ -3560,7 +3649,7 @@ $('bCancAt').onclick=function(){
 
 $('fAtestado').onsubmit=function(ev){
   ev.preventDefault();
-  if(!temPerm('faltas')){ toast('Você não tem permissão para lançar atestados.'); return; }
+  if(!temPerm('atestados') && !temPerm('faltas')){ toast('Você não tem permissão para lançar atestados.'); return; }
   var alKey = $('atAluno').value;
   var al = S.alKey && S.alKey[alKey];
   if(!al){ toast('Selecione um aluno válido.'); return; }
