@@ -24,7 +24,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --navy:#0B2545; --navy2:#14345E; --navy3:#1D4E89; --ink:#13263E; --muted:#566F8E; --line:#D5E0EC;
@@ -491,57 +490,7 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
         <div class="sec-head">
           <div>
             <h2>🩺 Atestados Médicos</h2>
-            <p>Selecione a turma, o bimestre ou pesquise pelo nome do aluno para registrar um atestado, ou importe uma planilha com os números de atestados para validar e atualizar sem duplicar.</p>
-          </div>
-          <button type="button" class="btn pri" id="bSalvarAteTopo">💾 Salvar Alterações de Atestados</button>
-        </div>
-
-        <!-- Importar Planilha / Lista de Atestados (sem duplicar + Relatório de Validação) -->
-        <div class="pdf-box" style="margin-bottom:18px">
-          <div style="flex:1;min-width:260px">
-            <b style="color:var(--navy);font-size:15px;display:block;margin-bottom:4px">📊 Importar e Validar Planilha de Atestados (Excel, CSV ou Copiar/Colar)</b>
-            <span style="font-size:12.5px;color:var(--muted);display:block;line-height:1.45">
-              Suba sua planilha (<b>.xlsx, .xls, .csv</b>) ou cole as colunas da planilha contendo <b>Nome do Aluno</b> e <b>Número de Atestados</b> (por bimestre ou do bimestre selecionado). O sistema compara com o que já está no site, <b>não duplica dados</b> e mostra abaixo tudo o que mudou (anterior × atual).
-            </span>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <select id="planAtBimPadrao" style="width:auto;min-width:190px;background:#fff;font-size:12.5px;padding:8px 10px" title="Usado caso a planilha tenha apenas 1 coluna de número de atestados sem especificar o bimestre">
-              <option value="auto" selected>📅 Detectar bimestre (ou usar 4º Bim.)</option>
-              <option value="1B">Aplicar no 1º Bimestre</option>
-              <option value="2B">Aplicar no 2º Bimestre</option>
-              <option value="3B">Aplicar no 3º Bimestre</option>
-              <option value="4B">Aplicar no 4º Bimestre</option>
-            </select>
-            <input type="file" id="inpPlanAt" accept=".xlsx,.xls,.csv,.txt,.tsv" class="hidden">
-            <button type="button" class="btn navy" id="bAnexarPlanAt">📎 Subir Planilha (.xlsx / .csv)</button>
-            <button type="button" class="btn out-dark" id="bAbrirColarPlanAt">📋 Colar da Planilha</button>
-          </div>
-          <div id="boxColarPlanAt" class="hidden" style="flex-basis:100%;margin-top:8px;background:#fff;padding:12px;border-radius:8px;border:1px solid var(--line)">
-            <label class="lbl" style="margin-bottom:6px">Copie as linhas da sua planilha (Ctrl+C) com Nome do Aluno e Nº de Atestados e cole abaixo (Ctrl+V):</label>
-            <textarea id="txtColarPlanAt" placeholder="Exemplo:&#10;ANA CLARA SILVA&#9;3&#10;BRUNO SOUZA SANTOS&#9;1" style="min-height:110px;font-family:'IBM Plex Mono',monospace;font-size:12.5px"></textarea>
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-              <button type="button" class="btn out-dark" id="bCancColarPlanAt">Fechar</button>
-              <button type="button" class="btn navy" id="bProcessarColarPlanAt">🔍 Validar Dados Colados</button>
-            </div>
-          </div>
-          <div id="planAtStatusBox" class="st hidden" style="flex-basis:100%;margin-top:4px;padding:10px 14px;border-radius:7px;background:#fff;border:1px solid var(--line)"></div>
-        </div>
-
-        <!-- Relatório de Validação da Planilha de Atestados (Antes x Depois) -->
-        <div id="boxValidacaoPlanAt" class="card hidden" style="border:2px solid var(--navy);background:#F8FAFE;margin-bottom:22px;padding:16px">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-            <div>
-              <h3 style="margin:0 0 3px;font-size:16.5px;color:var(--navy)" id="valAtTitulo">📊 Validação da Planilha de Atestados</h3>
-              <p style="margin:0;font-size:12.5px;color:var(--muted)" id="valAtSub">Confira abaixo o número de atestados anterior no site e o número atual lido da planilha (sem duplicar).</p>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <button type="button" class="btn pri" id="bSalvarValAt">💾 Confirmar e Salvar no Site</button>
-              <button type="button" class="btn out-dark" id="bFecharValAt" style="padding:7px 12px;font-size:12px">✕ Ocultar resumo</button>
-            </div>
-          </div>
-          <div class="kpis" id="valAtKpis" style="grid-template-columns:repeat(4,1fr);margin:10px 0 14px"></div>
-          <div class="twrap" style="max-height:42vh">
-            <table class="t-std" id="tabValidacaoPlanAt"></table>
+            <p>Selecione a turma, o bimestre ou pesquise pelo nome do aluno para registrar um atestado. Os dias letivos atualizam automaticamente os atestados do aluno no painel.</p>
           </div>
         </div>
 
@@ -1724,8 +1673,9 @@ function carregarTudo(){
 
     S.dados=novo; S.idx=idx; S.alKey=alKey; S.logRows=logRows;
 
-    /* Indexa os atestados já existentes na aba ATESTADOS da planilha sem duplicar */
+    /* Indexa os atestados já existentes na aba ATESTADOS da planilha e sincroniza contadores sem duplicar */
     var atPlan = {};
+    var somaDiasPlanPorAlBim = {};
     var mapaNomeAl = {};
     Object.keys(alKey).forEach(function(k){
       var al = alKey[k];
@@ -1734,6 +1684,7 @@ function carregarTudo(){
     });
     for(var ar = 1; ar < rawAtRows.length; ar++){
       var rAt = rawAtRows[ar] || [];
+      /* Suporta tanto linhas com ABA_ORIGEM na coluna 0 quanto colunas em posições variáveis */
       var trmAt = edNorm_(rAt[1]).replace(/\s+/g,'').toUpperCase();
       var bimRaw = edLow_(rAt[2]);
       var nmAt  = edNorm_(rAt[3]);
@@ -1741,6 +1692,15 @@ function carregarTudo(){
       var cidAt = edNorm_(rAt[5]);
       var diasAt = num(rAt[6]);
       var obsAt  = edNorm_(rAt[7]);
+      if(!/^\d+[º°]?[A-G]$/i.test(trmAt) && /^\d+[º°]?[A-G]$/i.test(edNorm_(rAt[0]).replace(/\s+/g,''))){
+        trmAt = edNorm_(rAt[0]).replace(/\s+/g,'').toUpperCase();
+        bimRaw = edLow_(rAt[1]);
+        nmAt  = edNorm_(rAt[2]);
+        perAt = fmt(edNorm_(rAt[3]));
+        cidAt = edNorm_(rAt[4]);
+        diasAt = num(rAt[5]);
+        obsAt  = edNorm_(rAt[6]);
+      }
       if(!nmAt || edLow_(nmAt) === 'aluno' || !/^\d+[º°]?[A-G]$/i.test(trmAt)) continue;
       if(!perAt && !cidAt && !diasAt) continue;
       var mB = bimRaw.match(/(\d)/);
@@ -1760,7 +1720,30 @@ function carregarTudo(){
         por: 'Planilha',
         em: 1700000000000 + ar
       };
+      if(kVinc && diasAt > 0){
+        var kb = kVinc + '|' + biAt;
+        somaDiasPlanPorAlBim[kb] = (somaDiasPlanPorAlBim[kb] || 0) + diasAt;
+      }
     }
+    /* Garante que o contador de atestados (ATE) de cada aluno tenha pelo menos a soma da aba ATESTADOS sem duplicar */
+    Object.keys(somaDiasPlanPorAlBim).forEach(function(kb){
+      var pts = kb.split('|');
+      var alRef = alKey[pts[0] + '|' + pts[1]];
+      var biRef = pts[2];
+      var somaPlan = somaDiasPlanPorAlBim[kb];
+      if(alRef && alRef.b && alRef.b[biRef]){
+        var bObj = alRef.b[biRef];
+        var ateAtual = num(bObj.ATE_cell ? bObj.ATE_cell.v : bObj.ATE);
+        if(ateAtual === 0 && somaPlan > 0){
+          bObj.ATE = somaPlan;
+          if(bObj.ATE_cell) bObj.ATE_cell.v = String(somaPlan);
+          var falAt = num(bObj.FAL_cell ? bObj.FAL_cell.v : bObj.FAL);
+          var injNovo = Math.max(falAt - somaPlan, 0);
+          bObj.INJ = injNovo;
+          if(bObj.INJ_cell) bObj.INJ_cell.v = String(injNovo);
+        }
+      }
+    });
     S.atestadosPlanilha = atPlan;
     var abas=ABAS.filter(function(a){return novo[a];});
     if(!abas.length){ falha('Não encontrei as abas dos anos iniciais no Firebase. Rode "sincronizar" na planilha.'); return; }
@@ -2095,9 +2078,6 @@ function renderFal(){
 function renderAte(){
   var podeAt = temPerm('atestados') || temPerm('faltas');
   if($('bAddAt')) $('bAddAt').disabled = !podeAt;
-  if($('bAnexarPlanAt')) $('bAnexarPlanAt').disabled = !podeAt;
-  if($('bAbrirColarPlanAt')) $('bAbrirColarPlanAt').disabled = !podeAt;
-  if(S.valPlanAt) renderRelatorioPlanAt();
   popularSelectAlunosAt();
   renderCompiladoAtestados();
 }
@@ -2884,275 +2864,6 @@ function renderRelatorioPdf(){
   '</tr></tfoot>';
 
   $('tabValidacaoPdf').innerHTML = head + '<tbody>' + rowsHtml + '</tbody>' + footHtml;
-}
-
-/* ===== Importador e Validador de Planilha de Atestados (Excel / CSV / Colar) sem duplicar ===== */
-function extrairAtestadosDeMatriz(rows, nomeOrigem){
-  var indices = construirIndicesAlunos();
-  var bimEsc = $('planAtBimPadrao') ? $('planAtBimPadrao').value : 'auto';
-  var biPadrao = (bimEsc && bimEsc !== 'auto') ? bimEsc : ($('atBim') ? $('atBim').value : '4B');
-  var turmaCtx = $('atTurma') ? $('atTurma').value : '';
-  var colMap = null;
-  var registros = {}; /* ak -> { al, bims: { '1B': num, ... } } */
-
-  for(var r = 0; r < rows.length; r++){
-    var row = (rows[r] || []).map(function(c){ return String(c == null ? '' : c).trim(); });
-    var rowJoin = row.join(' ');
-    if(!rowJoin) continue;
-
-    /* Detecta linha de cabeçalho se mencionar Turma/Bimestre/Atestado */
-    var lowJoin = low(rowJoin);
-    var mTrmRow = normTurmaPdf(rowJoin);
-    if(mTrmRow && row.filter(Boolean).length <= 3){
-      turmaCtx = mTrmRow;
-    }
-
-    if(/(\bnome\b|\baluno\b)/i.test(lowJoin) && /(\batest|\b1[º°b]|\b2[º°b]|\b3[º°b]|\b4[º°b]|\bdias|\bqtd|\bquant)/i.test(lowJoin)){
-      var cm = { nome: -1, turma: -1, b1: -1, b2: -1, b3: -1, b4: -1, ate: -1 };
-      for(var ci = 0; ci < row.length; ci++){
-        var hc = low(row[ci]);
-        if(cm.nome < 0 && /(aluno|nome|estudante)/.test(hc)) cm.nome = ci;
-        else if(cm.turma < 0 && /(turma|serie|ano)/.test(hc)) cm.turma = ci;
-        else if(/1\s*[º°]?\s*b/.test(hc)) cm.b1 = ci;
-        else if(/2\s*[º°]?\s*b/.test(hc)) cm.b2 = ci;
-        else if(/3\s*[º°]?\s*b/.test(hc)) cm.b3 = ci;
-        else if(/4\s*[º°]?\s*b/.test(hc)) cm.b4 = ci;
-        else if(cm.ate < 0 && /(atest|dias|qtd|quant|total|num)/.test(hc)) cm.ate = ci;
-      }
-      if(cm.nome >= 0) colMap = cm;
-      continue;
-    }
-
-    /* Tenta localizar o aluno na linha */
-    var alMatch = null;
-    var trmLinha = (colMap && colMap.turma >= 0 && row[colMap.turma]) ? normTurmaPdf(row[colMap.turma]) : (normTurmaPdf(rowJoin) || turmaCtx);
-
-    if(colMap && colMap.nome >= 0 && row[colMap.nome]){
-      alMatch = resolverAlunoDoPdf(row[colMap.nome], '', trmLinha, indices);
-    }
-    if(!alMatch){
-      /* Procura em cada célula qual tem nome de aluno válido */
-      for(var c = 0; c < row.length; c++){
-        var valC = row[c];
-        if(valC && valC.length >= 5 && /[A-Za-zÀ-ÿ]{3,}\s+[A-Za-zÀ-ÿ]{2,}/.test(valC)){
-          alMatch = resolverAlunoDoPdf(valC, '', trmLinha, indices);
-          if(alMatch) break;
-        }
-      }
-    }
-    if(!alMatch) continue;
-
-    var ak = alMatch.aba + '|' + alMatch.r;
-    if(!registros[ak]) registros[ak] = { al: alMatch, bims: {} };
-
-    /* Extrai números de atestados por bimestre ou coluna única */
-    if(colMap && (colMap.b1 >= 0 || colMap.b2 >= 0 || colMap.b3 >= 0 || colMap.b4 >= 0)){
-      if(colMap.b1 >= 0 && row[colMap.b1] !== '' && !isNaN(num(row[colMap.b1]))) registros[ak].bims['1B'] = num(row[colMap.b1]);
-      if(colMap.b2 >= 0 && row[colMap.b2] !== '' && !isNaN(num(row[colMap.b2]))) registros[ak].bims['2B'] = num(row[colMap.b2]);
-      if(colMap.b3 >= 0 && row[colMap.b3] !== '' && !isNaN(num(row[colMap.b3]))) registros[ak].bims['3B'] = num(row[colMap.b3]);
-      if(colMap.b4 >= 0 && row[colMap.b4] !== '' && !isNaN(num(row[colMap.b4]))) registros[ak].bims['4B'] = num(row[colMap.b4]);
-    } else if(colMap && colMap.ate >= 0 && row[colMap.ate] !== ''){
-      registros[ak].bims[biPadrao] = num(row[colMap.ate]);
-    } else {
-      /* Sem cabeçalho explícito: pega os números da linha que não sejam código de matrícula (>200) nem turma */
-      var nums = [];
-      for(var k = 0; k < row.length; k++){
-        var sVal = row[k].replace(/\s+/g,'');
-        if(/^\d{1,3}$/.test(sVal)){
-          var nVal = parseInt(sVal, 10);
-          if(nVal <= 180) nums.push(nVal);
-        }
-      }
-      if(nums.length === 4 || (nums.length === 5 && nums[0]+nums[1]+nums[2]+nums[3] === nums[4])){
-        registros[ak].bims['1B'] = nums[0];
-        registros[ak].bims['2B'] = nums[1];
-        registros[ak].bims['3B'] = nums[2];
-        registros[ak].bims['4B'] = nums[3];
-      } else if(nums.length >= 1){
-        registros[ak].bims[biPadrao] = nums[nums.length - 1];
-      }
-    }
-  }
-
-  aplicarEValidarPlanilhaAtestados(registros, nomeOrigem);
-}
-
-function aplicarEValidarPlanilhaAtestados(registros, nomeOrigem){
-  var box = $('planAtStatusBox');
-  box.classList.remove('hidden');
-  var chaves = Object.keys(registros);
-  if(!chaves.length){
-    box.style.color = 'var(--alert)';
-    box.innerHTML = '⚠️ Nenhum aluno correspondente foi encontrado na planilha enviada. Verifique se a planilha contém os nomes dos alunos e os números de atestados.';
-    return;
-  }
-
-  var itens = [];
-  var qtdMudou = 0, qtdIguais = 0;
-  var somaAnt = 0, somaAtu = 0;
-
-  chaves.forEach(function(ak){
-    var rec = registros[ak];
-    var al = rec.al;
-    var bimsLidos = Object.keys(rec.bims);
-    if(!bimsLidos.length) return;
-
-    var totAnt = 0, totAtu = 0;
-    var mudancas = [];
-
-    ['1B','2B','3B','4B'].forEach(function(bi){
-      var o = al.b[bi] || {};
-      var fId = fieldId(al, bi, 'FAL');
-      var aId = fieldId(al, bi, 'ATE');
-      var iId = fieldId(al, bi, 'INJ');
-
-      var antF = num(fId ? valorSalvo(fId) : o.FAL);
-      var antA = num(aId ? valorSalvo(aId) : o.ATE);
-      var temNovo = (bi in rec.bims) && rec.bims[bi] != null;
-      var atuA = temNovo ? num(rec.bims[bi]) : antA;
-      var atuI = Math.max(antF - atuA, 0);
-
-      totAnt += antA;
-      totAtu += atuA;
-
-      if(temNovo){
-        var mudouBim = (atuA !== antA);
-        if(aId){
-          if(mudouBim) setDraft(aId, String(atuA));
-          else delete S.draft[aId];
-        }
-        if(iId){
-          if(mudouBim) setDraft(iId, String(atuI));
-          else delete S.draft[iId];
-        }
-        if(mudouBim){
-          mudancas.push(bi.charAt(0)+'ºB: <b>'+antA+' ➔ '+atuA+'</b>');
-        }
-      }
-    });
-
-    var mudou = mudancas.length > 0;
-    if(mudou) qtdMudou++; else qtdIguais++;
-    somaAnt += totAnt;
-    somaAtu += totAtu;
-
-    itens.push({
-      alKey: ak,
-      turma: turmaDe(al),
-      nome: nomeDe(al),
-      totAnt: totAnt,
-      totAtu: totAtu,
-      dif: totAtu - totAnt,
-      mudou: mudou,
-      mudancas: mudancas
-    });
-  });
-
-  itens.sort(function(a,b){
-    return (b.mudou - a.mudou) || cmpTurma(a.turma, b.turma) || low(a.nome).localeCompare(low(b.nome));
-  });
-
-  S.valPlanAt = {
-    origem: nomeOrigem || 'Planilha de Atestados',
-    total: itens.length,
-    qtdMudou: qtdMudou,
-    qtdIguais: qtdIguais,
-    somaAnt: somaAnt,
-    somaAtu: somaAtu,
-    itens: itens
-  };
-
-  render();
-
-  box.style.color = 'var(--green)';
-  box.innerHTML = '✓ Planilha <b>'+esc(S.valPlanAt.origem)+'</b> validada sem duplicação! ' +
-    '<b>'+itens.length+'</b> alunos conferidos: <b>'+qtdMudou+'</b> com atualização no nº de atestados e <b>'+qtdIguais+'</b> já idênticos no site. ' +
-    'Clique em <b>"💾 Confirmar e Salvar no Site"</b> abaixo para gravar.';
-  toast(qtdMudou > 0 ? (qtdMudou + ' aluno(s) com atestados atualizados prontos para salvar!') : 'Todos os atestados da planilha já estavam idênticos no site!');
-}
-
-function renderRelatorioPlanAt(){
-  var vp = S.valPlanAt;
-  if(!vp || !$('boxValidacaoPlanAt')) return;
-  $('boxValidacaoPlanAt').classList.remove('hidden');
-  $('valAtTitulo').textContent = '📊 Validação de Atestados: ' + vp.origem;
-  var difG = vp.somaAtu - vp.somaAnt;
-  $('valAtKpis').innerHTML =
-    '<div class="kpi"><b>'+vp.total+'</b><span>Alunos localizados</span></div>'+
-    '<div class="kpi" style="border-color:#b8d4f0;background:#f0f7ff"><b style="color:var(--navy)">'+vp.qtdMudou+'</b><span>Com novo nº de atestados</span></div>'+
-    '<div class="kpi"><b style="color:var(--green)">'+vp.qtdIguais+'</b><span>Já idênticos (não duplicados)</span></div>'+
-    '<div class="kpi" style="border-color:var(--gold);background:#fffdf6"><b>'+vp.somaAnt+' ➔ '+vp.somaAtu+'</b><span>Total Atestados ('+(difG>=0?'+'+difG:difG)+')</span></div>';
-
-  var head = '<thead><tr>'+
-    '<th style="text-align:center">Turma</th>'+
-    '<th>Nome do Aluno</th>'+
-    '<th>Bimestres Atualizados</th>'+
-    '<th class="num">Atestados Anterior (Site)</th>'+
-    '<th class="num">Atestados Atual (Planilha)</th>'+
-    '<th style="text-align:center">Diferença</th>'+
-    '<th style="text-align:center">Status</th>'+
-  '</tr></thead>';
-
-  $('tabValidacaoPlanAt').innerHTML = head + '<tbody>' + vp.itens.map(function(it){
-    var det = it.mudou
-      ? it.mudancas.map(function(m){ return '<span class="tag dirty" style="margin:2px 3px 2px 0;display:inline-block">'+m+'</span>'; }).join('')
-      : '<span style="color:var(--muted);font-size:12px">Sem alteração (valor já igual)</span>';
-    var difB = it.dif > 0 ? '<span class="tag ok">+'+it.dif+'</span>' : (it.dif < 0 ? '<span class="tag d">'+it.dif+'</span>' : '<span class="tag">0</span>');
-    var st = it.mudou ? '<span class="tag dirty">🔄 Atualizado</span>' : '<span class="tag ok">✔ Já idêntico</span>';
-    return '<tr style="'+(it.mudou?'background:#FFFDF6':'')+'">'+
-      '<td class="mono" style="text-align:center;font-weight:700">'+esc(it.turma)+'</td>'+
-      '<td><span class="nmlink" data-ficha="'+esc(it.alKey)+'">'+esc(it.nome)+'</span></td>'+
-      '<td>'+det+'</td>'+
-      '<td class="num" style="color:var(--muted)">'+it.totAnt+'</td>'+
-      '<td class="num" style="font-weight:700;color:var(--green);font-size:14px">'+it.totAtu+'</td>'+
-      '<td style="text-align:center">'+difB+'</td>'+
-      '<td style="text-align:center">'+st+'</td>'+
-    '</tr>';
-  }).join('') + '</tbody>';
-}
-
-function processarArquivoPlanilhaAt(file){
-  if(!temPerm('atestados') && !temPerm('faltas')){ toast('Sem permissão para atualizar atestados.'); return; }
-  var box = $('planAtStatusBox');
-  box.classList.remove('hidden');
-  box.style.color = 'var(--navy)';
-  box.innerHTML = '⏳ Lendo planilha <b>"'+esc(file.name)+'"</b> e comparando com os atestados do site…';
-
-  var ext = (file.name.split('.').pop() || '').toLowerCase();
-  if(ext === 'csv' || ext === 'txt' || ext === 'tsv'){
-    file.text().then(function(txt){
-      var linhas = txt.split(/\r?\n/).map(function(l){
-        var sep = l.indexOf('\t') >= 0 ? '\t' : (l.indexOf(';') >= 0 ? ';' : ',');
-        return l.split(sep).map(function(c){ return c.replace(/^"|"$/g,'').trim(); });
-      });
-      extrairAtestadosDeMatriz(linhas, file.name);
-    }).catch(function(e){
-      box.style.color = 'var(--alert)';
-      box.textContent = 'Erro ao ler arquivo: ' + (e.message || e);
-    });
-    return;
-  }
-
-  if(!window.XLSX){
-    box.style.color = 'var(--alert)';
-    box.textContent = 'Biblioteca de leitura Excel ainda não carregou. Verifique sua conexão ou use a opção "📋 Colar da Planilha".';
-    return;
-  }
-
-  file.arrayBuffer().then(function(buf){
-    var wb = XLSX.read(buf, { type: 'array' });
-    var todasLinhas = [];
-    wb.SheetNames.forEach(function(sn){
-      if(/log\s*edic/i.test(sn)) return;
-      var sh = wb.Sheets[sn];
-      var arr = XLSX.utils.sheet_to_json(sh, { header: 1, defval: '' });
-      todasLinhas = todasLinhas.concat(arr);
-    });
-    extrairAtestadosDeMatriz(todasLinhas, file.name);
-  }).catch(function(e){
-    box.style.color = 'var(--alert)';
-    box.textContent = 'Erro ao ler planilha Excel: ' + (e.message || e);
-  });
 }
 
 /* ===== 2. Aba Gerenciar Alunos ===== */
@@ -4049,43 +3760,6 @@ $('inpPdfFal').onchange=function(ev){
 $('faTurma').onchange=function(){ S.faTurma=this.value; renderFal(); };
 $('faBim').onchange=function(){ S.faBim=this.value; renderFal(); };
 $('qFa').oninput=function(){ S.qFa=this.value; renderFal(); };
-if($('bSalvarAteTopo')) $('bSalvarAteTopo').onclick=function(){
-  if(!sujos().length){ toast('Não há alterações pendentes para salvar no momento.'); return; }
-  salvar();
-};
-if($('bSalvarValAt')) $('bSalvarValAt').onclick=function(){
-  if(!sujos().length){ toast('Todos os atestados desta planilha já estão salvos no site!'); return; }
-  salvar();
-};
-if($('bFecharValAt')) $('bFecharValAt').onclick=function(){
-  $('boxValidacaoPlanAt').classList.add('hidden');
-};
-if($('bAnexarPlanAt')) $('bAnexarPlanAt').onclick=function(){
-  if(!temPerm('atestados') && !temPerm('faltas')){ toast('Sem permissão para importar atestados.'); return; }
-  $('inpPlanAt').value = '';
-  $('inpPlanAt').click();
-};
-if($('inpPlanAt')) $('inpPlanAt').onchange=function(ev){
-  var f = ev.target.files && ev.target.files[0];
-  if(f) processarArquivoPlanilhaAt(f);
-};
-if($('bAbrirColarPlanAt')) $('bAbrirColarPlanAt').onclick=function(){
-  $('boxColarPlanAt').classList.toggle('hidden');
-  if(!$('boxColarPlanAt').classList.contains('hidden')) $('txtColarPlanAt').focus();
-};
-if($('bCancColarPlanAt')) $('bCancColarPlanAt').onclick=function(){
-  $('boxColarPlanAt').classList.add('hidden');
-};
-if($('bProcessarColarPlanAt')) $('bProcessarColarPlanAt').onclick=function(){
-  var txt = ($('txtColarPlanAt').value || '').trim();
-  if(!txt){ toast('Cole os dados da planilha na caixa de texto primeiro.'); return; }
-  var linhas = txt.split(/\r?\n/).map(function(l){
-    var sep = l.indexOf('\t') >= 0 ? '\t' : (l.indexOf(';') >= 0 ? ';' : ',');
-    return l.split(sep).map(function(c){ return c.trim(); });
-  });
-  extrairAtestadosDeMatriz(linhas, 'Dados colados da planilha');
-  $('boxColarPlanAt').classList.add('hidden');
-};
 $('atTurma').onchange=function(){ S.atTurma=this.value; popularSelectAlunosAt(); };
 if($('atBuscaAluno')) $('atBuscaAluno').oninput=function(){ popularSelectAlunosAt(); };
 if($('atAluno')) $('atAluno').onchange=function(){
