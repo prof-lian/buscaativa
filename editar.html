@@ -226,6 +226,15 @@ textarea.auto{overflow:hidden}
 .btn-hist:hover{background:#eef4fb;border-color:var(--navy3)}
 .btn-hist.del{color:var(--alert);border-color:#ebccd1;background:#fff8f9}
 .btn-hist.del:hover{background:#f9e2e6;border-color:var(--alert)}
+.hist-right{display:inline-flex;align-items:center;gap:12px}
+.pp-lbl{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--navy);font-weight:600}
+.pp-lbl select{padding:5px 9px;border:1px solid var(--line2);border-radius:7px;background:#fff;color:var(--navy);font:600 12.5px "IBM Plex Sans",sans-serif;cursor:pointer}
+.pager{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px;margin:16px 0 4px}
+.pg-btn{min-width:34px;height:34px;padding:0 9px;border-radius:8px;border:1px solid var(--line2);background:#fff;color:var(--navy);font:600 13px "IBM Plex Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.pg-btn:hover:not(:disabled){background:#eef4fb;border-color:var(--navy3)}
+.pg-btn.on{background:var(--navy);border-color:var(--navy);color:#fff;cursor:default}
+.pg-btn:disabled{opacity:.4;cursor:not-allowed}
+.pg-ell{min-width:20px;text-align:center;color:var(--muted);font-weight:600}
 .hist-edit-box{margin-top:10px;padding:10px 12px;background:#FFFDF6;border:1px solid var(--gold);border-radius:8px;display:grid;gap:8px}
 
 /* Perfil */
@@ -666,9 +675,19 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
         </div>
         <div class="hint">
           <span>Mostrando alterações da mais recente para a mais antiga. Você pode editar ou excluir qualquer registro.</span>
-          <b id="cntHist"></b>
+          <span class="hist-right">
+            <label class="pp-lbl">Por página:
+              <select id="histPerPage">
+                <option value="20">20</option>
+                <option value="30">30</option>
+                <option value="50">50</option>
+              </select>
+            </label>
+            <b id="cntHist"></b>
+          </span>
         </div>
         <div id="listaHist"></div>
+        <div id="histPager" class="pager"></div>
       </section>
 
       <!-- 6. MEU PERFIL -->
@@ -1007,7 +1026,7 @@ var S = {
   valPdf:null, valPdfFiltro:'mudou', valPdfTurma:'', valPdfBusca:'',
   aluAba:'', aluTurma:'', qAlu:'', fichaModoCad:false,
   qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
-  hQuem:'', hTurma:'', hCampo:'', qHist:'', logRows:[], sessaoHist:[], histDel:{}, histEditSig:'', mapaPerfis:{},
+  hQuem:'', hTurma:'', hCampo:'', qHist:'', histPage:1, histPerPage:20, logRows:[], sessaoHist:[], histDel:{}, histEditSig:'', mapaPerfis:{},
   permsAll:{}, adminsMap:{}, minhasPerms:{adm:false, dados_aluno:true, faltas:true, busca_ativa:true, devolutiva_familia:true, devolutiva_sae:true},
   perfil:{nome:'', cargo:'', foto:'', tel:''},
   draft:{}, fila:{}, conf:{}, erro:{}, ok:{}, user:null, geradoEm:null, salvando:false
@@ -3045,11 +3064,18 @@ function renderHist(){
     return true;
   });
   $('cntHist').textContent = list.length + ' registro(s)';
+  if($('histPerPage')) $('histPerPage').value = String(S.histPerPage);
   if(!list.length){
     $('listaHist').innerHTML='<div class="card vazio">Nenhuma alteração encontrada com esses filtros.</div>';
+    if($('histPager')) $('histPager').innerHTML='';
     return;
   }
-  $('listaHist').innerHTML = list.slice(0,200).map(function(r){
+  var perPage = S.histPerPage || 20;
+  var totalPg = Math.max(1, Math.ceil(list.length / perPage));
+  if(S.histPage > totalPg) S.histPage = totalPg;
+  if(S.histPage < 1) S.histPage = 1;
+  var ini = (S.histPage - 1) * perPage;
+  $('listaHist').innerHTML = list.slice(ini, ini + perPage).map(function(r){
     var dt = r.quando;
     try{
       var d = new Date(r.quando);
@@ -3086,6 +3112,40 @@ function renderHist(){
       boxEdit+
     '</div>';
   }).join('');
+  renderHistPager(totalPg);
+}
+
+function renderHistPager(totalPg){
+  var box = $('histPager'); if(!box) return;
+  if(totalPg <= 1){ box.innerHTML=''; return; }
+  var pg = S.histPage;
+  var h = [];
+  var btn = function(label, page, opts){
+    opts = opts || {};
+    if(opts.ell) return '<span class="pg-ell">…</span>';
+    var dis = opts.disabled ? ' disabled' : '';
+    var on = opts.on ? ' on' : '';
+    var title = opts.title ? ' title="'+opts.title+'"' : '';
+    return '<button type="button" class="pg-btn'+on+'" data-hist-page="'+page+'"'+dis+title+'>'+label+'</button>';
+  };
+  h.push(btn('&laquo;', 1, {disabled:pg<=1, title:'Primeira página'}));
+  h.push(btn('&lsaquo;', pg-1, {disabled:pg<=1, title:'Página anterior'}));
+
+  /* Janela de números de página com reticências */
+  var nums = [];
+  var win = 1; /* páginas de cada lado da atual */
+  for(var i=1;i<=totalPg;i++){
+    if(i===1 || i===totalPg || (i>=pg-win && i<=pg+win)) nums.push(i);
+    else if(nums[nums.length-1] !== '...') nums.push('...');
+  }
+  nums.forEach(function(n){
+    if(n==='...') h.push(btn('', 0, {ell:true}));
+    else h.push(btn(String(n), n, {on:n===pg}));
+  });
+
+  h.push(btn('&rsaquo;', pg+1, {disabled:pg>=totalPg, title:'Próxima página'}));
+  h.push(btn('&raquo;', totalPg, {disabled:pg>=totalPg, title:'Última página'}));
+  box.innerHTML = h.join('');
 }
 
 /* ===== Ficha Completa do Aluno (1º ao 4º Bimestre + Dados Cadastrais e Turma) ===== */
@@ -3710,6 +3770,16 @@ document.addEventListener('click',function(e){
     salvarEdicaoItemHist(sigSv, valNovo);
     return;
   }
+  var hp=e.target.closest('[data-hist-page]');
+  if(hp){
+    var np = parseInt(hp.getAttribute('data-hist-page'),10);
+    if(np && np!==S.histPage){
+      S.histPage = np;
+      renderHist();
+      var sec=$('listaHist'); if(sec && sec.scrollIntoView) sec.scrollIntoView({block:'start',behavior:'smooth'});
+    }
+    return;
+  }
   var hd=e.target.closest('[data-hist-del]');
   if(hd){
     excluirItemHist(hd.getAttribute('data-hist-del'));
@@ -3902,10 +3972,11 @@ $('qSit').oninput=function(){ S.qSit=this.value; render(); };
 $('saeAno').onchange=function(){ S.saeAno=this.value; render(); };
 $('saeBim').onchange=function(){ S.saeBim=this.value; render(); };
 $('qSae').oninput=function(){ S.qSae=this.value; render(); };
-$('hQuem').onchange=function(){ S.hQuem=this.value; renderHist(); };
-$('hTurma').onchange=function(){ S.hTurma=this.value; renderHist(); };
-$('hCampo').onchange=function(){ S.hCampo=this.value; renderHist(); };
-$('qHist').oninput=function(){ S.qHist=this.value; renderHist(); };
+$('hQuem').onchange=function(){ S.hQuem=this.value; S.histPage=1; renderHist(); };
+$('hTurma').onchange=function(){ S.hTurma=this.value; S.histPage=1; renderHist(); };
+$('hCampo').onchange=function(){ S.hCampo=this.value; S.histPage=1; renderHist(); };
+$('qHist').oninput=function(){ S.qHist=this.value; S.histPage=1; renderHist(); };
+$('histPerPage').onchange=function(){ S.histPerPage=parseInt(this.value,10)||20; S.histPage=1; renderHist(); };
 $('bDesc').onclick=function(){ if(!confirm('Descartar todas as alterações não salvas?')) return; S.draft={}; S.conf={}; S.erro={}; render(); };
 $('bSalvar').onclick=salvar;
 window.addEventListener('beforeunload',function(e){ if(sujos().length){ e.preventDefault(); e.returnValue=''; } });
