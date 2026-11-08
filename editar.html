@@ -1057,6 +1057,19 @@ function num(v){ var f=parseFloat(String(v==null?'':v).replace(',','.')); return
 function bimNum(b){ return b ? b.charAt(0)+'º bim.' : 'Geral'; }
 
 /* ===== Perfil do Usuário (Foto, Nome, Cargo) e Formatação de Nome ===== */
+/* Extrai o identificador de quem editou olhando todos os campos possíveis,
+   pois fontes diferentes (admin, secretaria, logs antigos) gravam em chaves distintas */
+function editorBruto(r){
+  if(!r) return '';
+  var cand = [r.quem, r.por, r.autor, r.editor, r.usuario, r.user, r.nomeEditor, r.email, r.e_mail];
+  for(var i=0;i<cand.length;i++){
+    var v = String(cand[i]==null?'':cand[i]).trim();
+    if(v && v !== 'Planilha' && v.toLowerCase() !== 'equipe') return v;
+  }
+  /* se só houver "Planilha"/"Equipe", devolve o primeiro preenchido para não perder a origem */
+  for(var j=0;j<cand.length;j++){ var w=String(cand[j]==null?'':cand[j]).trim(); if(w) return w; }
+  return '';
+}
 function nomeEditor(raw){
   var s = String(raw||'').trim();
   if(!s) return 'Equipe';
@@ -3022,7 +3035,7 @@ function montarFiltrosHist(){
   var all = todosRegistrosHist();
   var quems={}, turmas={}, campos={};
   all.forEach(function(r){
-    var nmQ = nomeEditor(r.quem);
+    var nmQ = nomeEditor(editorBruto(r));
     if(nmQ) quems[nmQ]=1;
     if(r.turma) turmas[r.turma]=1;
     if(r.campo) campos[r.campo]=1;
@@ -3053,7 +3066,7 @@ function renderHist(){
   all.forEach(function(r){ S.histMap[r._sig] = r; });
   var q = low(S.qHist);
   var list = all.filter(function(r){
-    var nmEditor = nomeEditor(r.quem);
+    var nmEditor = nomeEditor(editorBruto(r));
     if(S.hQuem && nmEditor !== S.hQuem) return false;
     if(S.hTurma && r.turma !== S.hTurma) return false;
     if(S.hCampo && r.campo !== S.hCampo) return false;
@@ -3081,7 +3094,7 @@ function renderHist(){
       var d = new Date(r.quando);
       if(!isNaN(d.getTime())) dt = d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
     }catch(_){}
-    var nmEditor = nomeEditor(r.quem);
+    var nmEditor = nomeEditor(editorBruto(r));
     var editando = (S.histEditSig === r._sig);
     var boxEdit = editando
       ? '<div class="hist-edit-box">'+
@@ -3541,7 +3554,7 @@ function salvarEdicaoItemHist(sig, novoTexto){
   if(!r) return;
   var atualizado = {
     quando: r.quando,
-    quem: nomeEditor(r.quem),
+    quem: nomeEditor(editorBruto(r)),
     aba: r.aba||'',
     turma: r.turma||'',
     aluno: r.aluno||'',
@@ -3994,7 +4007,7 @@ $('bExportHist').onclick=function(){
   var csv = ['Data_Hora;Editor;Aba;Turma;Aluno;Campo;Bimestre;Celula;Valor_Anterior;Novo_Valor'];
   all.forEach(function(r){
     var escCsv = function(s){ return '"' + String(s==null?'':s).replace(/"/g,'""').replace(/\r?\n/g,' ') + '"'; };
-    csv.push([r.quando, nomeEditor(r.quem), r.aba, r.turma, r.aluno, r.campo, r.bim, r.celula, r.antes, r.depois].map(escCsv).join(';'));
+    csv.push([r.quando, nomeEditor(editorBruto(r)), r.aba, r.turma, r.aluno, r.campo, r.bim, r.celula, r.antes, r.depois].map(escCsv).join(';'));
   });
   var blob = new Blob(['\uFEFF'+csv.join('\r\n')], {type:'text/csv;charset=utf-8;'});
   var a = document.createElement('a');
