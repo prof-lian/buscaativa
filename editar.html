@@ -235,6 +235,10 @@ textarea.auto{overflow:hidden}
 .pg-btn.on{background:var(--navy);border-color:var(--navy);color:#fff;cursor:default}
 .pg-btn:disabled{opacity:.4;cursor:not-allowed}
 .pg-ell{min-width:20px;text-align:center;color:var(--muted);font-weight:600}
+.at-anos{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:-2px 0 12px;padding:9px 12px;background:#F7FAFD;border:1px solid var(--line2);border-radius:9px}
+.at-anos-lbl{font-size:12.5px;font-weight:700;color:var(--navy);margin-right:2px}
+.at-anos label{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer;user-select:none}
+.at-anos input{cursor:pointer;accent-color:var(--navy)}
 .hist-edit-box{margin-top:10px;padding:10px 12px;background:#FFFDF6;border:1px solid var(--gold);border-radius:8px;display:grid;gap:8px}
 
 /* Perfil */
@@ -570,6 +574,18 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
             <option value="4B">4º bimestre</option>
           </select></div>
           <div><label for="qAt">Pesquisar nos atestados enviados</label><input id="qAt" type="search" name="filtro_at_busca" autocomplete="off" placeholder="Digite nome do aluno, CID, período ou observação…"></div>
+        </div>
+        <div class="at-anos" id="atAnosBox">
+          <span class="at-anos-lbl">Anos:</span>
+          <label><input type="checkbox" class="chkAno" value="1" checked> 1º</label>
+          <label><input type="checkbox" class="chkAno" value="2" checked> 2º</label>
+          <label><input type="checkbox" class="chkAno" value="3" checked> 3º</label>
+          <label><input type="checkbox" class="chkAno" value="4" checked> 4º</label>
+          <label><input type="checkbox" class="chkAno" value="5" checked> 5º</label>
+          <label><input type="checkbox" class="chkAno" value="6"> 6º</label>
+          <label><input type="checkbox" class="chkAno" value="7"> 7º</label>
+          <label><input type="checkbox" class="chkAno" value="8"> 8º</label>
+          <label><input type="checkbox" class="chkAno" value="9"> 9º</label>
         </div>
         <div class="twrap" style="max-height:54vh">
           <table class="t-std" id="tabAtestados"></table>
@@ -1014,6 +1030,20 @@ function edMapaAba_(V) {
 
 var ANO_LBL = {'PRIMEIROS':'1º ano','SEGUNDOS':'2º ano','TERCEIROS':'3º ano','QUARTOS':'4º ano','QUINTOS TARDE':'5º ano'};
 var BIM_LBL = {'1B':'1º bimestre','2B':'2º bimestre','3B':'3º bimestre','4B':'4º bimestre'};
+/* Bimestre atual pelo mês corrente (ano letivo) */
+function bimestreAtual(){
+  var m = new Date().getMonth()+1;
+  if(m>=2 && m<=4) return '1B';
+  if(m>=5 && m<=7) return '2B';
+  if(m>=8 && m<=9) return '3B';
+  if(m>=10 && m<=12) return '4B';
+  return '1B';
+}
+/* Extrai o número do ano a partir da turma (ex.: "1ºA" -> 1, "6ºB" -> 6) */
+function anoDaTurma(trm){
+  var m = /^\s*(\d{1,2})/.exec(String(trm||''));
+  return m ? parseInt(m[1],10) : 0;
+}
 var CAMPO_LBL = {
   BIL:'Bilhete', BUS:'Busca ativa', SAE:'Encaminhado à SAE', RET:'Retorno da SAE', DEV:'Devolutiva da família',
   SIT:'Situação', NOME:'Nome do aluno', COD:'Código', MATRIC:'Data de matrícula', RECLASS:'Observações / Reclassificação',
@@ -1022,7 +1052,7 @@ var CAMPO_LBL = {
 
 var S = {
   dados:{}, idx:{}, tab:'dev', aba:'', turma:'', bim:'', q:'', alFiltro:'todos', ordCol:'faltas', ordDir:-1,
-  faTurma:'', faBim:'4B', qFa:'', atTurma:'', atBim:'4B', fltAtTurma:'', fltAtBim:'', qAt:'', atestados:{}, atestadosPlanilha:{},
+  faTurma:'', faBim:'4B', qFa:'', atTurma:'', atBim:'4B', fltAtTurma:'', fltAtBim:bimestreAtual(), atAnos:{1:true,2:true,3:true,4:true,5:true,6:false,7:false,8:false,9:false}, qAt:'', atestados:{}, atestadosPlanilha:{},
   valPdf:null, valPdfFiltro:'mudou', valPdfTurma:'', valPdfBusca:'',
   aluAba:'', aluTurma:'', qAlu:'', fichaModoCad:false,
   qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
@@ -2114,14 +2144,24 @@ function renderAte(){
   renderCompiladoAtestados();
 }
 
+/* Mantém os checkboxes de ano (1º a 9º) coerentes com S.atAnos */
+function sincAtAnosCheckboxes(){
+  var cbs = document.querySelectorAll('.chkAno');
+  Array.prototype.forEach.call(cbs, function(cb){
+    cb.checked = !!(S.atAnos && S.atAnos[parseInt(cb.value,10)]);
+  });
+}
 function renderCompiladoAtestados(){
   var podeAt = temPerm('atestados') || temPerm('faltas');
   var disAttr = podeAt ? '' : ' disabled';
+  if($('fltAtBim') && $('fltAtBim').value !== S.fltAtBim) $('fltAtBim').value = S.fltAtBim;
+  sincAtAnosCheckboxes();
   var all = atestadosLista();
   var q = low(S.qAt);
   var filtrados = all.filter(function(r){
     if(S.fltAtTurma && r.turma !== S.fltAtTurma) return false;
     if(S.fltAtBim && r.bim !== S.fltAtBim) return false;
+    if(S.atAnos){ var an = anoDaTurma(r.turma); if(an && !S.atAnos[an]) return false; }
     if(q){
       var txt = low((r.aluno||'')+' '+(r.turma||'')+' '+(r.periodo||'')+' '+(r.cid||'')+' '+(r.obs||''));
       if(txt.indexOf(q) < 0) return false;
@@ -2150,7 +2190,11 @@ function renderCompiladoAtestados(){
   }
 
   $('tabAtestados').innerHTML = head + '<tbody>' + filtrados.slice(0, 400).map(function(r){
-    var dt = (r.em && r.em > 1710000000000) ? new Date(r.em).toLocaleDateString('pt-BR') : '';
+    var ehPlan = (r.por === 'Planilha');
+    var dt = ehPlan
+      ? (S.geradoEm ? new Date(S.geradoEm).toLocaleDateString('pt-BR') : '')
+      : ((r.em && r.em > 1710000000000) ? new Date(r.em).toLocaleDateString('pt-BR') : '');
+    var titImp = ehPlan && dt ? ' title="Importado da planilha na última sincronização ('+esc(dt)+')"' : '';
     return '<tr>'+
       '<td class="mono" style="text-align:center;font-weight:700">'+esc(r.turma||'—')+'</td>'+
       '<td>'+(r.alunoKey ? '<span class="nmlink" data-ficha="'+esc(r.alunoKey)+'">'+esc(r.aluno||'—')+'</span>' : esc(r.aluno||'—'))+'</td>'+
@@ -2159,7 +2203,7 @@ function renderCompiladoAtestados(){
       '<td class="mono" style="text-align:center"><span class="tag d">'+esc(r.cid||'—')+'</span></td>'+
       '<td class="num" style="font-weight:700;color:var(--green)">'+num(r.dias)+'</td>'+
       '<td>'+esc(r.obs||'—')+'</td>'+
-      '<td style="font-size:12px;color:var(--muted)">'+esc(nomeEditor(r.por||''))+(dt?' · '+esc(dt):'')+'</td>'+
+      '<td style="font-size:12px;color:var(--muted)"'+titImp+'>'+esc(nomeEditor(r.por||''))+(dt?' · '+esc(dt):'')+'</td>'+
       '<td style="text-align:right;white-space:nowrap">'+
         '<button type="button" class="btn-hist" data-at-edit="'+esc(r.id)+'"'+disAttr+'>✏️ Editar</button> '+
         '<button type="button" class="btn-hist del" data-at-del="'+esc(r.id)+'"'+disAttr+'>🗑️ Excluir</button>'+
@@ -3854,6 +3898,13 @@ if($('atAluno')) $('atAluno').onchange=function(){
 };
 $('fltAtTurma').onchange=function(){ S.fltAtTurma=this.value; renderCompiladoAtestados(); };
 $('fltAtBim').onchange=function(){ S.fltAtBim=this.value; renderCompiladoAtestados(); };
+Array.prototype.forEach.call(document.querySelectorAll('.chkAno'), function(cb){
+  cb.addEventListener('change', function(){
+    S.atAnos = S.atAnos || {};
+    S.atAnos[parseInt(cb.value,10)] = cb.checked;
+    renderCompiladoAtestados();
+  });
+});
 $('qAt').oninput=function(){ S.qAt=this.value; renderCompiladoAtestados(); };
 
 $('bCancAt').onclick=function(){
