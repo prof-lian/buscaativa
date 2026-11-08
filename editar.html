@@ -239,6 +239,13 @@ textarea.auto{overflow:hidden}
 .at-anos-lbl{font-size:12.5px;font-weight:700;color:var(--navy);margin-right:2px}
 .at-anos label{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer;user-select:none}
 .at-anos input{cursor:pointer;accent-color:var(--navy)}
+.collapse-box{border:1px solid var(--line2);border-radius:11px;overflow:hidden;background:#fff}
+.collapse-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;background:#F2F7FC;border:0;cursor:pointer;font:700 14.5px "IBM Plex Sans",sans-serif;color:var(--navy);transition:background .15s}
+.collapse-head:hover{background:#E9F1FA}
+.collapse-head[aria-expanded="true"]{border-bottom:1px solid var(--line2)}
+.collapse-chevron{font-size:16px;transition:transform .2s;color:var(--navy3)}
+.collapse-head[aria-expanded="true"] .collapse-chevron{transform:rotate(180deg)}
+.collapse-body{padding:18px}
 .hist-edit-box{margin-top:10px;padding:10px 12px;background:#FFFDF6;border:1px solid var(--gold);border-radius:8px;display:grid;gap:8px}
 
 /* Perfil */
@@ -556,6 +563,85 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
               </div>
             </div>
           </form>
+        </div>
+
+        <!-- Área recolhível: Declarações (Bolsa Família) -->
+        <div class="collapse-box" style="margin-bottom:22px">
+          <button type="button" class="collapse-head" id="dclToggle" aria-expanded="false">
+            <span>📄 Declarações (Bolsa Família)</span>
+            <span class="collapse-chevron" id="dclChevron">▾</span>
+          </button>
+          <div class="collapse-body hidden" id="dclBody">
+            <div class="card" style="background:#FAFBFD;border-color:var(--line);margin:0 0 18px;padding:18px">
+              <form id="fDeclaracao" autocomplete="off">
+                <input type="hidden" id="dclEditId" value="">
+                <div class="ctrls" style="grid-template-columns:1fr 1fr 1.6fr 2fr;margin-bottom:12px">
+                  <div>
+                    <label for="dclTurma">1. Turma</label>
+                    <select id="dclTurma"></select>
+                  </div>
+                  <div>
+                    <label for="dclBim">2. Bimestre</label>
+                    <select id="dclBim">
+                      <option value="1B">1º bimestre</option>
+                      <option value="2B">2º bimestre</option>
+                      <option value="3B">3º bimestre</option>
+                      <option value="4B" selected>4º bimestre</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="dclBuscaAluno">3. Pesquisar pelo nome</label>
+                    <input type="search" id="dclBuscaAluno" placeholder="Digite para encontrar o aluno…">
+                  </div>
+                  <div>
+                    <label for="dclAluno">4. Selecionar Aluno</label>
+                    <select id="dclAluno" required></select>
+                  </div>
+                </div>
+                <div class="ctrls" style="grid-template-columns:1.4fr .8fr .8fr 2.2fr auto;align-items:end;margin-bottom:0">
+                  <div>
+                    <label for="dclPeriodo">Período da Declaração</label>
+                    <input type="text" id="dclPeriodo" placeholder="Ex.: 10/10/2026 a 12/10/2026" required>
+                  </div>
+                  <div>
+                    <label for="dclCid">CID</label>
+                    <input type="text" id="dclCid" placeholder="Ex.: J00 / A09">
+                  </div>
+                  <div>
+                    <label for="dclDias">Dias Letivos</label>
+                    <input type="number" id="dclDias" min="1" max="180" value="1" required>
+                  </div>
+                  <div>
+                    <label for="dclObs">Observação (opcional)</label>
+                    <input type="text" id="dclObs" placeholder="Unidade de saúde, entregue por…">
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <button type="button" class="btn out-dark hidden" id="bCancDcl">Cancelar</button>
+                    <button type="submit" class="btn navy" id="bAddDcl">+ Salvar Declaração</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <div class="sec" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+              <span>📋 Últimas Declarações Enviadas</span>
+              <b id="cntDcl" style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:var(--navy)"></b>
+            </div>
+            <div class="ctrls" style="grid-template-columns:1fr 1fr 2.2fr;margin-bottom:12px">
+              <div><label for="fltDclTurma">Filtrar por Turma</label><select id="fltDclTurma"><option value="">Todas as turmas</option></select></div>
+              <div><label for="fltDclBim">Filtrar por Bimestre</label><select id="fltDclBim">
+                <option value="">Todos os bimestres</option>
+                <option value="1B">1º bimestre</option>
+                <option value="2B">2º bimestre</option>
+                <option value="3B">3º bimestre</option>
+                <option value="4B">4º bimestre</option>
+              </select></div>
+              <div><label for="qDcl">Pesquisar nas declarações enviadas</label><input id="qDcl" type="search" autocomplete="off" placeholder="Digite nome do aluno, CID, período ou observação…"></div>
+            </div>
+            <div class="twrap" style="max-height:48vh">
+              <table class="t-std" id="tabDeclaracoes"></table>
+            </div>
+          </div>
         </div>
 
         <!-- Lista dos Últimos Atestados Enviados com Filtro Clean -->
@@ -1053,6 +1139,7 @@ var CAMPO_LBL = {
 var S = {
   dados:{}, idx:{}, tab:'dev', aba:'', turma:'', bim:'', q:'', alFiltro:'todos', ordCol:'faltas', ordDir:-1,
   faTurma:'', faBim:'4B', qFa:'', atTurma:'', atBim:'4B', fltAtTurma:'', fltAtBim:bimestreAtual(), atAnos:{1:true,2:true,3:true,4:true,5:true,6:false,7:false,8:false,9:false}, qAt:'', atestados:{}, atestadosPlanilha:{},
+  declaracoes:{}, dclTurma:'', fltDclTurma:'', fltDclBim:bimestreAtual(), qDcl:'',
   valPdf:null, valPdfFiltro:'mudou', valPdfTurma:'', valPdfBusca:'',
   aluAba:'', aluTurma:'', qAlu:'', fichaModoCad:false,
   qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
@@ -1596,6 +1683,10 @@ function ouvirPlanilha(){
     if(S.tab==='fal') renderFal();
     if(S.tab==='ate') renderAte();
   },function(){});
+  db.ref('declaracoes_bolsa_familia').on('value',function(s){
+    S.declaracoes = s.val() || {};
+    if(S.tab==='ate') renderDeclaracoes();
+  },function(){});
   /* Perfis de editores para exibir sempre o nome em vez do e-mail */
   db.ref('perfis').on('value',function(s){
     S.mapaPerfis = s.val() || {};
@@ -1885,6 +1976,15 @@ function montarFiltrosFal(){
   $('fltAtTurma').innerHTML = '<option value="">Todas as turmas</option>' + allT.map(function(t){ return '<option value="'+esc(t)+'">'+esc(t)+'</option>'; }).join('');
   $('fltAtTurma').value = S.fltAtTurma;
   popularSelectAlunosAt();
+  if($('dclTurma')){
+    $('dclTurma').innerHTML = '<option value="">Todas as turmas</option>' + allT.map(function(t){ return '<option value="'+esc(t)+'">'+esc(t)+'</option>'; }).join('');
+    $('dclTurma').value = S.dclTurma || '';
+  }
+  if($('fltDclTurma')){
+    $('fltDclTurma').innerHTML = '<option value="">Todas as turmas</option>' + allT.map(function(t){ return '<option value="'+esc(t)+'">'+esc(t)+'</option>'; }).join('');
+    $('fltDclTurma').value = S.fltDclTurma;
+  }
+  popularSelectAlunosDcl();
 }
 
 function popularSelectAlunosAt(manterVal){
@@ -2140,8 +2240,11 @@ function renderFal(){
 function renderAte(){
   var podeAt = temPerm('atestados') || temPerm('faltas');
   if($('bAddAt')) $('bAddAt').disabled = !podeAt;
+  if($('bAddDcl')) $('bAddDcl').disabled = !podeAt;
   popularSelectAlunosAt();
   renderCompiladoAtestados();
+  popularSelectAlunosDcl();
+  renderDeclaracoes();
 }
 
 /* Mantém os checkboxes de ano (1º a 9º) coerentes com S.atAnos */
@@ -2207,6 +2310,93 @@ function renderCompiladoAtestados(){
       '<td style="text-align:right;white-space:nowrap">'+
         '<button type="button" class="btn-hist" data-at-edit="'+esc(r.id)+'"'+disAttr+'>✏️ Editar</button> '+
         '<button type="button" class="btn-hist del" data-at-del="'+esc(r.id)+'"'+disAttr+'>🗑️ Excluir</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('') + '</tbody>';
+}
+
+/* ===== Declarações (Bolsa Família) — espelha os campos do atestado, em registro próprio ===== */
+function popularSelectAlunosDcl(manterVal){
+  if(!$('dclAluno')) return;
+  var selVal = manterVal || $('dclAluno').value;
+  var trm = $('dclTurma') ? $('dclTurma').value : '';
+  var qBusca = low($('dclBuscaAluno') ? $('dclBuscaAluno').value : '');
+  var alus = todosAlunos().filter(function(al){
+    if(trm && turmaDe(al) !== trm) return false;
+    if(qBusca && low(nomeDe(al)).indexOf(qBusca) < 0 && low(turmaDe(al)).indexOf(qBusca) < 0 && low(codDe(al)).indexOf(qBusca) < 0) return false;
+    return true;
+  });
+  alus.sort(function(a,b){ return cmpTurma(turmaDe(a),turmaDe(b)) || low(nomeDe(a)).localeCompare(low(nomeDe(b))); });
+  $('dclAluno').innerHTML = '<option value="">'+(alus.length ? 'Selecione o aluno ('+alus.length+')…' : 'Nenhum aluno encontrado…')+'</option>' + alus.map(function(al){
+    var k = al.aba + '|' + al.r;
+    return '<option value="'+esc(k)+'">'+esc(nomeDe(al))+' — '+esc(turmaDe(al))+'</option>';
+  }).join('');
+  if(selVal && alus.some(function(al){ return (al.aba+'|'+al.r)===selVal; })){
+    $('dclAluno').value = selVal;
+  } else if(qBusca && alus.length === 1){
+    $('dclAluno').value = alus[0].aba + '|' + alus[0].r;
+  }
+}
+
+function declaracoesLista(){
+  var m = S.declaracoes || {};
+  var lista = [];
+  Object.keys(m).forEach(function(k){
+    var r = m[k];
+    if(!r || !r.aluno || r._excluido) return;
+    lista.push(Object.assign({ id: k }, r));
+  });
+  return lista.sort(function(a,b){ return (b.em||0) - (a.em||0); });
+}
+
+function renderDeclaracoes(){
+  if(!$('tabDeclaracoes')) return;
+  var podeDcl = temPerm('atestados') || temPerm('faltas');
+  var disAttr = podeDcl ? '' : ' disabled';
+  if($('fltDclBim') && $('fltDclBim').value !== S.fltDclBim) $('fltDclBim').value = S.fltDclBim;
+  var q = low(S.qDcl);
+  var filtrados = declaracoesLista().filter(function(r){
+    if(S.fltDclTurma && r.turma !== S.fltDclTurma) return false;
+    if(S.fltDclBim && r.bim !== S.fltDclBim) return false;
+    if(q){
+      var txt = low((r.aluno||'')+' '+(r.turma||'')+' '+(r.periodo||'')+' '+(r.cid||'')+' '+(r.obs||''));
+      if(txt.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+  var totDias = filtrados.reduce(function(acc, r){ return acc + num(r.dias); }, 0);
+  $('cntDcl').textContent = filtrados.length + ' declaração(ões) · ' + totDias + ' dia(s) letivo(s)';
+
+  var head = '<thead><tr>'+
+    '<th style="text-align:center">Turma</th>'+
+    '<th>Aluno</th>'+
+    '<th style="text-align:center">Bimestre</th>'+
+    '<th>Período da Declaração</th>'+
+    '<th style="text-align:center">CID</th>'+
+    '<th class="num">Dias Letivos</th>'+
+    '<th>OBS</th>'+
+    '<th>Registrado por</th>'+
+    '<th style="text-align:right">Ações</th>'+
+  '</tr></thead>';
+
+  if(!filtrados.length){
+    $('tabDeclaracoes').innerHTML = head + '<tbody><tr><td colspan="9" class="vazio">Nenhuma declaração registrada com esses filtros.</td></tr></tbody>';
+    return;
+  }
+  $('tabDeclaracoes').innerHTML = head + '<tbody>' + filtrados.slice(0, 400).map(function(r){
+    var dt = (r.em && r.em > 1710000000000) ? new Date(r.em).toLocaleDateString('pt-BR') : '';
+    return '<tr>'+
+      '<td class="mono" style="text-align:center;font-weight:700">'+esc(r.turma||'—')+'</td>'+
+      '<td>'+(r.alunoKey ? '<span class="nmlink" data-ficha="'+esc(r.alunoKey)+'">'+esc(r.aluno||'—')+'</span>' : esc(r.aluno||'—'))+'</td>'+
+      '<td style="text-align:center"><span class="tag">'+esc(BIM_LBL[r.bim]||r.bim||'—')+'</span></td>'+
+      '<td class="mono" style="font-weight:600">'+esc(r.periodo||'—')+'</td>'+
+      '<td class="mono" style="text-align:center"><span class="tag d">'+esc(r.cid||'—')+'</span></td>'+
+      '<td class="num" style="font-weight:700;color:var(--green)">'+num(r.dias)+'</td>'+
+      '<td>'+esc(r.obs||'—')+'</td>'+
+      '<td style="font-size:12px;color:var(--muted)">'+esc(nomeEditor(r.por||''))+(dt?' · '+esc(dt):'')+'</td>'+
+      '<td style="text-align:right;white-space:nowrap">'+
+        '<button type="button" class="btn-hist" data-dcl-edit="'+esc(r.id)+'"'+disAttr+'>✏️ Editar</button> '+
+        '<button type="button" class="btn-hist del" data-dcl-del="'+esc(r.id)+'"'+disAttr+'>🗑️ Excluir</button>'+
       '</td>'+
     '</tr>';
   }).join('') + '</tbody>';
@@ -3810,6 +4000,46 @@ document.addEventListener('click',function(e){
     return;
   }
 
+  /* Editar Declaração (Bolsa Família) */
+  var dce = e.target.closest('[data-dcl-edit]');
+  if(dce){
+    if(!temPerm('atestados') && !temPerm('faltas')){ toast('Sem permissão para editar declarações.'); return; }
+    var idDc = dce.getAttribute('data-dcl-edit');
+    var regDc = S.declaracoes && S.declaracoes[idDc];
+    if(!regDc) return;
+    if($('dclBody') && $('dclBody').classList.contains('hidden')){ $('dclToggle').click(); }
+    $('dclEditId').value = idDc;
+    $('dclTurma').value = regDc.turma || '';
+    S.dclTurma = regDc.turma || '';
+    popularSelectAlunosDcl(regDc.alunoKey);
+    $('dclAluno').value = regDc.alunoKey || '';
+    $('dclBim').value = regDc.bim || '4B';
+    $('dclPeriodo').value = regDc.periodo || '';
+    $('dclCid').value = regDc.cid || '';
+    $('dclDias').value = regDc.dias || 1;
+    $('dclObs').value = regDc.obs || '';
+    $('bAddDcl').textContent = '💾 Salvar Declaração';
+    $('bCancDcl').classList.remove('hidden');
+    $('fDeclaracao').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  /* Excluir Declaração (Bolsa Família) */
+  var dcd = e.target.closest('[data-dcl-del]');
+  if(dcd){
+    if(!temPerm('atestados') && !temPerm('faltas')){ toast('Sem permissão para excluir declarações.'); return; }
+    var idDcDel = dcd.getAttribute('data-dcl-del');
+    var regDcDel = S.declaracoes && S.declaracoes[idDcDel];
+    if(!regDcDel) return;
+    if(!confirm('Excluir a declaração de "' + (regDcDel.aluno||'') + '" (' + (regDcDel.periodo||'') + ')?')) return;
+    if(S.declaracoes) delete S.declaracoes[idDcDel];
+    db.ref('declaracoes_bolsa_familia/'+idDcDel).remove().then(function(){
+      renderDeclaracoes();
+      toast('Declaração excluída!');
+    }).catch(function(err){ toast('Erro ao excluir: '+(err.message||err), 5000); });
+    return;
+  }
+
   var he=e.target.closest('[data-hist-edit]');
   if(he){
     var sigEd = he.getAttribute('data-hist-edit');
@@ -3960,6 +4190,73 @@ $('fAtestado').onsubmit=function(ev){
     toast('✓ Atestado salvo e quantidade de atestados do aluno atualizada no painel!');
   }).catch(function(err){
     toast('Erro ao salvar atestado: ' + (err.message || err), 5000);
+  });
+};
+
+/* ===== Handlers das Declarações (Bolsa Família) ===== */
+if($('dclToggle')){
+  $('dclToggle').onclick=function(){
+    var aberto = $('dclBody').classList.toggle('hidden') === false;
+    this.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+  };
+}
+if($('dclTurma')) $('dclTurma').onchange=function(){ S.dclTurma=this.value; popularSelectAlunosDcl(); };
+if($('dclBuscaAluno')) $('dclBuscaAluno').oninput=function(){ popularSelectAlunosDcl(); };
+if($('fltDclTurma')) $('fltDclTurma').onchange=function(){ S.fltDclTurma=this.value; renderDeclaracoes(); };
+if($('fltDclBim')) $('fltDclBim').onchange=function(){ S.fltDclBim=this.value; renderDeclaracoes(); };
+if($('qDcl')) $('qDcl').oninput=function(){ S.qDcl=this.value; renderDeclaracoes(); };
+
+if($('bCancDcl')) $('bCancDcl').onclick=function(){
+  $('dclEditId').value = '';
+  $('dclPeriodo').value = '';
+  $('dclCid').value = '';
+  $('dclDias').value = '1';
+  $('dclObs').value = '';
+  if($('dclBuscaAluno')) $('dclBuscaAluno').value = '';
+  $('bAddDcl').textContent = '+ Salvar Declaração';
+  $('bCancDcl').classList.add('hidden');
+};
+
+if($('fDeclaracao')) $('fDeclaracao').onsubmit=function(ev){
+  ev.preventDefault();
+  if(!temPerm('atestados') && !temPerm('faltas')){ toast('Você não tem permissão para lançar declarações.'); return; }
+  var alKey = $('dclAluno').value;
+  var al = S.alKey && S.alKey[alKey];
+  if(!al){ toast('Selecione um aluno válido.'); return; }
+  var bi = $('dclBim').value || '4B';
+  var periodo = $('dclPeriodo').value.trim();
+  var cid = $('dclCid').value.trim().toUpperCase();
+  var dias = Math.max(1, parseInt($('dclDias').value, 10) || 1);
+  var obs = $('dclObs').value.trim();
+  var editId = $('dclEditId').value;
+  var idDc = editId || ('dcl_' + Date.now() + '_' + fbKey(alKey));
+  var autor = (S.perfil && S.perfil.nome) ? S.perfil.nome : (S.user ? nomeEditor(S.user.email) : 'Equipe');
+
+  var reg = {
+    id: idDc,
+    alunoKey: alKey,
+    aluno: nomeDe(al),
+    turma: turmaDe(al),
+    aba: al.aba,
+    linha: al.r,
+    bim: bi,
+    periodo: periodo,
+    cid: cid,
+    dias: dias,
+    obs: obs,
+    por: autor,
+    em: Date.now()
+  };
+
+  S.declaracoes = S.declaracoes || {};
+  S.declaracoes[idDc] = reg;
+
+  db.ref('declaracoes_bolsa_familia/' + idDc).set(reg).then(function(){
+    $('bCancDcl').click();
+    renderDeclaracoes();
+    toast('✓ Declaração (Bolsa Família) salva!');
+  }).catch(function(err){
+    toast('Erro ao salvar declaração: ' + (err.message || err), 5000);
   });
 };
 
