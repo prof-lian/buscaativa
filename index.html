@@ -230,6 +230,16 @@ tbody tr:hover td{background:var(--paper-2)}
   .panel,.kpi,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .panel{break-inside:avoid;box-shadow:none!important}
   .log,.twrap{max-height:none;overflow:visible}
+  /* Textos sempre alinhados à esquerda na impressão (nada torto) */
+  .panel p,.panel h1,.panel h2,.panel h3,.panel h4,.panel li,.panel span,.panel div,.note,.aitem,.loghead,.sae-text,td{text-align:left!important}
+  th{text-align:left!important}
+  th.num,td.num{text-align:center!important}
+  /* Não cortar/clampar os textos longos da SAE ao imprimir */
+  .sae-text,.sae-text.short{-webkit-line-clamp:unset!important;display:block!important;overflow:visible!important}
+  #tbodySae td{vertical-align:top}
+  /* Separar o Gráfico da SAE do Relatório detalhado (nova página) */
+  #saeDetalheTitulo{display:block!important;break-before:page}
+  #saeDetalheWrap{break-before:auto}
 }
 </style>
 </head>
@@ -395,11 +405,12 @@ tbody tr:hover td{background:var(--paper-2)}
           </div>
         </div>
 
+        <h3 id="saeDetalheTitulo" class="force-print-show" style="display:none; break-before:page; font-size:14px; color:var(--navy); margin:0 0 12px; font-family:'IBM Plex Sans'">Relatório detalhado da SAE</h3>
         <div class="controls">
           <div class="search">🔎<input id="saeSearch" placeholder="Buscar aluno na SAE..."></div>
           <span class="mono" id="saeCount" style="font-size:12px;color:var(--soft)"></span>
         </div>
-        <div class="twrap"><table style="width:100%">
+        <div class="twrap" id="saeDetalheWrap"><table style="width:100%">
           <thead><tr>
             <th style="width:25%">Nome</th>
             <th style="text-align:center; width:10%">Turma</th>
