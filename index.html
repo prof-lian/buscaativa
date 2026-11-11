@@ -166,6 +166,9 @@ tbody tr:hover td{background:var(--paper-2)}
 .modal h3{font-size:20px;margin-bottom:6px}
 .modal p{font-size:13px;color:var(--soft);margin-bottom:16px}
 .modal input{width:100%;border:1px solid var(--line);border-radius:6px;padding:9px 11px;font-size:14px;margin-bottom:10px;font-family:'IBM Plex Sans'}
+.modal input[type="checkbox"]{width:auto;min-width:16px;flex:0 0 auto;margin:0;padding:0;border-radius:3px}
+#printModal label{align-items:flex-start!important;text-align:left}
+#printModal label>input[type="checkbox"]{margin-top:2px}
 .modal .row{display:flex;gap:8px;margin-top:6px}
 .modal .b1{flex:1;background:var(--navy);color:#fff;border:none;border-radius:6px;padding:10px;font-size:14px;font-weight:500;cursor:pointer}
 .modal .b2{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 14px;cursor:pointer;color:var(--soft)}
@@ -240,6 +243,9 @@ tbody tr:hover td{background:var(--paper-2)}
   /* Separar os Gráficos da SAE do Detalhamento (nova página) */
   #secPrintSae{break-inside:auto!important}
   #saeDetalheTitulo{display:block!important;break-before:page!important}
+  /* Separar "Alunos com 10+ faltas" do "Gráfico de Motivos": um embaixo do outro */
+  #secPrintAlertas{grid-template-columns:1fr!important;break-inside:auto!important}
+  #secPrint10Faltas,#secPrintMotivos{break-inside:avoid}
 }
 </style>
 </head>
@@ -320,12 +326,12 @@ tbody tr:hover td{background:var(--paper-2)}
     </div>
     
     <div class="grid" id="secPrintAlertas">
-      <div class="panel">
+      <div class="panel" id="secPrint10Faltas">
         <h2>⚠ Alunos com 10+ faltas</h2>
         <p class="note">Acompanhamento de alunos com muitas faltas injustificadas.</p>
         <ul class="alist" id="alertas"></ul>
       </div>
-      <div class="panel">
+      <div class="panel" id="secPrintMotivos">
         <h2>Devolutivas das famílias — motivos</h2>
         <p class="note">Distribuição dos motivos relatados pelas famílias. Clique numa barra para filtrar a lista abaixo.</p>
         <div id="chartMotivos"></div>
@@ -491,7 +497,8 @@ tbody tr:hover td{background:var(--paper-2)}
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrKpi"> 📊 Indicadores Gerais (Frequência e Busca Ativa)</label>
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrGrafBim" checked> 📈 Gráficos por Bimestre (Busca Ativa e Faltas × Atestados)</label>
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrTurmas" checked> 🏫 Gráfico de Alunos e Acompanhamento por Turma</label>
-      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrAlertas" checked> ⚠ Alunos com 10+ Faltas e Gráfico de Motivos</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPr10Fal"> ⚠ Alunos com 10+ Faltas</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrMotivos" checked> 📊 Gráfico de Motivos (Devolutivas)</label>
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrTabela"> 📋 Tabela / Lista Geral de Alunos</label>
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrSae"> 🏥 Relatório SAE (Indicadores e Tabela SAE)</label>
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrDev"> 💬 Relatório de Devolutivas das Famílias</label>
@@ -1261,28 +1268,28 @@ if(el('btnCancPrint')) el('btnCancPrint').addEventListener('click',function(){
 });
 /* Preset "Somente os Gráficos": marca apenas as seções que são gráficos */
 function aplicarSomenteGraficos(){
-  ['chkPrGrafBim','chkPrTurmas','chkPrAlertas'].forEach(function(id){ if(el(id)) el(id).checked = true; });
-  ['chkPrKpi','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = false; });
+  ['chkPrGrafBim','chkPrTurmas','chkPrMotivos'].forEach(function(id){ if(el(id)) el(id).checked = true; });
+  ['chkPrKpi','chkPr10Fal','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = false; });
 }
 /* Mantém o marcador "Somente os Gráficos" coerente com as seções marcadas */
 function sincGraficosToggle(){
   if(!el('chkPrGraficos')) return;
-  var soGraf = ['chkPrGrafBim','chkPrTurmas','chkPrAlertas'].every(function(id){ return el(id) && el(id).checked; });
-  var restoVazio = ['chkPrKpi','chkPrTabela','chkPrSae','chkPrDev'].every(function(id){ return el(id) && !el(id).checked; });
+  var soGraf = ['chkPrGrafBim','chkPrTurmas','chkPrMotivos'].every(function(id){ return el(id) && el(id).checked; });
+  var restoVazio = ['chkPrKpi','chkPr10Fal','chkPrTabela','chkPrSae','chkPrDev'].every(function(id){ return el(id) && !el(id).checked; });
   el('chkPrGraficos').checked = (soGraf && restoVazio);
 }
 if(el('chkPrGraficos')) el('chkPrGraficos').addEventListener('change',function(){
   if(this.checked) aplicarSomenteGraficos();
 });
-['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPrAlertas','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){
+['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPr10Fal','chkPrMotivos','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){
   if(el(id)) el(id).addEventListener('change', sincGraficosToggle);
 });
 if(el('btnPrTodos')) el('btnPrTodos').addEventListener('click',function(){
-  ['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPrAlertas','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = true; });
+  ['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPr10Fal','chkPrMotivos','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = true; });
   if(el('chkPrGraficos')) el('chkPrGraficos').checked = false;
 });
 if(el('btnPrLimpar')) el('btnPrLimpar').addEventListener('click',function(){
-  ['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPrAlertas','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = false; });
+  ['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPr10Fal','chkPrMotivos','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = false; });
   if(el('chkPrGraficos')) el('chkPrGraficos').checked = false;
 });
 if(el('btnConfPrint')) el('btnConfPrint').addEventListener('click',function(){
@@ -1290,7 +1297,8 @@ if(el('btnConfPrint')) el('btnConfPrint').addEventListener('click',function(){
     ['chkPrKpi', 'secPrintKpi'],
     ['chkPrGrafBim', 'secPrintGrafBim'],
     ['chkPrTurmas', 'secPrintTurmas'],
-    ['chkPrAlertas', 'secPrintAlertas'],
+    ['chkPr10Fal', 'secPrint10Faltas'],
+    ['chkPrMotivos', 'secPrintMotivos'],
     ['chkPrTabela', 'secPrintTabela'],
     ['chkPrSae', 'secPrintSae'],
     ['chkPrDev', 'secPrintDev']
