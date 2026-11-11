@@ -230,16 +230,16 @@ tbody tr:hover td{background:var(--paper-2)}
   .panel,.kpi,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .panel{break-inside:avoid;box-shadow:none!important}
   .log,.twrap{max-height:none;overflow:visible}
-  /* Textos sempre alinhados à esquerda na impressão (nada torto) */
-  .panel p,.panel h1,.panel h2,.panel h3,.panel h4,.panel li,.panel span,.panel div,.note,.aitem,.loghead,.sae-text,td{text-align:left!important}
-  th{text-align:left!important}
+  /* Textos alinhados à direita na impressão */
+  .panel p,.panel h1,.panel h2,.panel h3,.panel h4,.panel li,.panel span,.panel div,.note,.aitem,.loghead,.sae-text,td{text-align:right!important}
+  th{text-align:right!important}
   th.num,td.num{text-align:center!important}
   /* Não cortar/clampar os textos longos da SAE ao imprimir */
   .sae-text,.sae-text.short{-webkit-line-clamp:unset!important;display:block!important;overflow:visible!important}
   #tbodySae td{vertical-align:top}
-  /* Separar o Gráfico da SAE do Relatório detalhado (nova página) */
-  #saeDetalheTitulo{display:block!important;break-before:page}
-  #saeDetalheWrap{break-before:auto}
+  /* Separar os Gráficos da SAE do Detalhamento (nova página) */
+  #secPrintSae{break-inside:auto!important}
+  #saeDetalheTitulo{display:block!important;break-before:page!important}
 }
 </style>
 </head>
@@ -487,12 +487,13 @@ tbody tr:hover td{background:var(--paper-2)}
       <button type="button" class="b2" id="btnPrLimpar" style="padding:5px 10px;font-size:12px">Desmarcar tudo</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px;font-size:13.5px;color:var(--navy)">
-      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrKpi" checked> 📊 Indicadores Gerais (Frequência e Busca Ativa)</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:700;padding-bottom:8px;margin-bottom:2px;border-bottom:1px solid var(--line)"><input type="checkbox" id="chkPrGraficos" checked> 📊 Somente os Gráficos (Bimestre, Turmas e Motivos)</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrKpi"> 📊 Indicadores Gerais (Frequência e Busca Ativa)</label>
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrGrafBim" checked> 📈 Gráficos por Bimestre (Busca Ativa e Faltas × Atestados)</label>
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrTurmas" checked> 🏫 Gráfico de Alunos e Acompanhamento por Turma</label>
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrAlertas" checked> ⚠ Alunos com 10+ Faltas e Gráfico de Motivos</label>
-      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrTabela" checked> 📋 Tabela / Lista Geral de Alunos</label>
-      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrSae" checked> 🏥 Relatório SAE (Indicadores e Tabela SAE)</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrTabela"> 📋 Tabela / Lista Geral de Alunos</label>
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrSae"> 🏥 Relatório SAE (Indicadores e Tabela SAE)</label>
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="chkPrDev"> 💬 Relatório de Devolutivas das Famílias</label>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -1258,11 +1259,31 @@ el('btnPrint').addEventListener('click',function(){
 if(el('btnCancPrint')) el('btnCancPrint').addEventListener('click',function(){
   el('printModal').classList.add('hidden');
 });
+/* Preset "Somente os Gráficos": marca apenas as seções que são gráficos */
+function aplicarSomenteGraficos(){
+  ['chkPrGrafBim','chkPrTurmas','chkPrAlertas'].forEach(function(id){ if(el(id)) el(id).checked = true; });
+  ['chkPrKpi','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = false; });
+}
+/* Mantém o marcador "Somente os Gráficos" coerente com as seções marcadas */
+function sincGraficosToggle(){
+  if(!el('chkPrGraficos')) return;
+  var soGraf = ['chkPrGrafBim','chkPrTurmas','chkPrAlertas'].every(function(id){ return el(id) && el(id).checked; });
+  var restoVazio = ['chkPrKpi','chkPrTabela','chkPrSae','chkPrDev'].every(function(id){ return el(id) && !el(id).checked; });
+  el('chkPrGraficos').checked = (soGraf && restoVazio);
+}
+if(el('chkPrGraficos')) el('chkPrGraficos').addEventListener('change',function(){
+  if(this.checked) aplicarSomenteGraficos();
+});
+['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPrAlertas','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){
+  if(el(id)) el(id).addEventListener('change', sincGraficosToggle);
+});
 if(el('btnPrTodos')) el('btnPrTodos').addEventListener('click',function(){
   ['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPrAlertas','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = true; });
+  if(el('chkPrGraficos')) el('chkPrGraficos').checked = false;
 });
 if(el('btnPrLimpar')) el('btnPrLimpar').addEventListener('click',function(){
   ['chkPrKpi','chkPrGrafBim','chkPrTurmas','chkPrAlertas','chkPrTabela','chkPrSae','chkPrDev'].forEach(function(id){ if(el(id)) el(id).checked = false; });
+  if(el('chkPrGraficos')) el('chkPrGraficos').checked = false;
 });
 if(el('btnConfPrint')) el('btnConfPrint').addEventListener('click',function(){
   var mapaSec = [
