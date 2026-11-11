@@ -485,6 +485,34 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
           </div>
         </div>
 
+        <!-- Indicador: Faltas Consecutivas (lidas do Diário/PDF) -->
+        <div class="card" id="boxConsec" style="border:2px solid var(--alert);background:#FFF9F9;margin-bottom:22px;padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px">
+            <div>
+              <h3 style="margin:0 0 3px;font-size:16.5px;color:var(--navy)">🔴 Faltas Consecutivas</h3>
+              <p style="margin:0;font-size:12.5px;color:var(--muted)">Alunos que faltaram em <b>dias seguidos</b>, lidos da grade diária (P/F) do Diário importado por PDF. Filtre por mês, bimestre e mínimo de faltas seguidas.</p>
+            </div>
+            <b id="cntConsec" style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:var(--alert)"></b>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;margin:10px 0 14px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--navy)">Bimestre:</span>
+              <span class="seg" id="fcBimBtns"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--navy)">Mês:</span>
+              <span class="seg" id="fcMesBtns"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--navy)">Mín. seguidas:</span>
+              <span class="seg" id="fcMinBtns"></span>
+            </div>
+          </div>
+          <div class="twrap" style="max-height:44vh">
+            <table class="t-std" id="tabConsec"></table>
+          </div>
+        </div>
+
         <!-- Filtros da Tabela de Faltas por Turma -->
         <div class="ctrls" style="grid-template-columns:1fr 1fr 2fr">
           <div><label for="faTurma">Turma</label><select id="faTurma"></select></div>
@@ -1140,6 +1168,7 @@ var S = {
   dados:{}, idx:{}, tab:'dev', aba:'', turma:'', bim:'', q:'', alFiltro:'todos', ordCol:'faltas', ordDir:-1,
   faTurma:'', faBim:'4B', qFa:'', atTurma:'', atBim:'4B', fltAtTurma:'', fltAtBim:bimestreAtual(), atAnos:{1:true,2:true,3:true,4:true,5:true,6:false,7:false,8:false,9:false}, qAt:'', atestados:{}, atestadosPlanilha:{},
   declaracoes:{}, dclTurma:'', fltDclTurma:'', fltDclBim:bimestreAtual(), qDcl:'',
+  faltasConsec:{}, fcMes:'', fcBim:'', fcMin:2, fcTurma:'',
   valPdf:null, valPdfFiltro:'mudou', valPdfTurma:'', valPdfBusca:'',
   aluAba:'', aluTurma:'', qAlu:'', fichaModoCad:false,
   qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
@@ -1687,6 +1716,10 @@ function ouvirPlanilha(){
     S.declaracoes = s.val() || {};
     if(S.tab==='ate') renderDeclaracoes();
   },function(){});
+  db.ref('faltas_consecutivas').on('value',function(s){
+    S.faltasConsec = s.val() || {};
+    if(S.tab==='fal') renderConsec();
+  },function(){});
   /* Perfis de editores para exibir sempre o nome em vez do e-mail */
   db.ref('perfis').on('value',function(s){
     S.mapaPerfis = s.val() || {};
@@ -2141,12 +2174,78 @@ function atestadosLista(){
   });
 }
 
+function consecLista(){
+  var m = S.faltasConsec || {};
+  return Object.keys(m).map(function(k){ return Object.assign({ _id: k }, m[k]); })
+    .filter(function(r){ return r && r.aluno; });
+}
+function renderConsec(){
+  if(!$('tabConsec')) return;
+  var all = consecLista();
+
+  /* Botões de filtro: Bimestre */
+  var bims = ['1B','2B','3B','4B'];
+  $('fcBimBtns').innerHTML = '<button type="button" data-fcbim="" class="'+(S.fcBim===''?'on':'')+'">Todos</button>' +
+    bims.map(function(b){ return '<button type="button" data-fcbim="'+b+'" class="'+(S.fcBim===b?'on':'')+'">'+b.charAt(0)+'º</button>'; }).join('');
+
+  /* Botões de filtro: Mês (apenas os meses presentes nos dados) */
+  var mesesSet = {};
+  all.forEach(function(r){ if(r.mes && r.mes!=='NA') mesesSet[r.mes]=1; });
+  var meses = Object.keys(mesesSet).sort();
+  $('fcMesBtns').innerHTML = '<button type="button" data-fcmes="" class="'+(S.fcMes===''?'on':'')+'">Todos</button>' +
+    meses.map(function(mm){ var nome = MESES_PT[parseInt(mm,10)-1]||mm; return '<button type="button" data-fcmes="'+esc(mm)+'" class="'+(S.fcMes===mm?'on':'')+'">'+esc(nome)+'</button>'; }).join('');
+
+  /* Botões de filtro: Mínimo de faltas seguidas */
+  var mins = [2,3,4,5];
+  $('fcMinBtns').innerHTML = mins.map(function(n){ return '<button type="button" data-fcmin="'+n+'" class="'+(S.fcMin===n?'on':'')+'">'+n+(n===5?'+':'')+'</button>'; }).join('');
+
+  var filtrados = all.filter(function(r){
+    if(S.fcBim && r.bim !== S.fcBim) return false;
+    if(S.fcMes && r.mes !== S.fcMes) return false;
+    if(num(r.consec) < S.fcMin) return false;
+    return true;
+  }).sort(function(a,b){ return num(b.consec)-num(a.consec) || cmpTurma(a.turma,b.turma) || low(a.aluno).localeCompare(low(b.aluno)); });
+
+  $('cntConsec').textContent = filtrados.length + ' aluno(s) com ' + S.fcMin + '+ faltas seguidas';
+
+  var head = '<thead><tr>'+
+    '<th style="text-align:center">Turma</th>'+
+    '<th>Aluno</th>'+
+    '<th style="text-align:center">Bimestre</th>'+
+    '<th style="text-align:center">Mês</th>'+
+    '<th class="num">Faltas seguidas</th>'+
+    '<th class="num">Total no mês</th>'+
+  '</tr></thead>';
+
+  if(!all.length){
+    $('tabConsec').innerHTML = head + '<tbody><tr><td colspan="6" class="vazio">Nenhum Diário importado ainda. Use "📎 Anexar PDF" acima com o Diário Escolar (grade P/F) para preencher as faltas consecutivas.</td></tr></tbody>';
+    return;
+  }
+  if(!filtrados.length){
+    $('tabConsec').innerHTML = head + '<tbody><tr><td colspan="6" class="vazio">Nenhum aluno com esse critério de filtro.</td></tr></tbody>';
+    return;
+  }
+  $('tabConsec').innerHTML = head + '<tbody>' + filtrados.map(function(r){
+    var nm = MESES_PT[parseInt(r.mes,10)-1] || (r.mes==='NA'?'—':r.mes);
+    var cor = num(r.consec) >= 3 ? 'var(--alert)' : 'var(--gold)';
+    return '<tr>'+
+      '<td class="mono" style="text-align:center;font-weight:700">'+esc(r.turma||'—')+'</td>'+
+      '<td>'+(r.alunoKey ? '<span class="nmlink" data-ficha="'+esc(r.alunoKey)+'">'+esc(r.aluno)+'</span>' : esc(r.aluno))+'</td>'+
+      '<td style="text-align:center"><span class="tag">'+esc(BIM_LBL[r.bim]||r.bim||'—')+'</span></td>'+
+      '<td style="text-align:center">'+esc(nm)+'</td>'+
+      '<td class="num" style="font-weight:800;color:'+cor+'">'+num(r.consec)+'×</td>'+
+      '<td class="num" style="font-weight:600">'+num(r.totalF)+'</td>'+
+    '</tr>';
+  }).join('') + '</tbody>';
+}
+
 function renderFal(){
   var podeFal = temPerm('faltas');
   var disAttr = podeFal ? '' : ' disabled title="Você não tem permissão para alterar faltas e atestados"';
   if($('bAnexarPdf')) $('bAnexarPdf').disabled = !podeFal;
   if($('bAddAt')) $('bAddAt').disabled = !podeFal;
 
+  renderConsec();
   if(S.valPdf) renderRelatorioPdf();
 
   var trm = S.faTurma;
@@ -2574,8 +2673,32 @@ function construirIndicesAlunos(){
 }
 
 /* Extrai registros tanto do PDF Tipo 1 (Relação Geral 1º-4º Bim) quanto do PDF Tipo 2 (Por Turma) */
+/* Lê a grade diária de presença/falta (P/F) de uma linha do Diário e calcula a maior sequência de faltas seguidas */
+function calcSeqPF(items){
+  var pf = (items || []).filter(function(it){ return /^[PFpf]$/.test(String(it.str||'').trim()); })
+                        .sort(function(a,b){ return a.x - b.x; })
+                        .map(function(it){ return it.str.toUpperCase(); });
+  if(pf.length < 3) return null;
+  var mx = 0, cur = 0, tot = 0;
+  pf.forEach(function(c){ if(c === 'F'){ cur++; tot++; if(cur > mx) mx = cur; } else { cur = 0; } });
+  return { seq: pf.join(''), consec: mx, totalF: tot, dias: pf.length };
+}
+var MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+/* Detecta o mês (01-12) a partir do texto do cabeçalho da página do Diário */
+function mesDaPagina(pg){
+  var t = (pg.coordLines || []).map(function(c){ return c.text; }).join(' ')
+            .toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  var nomes = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  for(var i=0;i<nomes.length;i++){ if(t.indexOf(nomes[i]) >= 0) return ('0'+(i+1)).slice(-2); }
+  var abrevs = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  var m = t.match(/\b(0?[1-9]|1[0-2])\s*-\s*(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/);
+  if(m){ var idx = abrevs.indexOf(m[2]); if(idx >= 0) return ('0'+(idx+1)).slice(-2); }
+  return '';
+}
+
 function extrairRegistrosDosPdfs(pages, indices){
   var registrosPorAluno = {};
+  var consecPorAluno = {};
   var ignoradosAnosFinais = 0;
   var tipoDetectado = '';
 
@@ -2670,6 +2793,7 @@ function extrairRegistrosDosPdfs(pages, indices){
     var xColFalta = null;
 
     pages.forEach(function(pg){
+      var mesPg = mesDaPagina(pg);
       /* Detecta cabeçalho da página (Turma, Bimestre, Colunas) */
       pg.coordLines.forEach(function(cl){
         var tUp = cl.text.toUpperCase();
@@ -2725,6 +2849,21 @@ function extrairRegistrosDosPdfs(pages, indices){
 
         if(!alMatch) return;
         var ak = alMatch.aba + '|' + alMatch.r;
+
+        /* Faltas consecutivas: lê a grade diária P/F desta linha do Diário */
+        var seqPF = calcSeqPF(cl.items);
+        if(seqPF && !consecPorAluno[ak]){
+          consecPorAluno[ak] = {
+            al: alMatch,
+            bim: bimContexto,
+            mes: mesPg,
+            consec: seqPF.consec,
+            totalF: seqPF.totalF,
+            dias: seqPF.dias,
+            seq: seqPF.seq
+          };
+        }
+
         if(registrosPorAluno[ak]) return;
 
         /* Extrai os números da linha que ficam APÓS o nome do aluno (ou à direita do nome), removendo datas, % e "1º ANO A" */
@@ -2845,6 +2984,7 @@ function extrairRegistrosDosPdfs(pages, indices){
 
   return {
     registros: registrosPorAluno,
+    consec: consecPorAluno,
     ignoradosAnosFinais: ignoradosAnosFinais,
     tipoDetectado: tipoDetectado || 'Relatório de Faltas'
   };
@@ -2994,7 +3134,8 @@ function processarPdfFaltas(file){
       somaGeralAntA: somaGeralAntA,
       somaGeralAtuA: somaGeralAtuA,
       turmas: listaTurmasAfetadas,
-      itens: itensValidacao
+      itens: itensValidacao,
+      consec: extraido.consec || {}
     };
     S.valPdfFiltro = qtdMudou > 0 ? 'mudou' : 'todos';
     S.valPdfTurma = '';
@@ -4057,6 +4198,13 @@ document.addEventListener('click',function(e){
     salvarEdicaoItemHist(sigSv, valNovo);
     return;
   }
+  var fcb=e.target.closest('[data-fcbim]');
+  if(fcb){ S.fcBim = fcb.getAttribute('data-fcbim'); renderConsec(); return; }
+  var fcm=e.target.closest('[data-fcmes]');
+  if(fcm){ S.fcMes = fcm.getAttribute('data-fcmes'); renderConsec(); return; }
+  var fcn=e.target.closest('[data-fcmin]');
+  if(fcn){ S.fcMin = parseInt(fcn.getAttribute('data-fcmin'),10)||2; renderConsec(); return; }
+
   var hp=e.target.closest('[data-hist-page]');
   if(hp){
     var np = parseInt(hp.getAttribute('data-hist-page'),10);
@@ -4091,9 +4239,37 @@ if($('bSalvarFaltasTopo')) $('bSalvarFaltasTopo').onclick = function(){
   salvar();
 };
 if($('bSalvarValPdf')) $('bSalvarValPdf').onclick = function(){
-  if(!sujos().length){ toast('Todas as alterações deste PDF já estão salvas no sistema!'); return; }
-  salvar();
+  var consec = (S.valPdf && S.valPdf.consec) ? S.valPdf.consec : {};
+  var temConsec = Object.keys(consec).length > 0;
+  var temMud = sujos().length > 0;
+  if(!temConsec && !temMud){ toast('Todas as alterações deste PDF já estão salvas no sistema!'); return; }
+  if(temConsec) gravarFaltasConsec(consec);
+  if(temMud) salvar();
+  else if(temConsec) toast('✓ Faltas consecutivas do Diário importadas!');
 };
+
+function gravarFaltasConsec(consec){
+  if(!consec) return;
+  var autor = (S.perfil && S.perfil.nome) ? S.perfil.nome : (S.user ? nomeEditor(S.user.email) : 'Equipe');
+  var updates = {};
+  Object.keys(consec).forEach(function(ak){
+    var c = consec[ak]; var al = c.al; if(!al) return;
+    var cod = String(codDe(al)||'').replace(/\D/g,'') || fbKey(ak);
+    var mes = c.mes || 'NA';
+    var key = cod + '_' + c.bim + '_' + mes;
+    updates[key] = {
+      codigo: cod, alunoKey: ak, aluno: nomeDe(al), turma: turmaDe(al),
+      bim: c.bim, mes: mes, consec: c.consec, totalF: c.totalF, dias: c.dias,
+      seq: c.seq, por: autor, em: Date.now()
+    };
+    S.faltasConsec = S.faltasConsec || {};
+    S.faltasConsec[key] = updates[key];
+  });
+  if(!Object.keys(updates).length) return;
+  db.ref('faltas_consecutivas').update(updates).then(function(){
+    renderConsec();
+  }).catch(function(err){ toast('Erro ao gravar faltas consecutivas: '+(err.message||err), 5000); });
+}
 if($('bFecharValPdf')) $('bFecharValPdf').onclick = function(){
   $('boxValidacaoPdf').classList.add('hidden');
 };
