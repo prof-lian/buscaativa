@@ -239,6 +239,43 @@ textarea.auto{overflow:hidden}
 .at-anos-lbl{font-size:12.5px;font-weight:700;color:var(--navy);margin-right:2px}
 .at-anos label{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer;user-select:none}
 .at-anos input{cursor:pointer;accent-color:var(--navy)}
+/* Foco do Dia */
+.foco-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin:4px 0 14px}
+.foco-switch{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer}
+.foco-switch input{width:16px;height:16px;cursor:pointer;accent-color:var(--navy)}
+.foco-resumo{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.foco-kpi{flex:1;min-width:120px;background:#fff;border:1px solid var(--line2);border-radius:11px;padding:12px 14px}
+.foco-kpi .v{font:800 24px 'IBM Plex Sans',sans-serif;line-height:1}
+.foco-kpi .l{font-size:11.5px;color:var(--muted);margin-top:4px;font-weight:600}
+.foco-grid{display:grid;grid-template-columns:1fr 330px;gap:18px;align-items:start}
+@media(max-width:900px){.foco-grid{grid-template-columns:1fr}}
+.fcard{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line2);border-left:5px solid var(--line2);border-radius:11px;padding:13px 15px;margin-bottom:10px}
+.fcard.alta{border-left-color:var(--alert);background:#FFFAFA}
+.fcard.media{border-left-color:var(--gold)}
+.fcard.feito{opacity:.55}
+.fcard .fc-main{flex:1;min-width:0}
+.fcard .fc-nome{font-weight:700;color:var(--navy);font-size:14.5px}
+.fcard .fc-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.fcard .fc-nums{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 6px}
+.fnum{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;background:#F2F5F9;color:var(--navy)}
+.fnum.inj{background:#FDEBEC;color:#B02A37}
+.fnum.seq{background:#FFF3DC;color:#9A6B00}
+.fnum.laudo{background:#EDE7FB;color:#5B3FA6}
+.fc-feito{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.ftag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;border:1px solid var(--line2);color:var(--muted);background:#fff}
+.ftag.ok{background:#EAF7EF;color:#1E7D45;border-color:#BFE6CD}
+.fc-ult{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.4}
+.fc-ult b{color:var(--navy)}
+.fc-chk{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto}
+.fc-chk input{width:22px;height:22px;cursor:pointer;accent-color:var(--green)}
+.fc-chk span{font-size:10px;color:var(--muted);font-weight:600}
+.uc-item{border-bottom:1px solid var(--line);padding:9px 2px;font-size:12px}
+.uc-item:last-child{border-bottom:0}
+.uc-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.uc-nome{font-weight:700;color:var(--navy)}
+.uc-data{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.uc-tipo{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:#EEF3F9;color:var(--navy3);margin:3px 0}
+.uc-txt{color:var(--muted);line-height:1.4}
 .collapse-box{border:1px solid var(--line2);border-radius:11px;overflow:hidden;background:#fff}
 .collapse-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;background:#F2F7FC;border:0;cursor:pointer;font:700 14.5px "IBM Plex Sans",sans-serif;color:var(--navy);transition:background .15s}
 .collapse-head:hover{background:#E9F1FA}
@@ -357,6 +394,9 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
 
       <nav class="sidenav" id="tabs">
         <div class="nav-lbl" id="navLblAcomp">Acompanhamento</div>
+        <button class="tab" data-tab="foco" type="button">
+          <span class="t-left"><span class="ico">🎯</span><span>Foco do Dia</span></span>
+        </button>
         <button class="tab on" data-tab="dev" type="button">
           <span class="t-left"><span class="ico">📋</span><span>Busca Ativa e Faltosos</span></span>
         </button>
@@ -395,6 +435,40 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
 
     <!-- ÁREA DE CONTEÚDO -->
     <main class="main-col">
+
+      <!-- 0. FOCO DO DIA (Prioridades de contato) -->
+      <section id="pFoco" class="panel-box hidden">
+        <div class="sec-head">
+          <div>
+            <h2>🎯 Foco do Dia — Para quem ligar</h2>
+            <p>Lista unificada dos alunos que mais precisam de contato (faltas injustificadas + faltas consecutivas). Marque <b>Atendido</b> para tirar da lista conforme for ligando. Clique no nome para abrir a ficha completa.</p>
+          </div>
+        </div>
+
+        <div class="foco-top">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:12.5px;font-weight:700;color:var(--navy)">Ano:</span>
+            <span class="seg" id="focoAnoBtns"></span>
+          </div>
+          <label class="foco-switch"><input type="checkbox" id="focoVerAtend"> Mostrar já atendidos</label>
+        </div>
+
+        <div class="foco-resumo" id="focoResumo"></div>
+
+        <div class="foco-grid">
+          <div class="foco-main">
+            <div class="sec" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+              <span>📞 Fila de contatos</span>
+              <b id="cntFoco" style="font:600 12.5px 'IBM Plex Sans',sans-serif;color:var(--navy)"></b>
+            </div>
+            <div id="listaFoco"></div>
+          </div>
+          <aside class="foco-side">
+            <div class="sec">🕒 Últimos contatos registrados</div>
+            <div id="ultContatos"></div>
+          </aside>
+        </div>
+      </section>
 
       <!-- 1. BUSCA ATIVA E FALTOSOS -->
       <section id="pDev" class="panel-box">
@@ -1170,6 +1244,7 @@ var S = {
   declaracoes:{}, dclTurma:'', fltDclTurma:'', fltDclBim:bimestreAtual(), qDcl:'',
   faltasConsec:{}, fcMes:'', fcBim:'', fcMin:2, fcTurma:'',
   laudos:{},
+  atendidos:{}, focoAno:'', focoVerAtend:false,
   valPdf:null, valPdfFiltro:'mudou', valPdfTurma:'', valPdfBusca:'',
   aluAba:'', aluTurma:'', qAlu:'', fichaModoCad:false,
   qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
@@ -1620,6 +1695,7 @@ function podeVerTab(tabId){
   if(tabId === 'perf') return true; /* Meu Perfil e Foto sempre visível para todos */
   if(tabId === 'edt') return !!S.admin;
   if(S.admin) return true;
+  if(tabId === 'foco') return temPerm('busca_ativa') || temPerm('devolutiva_familia') || temPerm('faltas');
   if(tabId === 'dev') return temPerm('busca_ativa') || temPerm('devolutiva_familia');
   if(tabId === 'fal') return temPerm('faltas');
   if(tabId === 'ate') return temPerm('atestados');
@@ -1631,7 +1707,7 @@ function podeVerTab(tabId){
 }
 
 function primeiraTabPermitida(){
-  var ordem = ['dev','fal','ate','sae','sit','alu','hist','perf'];
+  var ordem = ['foco','dev','fal','ate','sae','sit','alu','hist','perf'];
   for(var i = 0; i < ordem.length; i++){
     if(podeVerTab(ordem[i])) return ordem[i];
   }
@@ -1645,7 +1721,7 @@ function aplicarVisibilidadeMenu(){
     var t = b.getAttribute('data-tab');
     var vis = podeVerTab(t);
     b.classList.toggle('hidden', !vis);
-    if(vis && (t==='dev'||t==='fal'||t==='ate'||t==='sae'||t==='sit')) acompVis++;
+    if(vis && (t==='foco'||t==='dev'||t==='fal'||t==='ate'||t==='sae'||t==='sit')) acompVis++;
   });
   if($('navLblAcomp')) $('navLblAcomp').classList.toggle('hidden', acompVis === 0);
   if(S.tab && !podeVerTab(S.tab)){
@@ -1725,6 +1801,10 @@ function ouvirPlanilha(){
     S.laudos = s.val() || {};
     if(S.tab==='alu') renderAlu();
     if(S.fichaKey && !$('ficha').classList.contains('hidden')) renderFicha();
+  },function(){});
+  db.ref('atendidos_foco').on('value',function(s){
+    S.atendidos = s.val() || {};
+    if(S.tab==='foco') renderFoco();
   },function(){});
   /* Perfis de editores para exibir sempre o nome em vez do e-mail */
   db.ref('perfis').on('value',function(s){
@@ -2118,6 +2198,159 @@ function vals(al){
     if(temAcao(dv) && dv.length>3) dev=true;
   });
   return {f:f,a:a,i:i,bil:bil,sae:sae,bus:bus,dev:dev,acomp:(bil+sae+bus)>0};
+}
+
+/* ===== FOCO DO DIA (prioridades de contato) ===== */
+function atendKey(al){
+  var cod = String(codDe(al)||'').replace(/[.#$\[\]\/\s]/g,'').trim();
+  return cod || ('k' + fbKey(al.aba + '|' + al.r));
+}
+/* Faltas consecutivas do aluno (maior sequência registrada via Diário) */
+function consecDe(al){
+  var cod = String(codDe(al)||'').replace(/\D/g,'');
+  var best = {max:0, mes:'', bim:''};
+  if(!cod || !S.faltasConsec) return best;
+  Object.keys(S.faltasConsec).forEach(function(k){
+    var r = S.faltasConsec[k]; if(!r) return;
+    if(String(r.codigo||'').replace(/\D/g,'') !== cod) return;
+    if(num(r.consec) > best.max){ best = {max:num(r.consec), mes:r.mes||'', bim:r.bim||''}; }
+  });
+  return best;
+}
+/* Agrega o ano inteiro do aluno: faltas, injust., o que já foi feito e o último registro */
+function focoAgg(al){
+  var f=0,i=0,bil=0,sae=0,ret=0,bus=0,dev=0; var ultimo=null;
+  ['1B','2B','3B','4B'].forEach(function(bi){
+    var o=al.b[bi]; if(!o) return;
+    var vv=function(k){ var id=fieldId(al,bi,k); return id?valor(id):(o[k]!=null?o[k]:''); };
+    var ff=num(vv('FAL')), aa=num(vv('ATE'));
+    var rawI=vv('INJ'); var ii=(rawI!=null&&String(rawI).trim()!=='')?num(rawI):Math.max(ff-aa,0);
+    f+=ff; i+=Math.max(ii,0);
+    var bl=vv('BIL'), bs=vv('BUS'), sa=vv('SAE'), rt=vv('RET'), dv=vv('DEV');
+    if(temAcao(bl)) bil++;
+    if(/^sim/.test(low(sa))) sae++;
+    if(temAcao(rt)) ret++;
+    if(temAcao(bs)) bus++;
+    if(temAcao(dv) && String(dv).length>3) dev++;
+    [['Devolutiva da família',dv],['Retorno da SAE',rt],['Busca ativa',bs],['Bilhete',bl]].forEach(function(p){
+      if(temAcao(p[1]) && String(p[1]).trim().length>1){ ultimo={bim:bi, tipo:p[0], txt:String(p[1]).trim()}; }
+    });
+  });
+  return {f:f,i:i,bil:bil,sae:sae,ret:ret,bus:bus,dev:dev,ultimo:ultimo,fezAlgo:(bil+sae+bus+ret)>0};
+}
+/* Lista de anos (abas) que têm alunos, em ordem */
+function abasFoco(){
+  var set={};
+  todosAlunos().forEach(function(al){ set[al.aba]=1; });
+  return Object.keys(set).sort(function(a,b){
+    var na=parseInt(String(ANO_LBL[a]||a),10)||99, nb=parseInt(String(ANO_LBL[b]||b),10)||99;
+    return na-nb;
+  });
+}
+function fmtQuando(r){
+  var q = r.quando || r.ts || r.em || r.data;
+  if(q==null) return '';
+  var n = (typeof q==='number') ? q : (/^\d{10,}$/.test(String(q)) ? parseInt(q,10) : null);
+  var d = n ? new Date(n) : new Date(String(q));
+  if(isNaN(d.getTime())) return String(q).slice(0,16);
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+function ehCampoContato(c){
+  return /bilhete|busca ativa|devolutiv|retorno|sae/i.test(String(c||''));
+}
+function renderUltimosContatos(){
+  if(!$('ultContatos')) return;
+  var regs = todosRegistrosHist().filter(function(r){ return ehCampoContato(r.campo) && temAcao(r.novo); });
+  if(S.focoAno) regs = regs.filter(function(r){ var k=r.aba; return !k || k===S.focoAno; });
+  regs = regs.slice(0, 18);
+  if(!regs.length){ $('ultContatos').innerHTML = '<p style="font-size:12px;color:var(--muted);padding:6px 2px">Nenhum contato registrado ainda. Registros de bilhete, ligação, SAE e devolutiva aparecem aqui conforme forem feitos.</p>'; return; }
+  $('ultContatos').innerHTML = regs.map(function(r){
+    var txt = String(r.novo||'').trim(); if(txt.length>90) txt = txt.slice(0,90)+'…';
+    return '<div class="uc-item">'+
+      '<div class="uc-top"><span class="uc-nome">'+esc(r.nome||r.turma||'—')+'</span><span class="uc-data">'+esc(fmtQuando(r))+'</span></div>'+
+      '<span class="uc-tipo">'+esc(r.campo||'contato')+'</span>'+
+      '<div class="uc-txt">'+esc(txt||'—')+(r.turma?' · '+esc(r.turma):'')+'</div>'+
+    '</div>';
+  }).join('');
+}
+function renderFoco(){
+  if(!$('listaFoco')) return;
+
+  /* Botões de ano */
+  var abas = abasFoco();
+  $('focoAnoBtns').innerHTML = '<button type="button" data-focoano="" class="'+(S.focoAno===''?'on':'')+'">Todos</button>' +
+    abas.map(function(a){ return '<button type="button" data-focoano="'+esc(a)+'" class="'+(S.focoAno===a?'on':'')+'">'+esc(ANO_LBL[a]||a)+'</button>'; }).join('');
+
+  var base = todosAlunos(S.focoAno||null).filter(function(al){ return sitDe(al)==='A'; });
+  var linhas = base.map(function(al){
+    var g = focoAgg(al); var c = consecDe(al);
+    var score = c.max*6 + g.i + (g.fezAlgo?0:8) + (g.i>=10?5:0);
+    return {al:al, g:g, c:c, score:score, key:atendKey(al)};
+  }).filter(function(x){
+    return x.c.max>=2 || x.g.i>=10 || (x.g.i>=5 && !x.g.fezAlgo);
+  });
+
+  var atendidosN = linhas.filter(function(x){ return S.atendidos && S.atendidos[x.key]; }).length;
+  var visiveis = linhas.filter(function(x){ return S.focoVerAtend || !(S.atendidos && S.atendidos[x.key]); });
+  visiveis.sort(function(a,b){ return b.score-a.score || cmpTurma(turmaDe(a.al),turmaDe(b.al)) || low(nomeDe(a.al)).localeCompare(low(nomeDe(b.al))); });
+
+  /* Resumo */
+  var totConsec = linhas.filter(function(x){ return x.c.max>=2; }).length;
+  var totSemAcao = linhas.filter(function(x){ return !x.g.fezAlgo; }).length;
+  $('focoResumo').innerHTML =
+    '<div class="foco-kpi"><div class="v" style="color:var(--alert)">'+(linhas.length-atendidosN)+'</div><div class="l">Para contatar</div></div>'+
+    '<div class="foco-kpi"><div class="v" style="color:var(--gold)">'+totConsec+'</div><div class="l">Com faltas consecutivas</div></div>'+
+    '<div class="foco-kpi"><div class="v" style="color:var(--navy)">'+totSemAcao+'</div><div class="l">Sem nenhuma ação ainda</div></div>'+
+    '<div class="foco-kpi"><div class="v" style="color:var(--green)">'+atendidosN+'</div><div class="l">Já atendidos</div></div>';
+
+  $('cntFoco').textContent = visiveis.length + ' aluno(s) na fila';
+
+  if(!visiveis.length){
+    $('listaFoco').innerHTML = '<div class="card vazio" style="text-align:center;padding:26px">'+(linhas.length?'🎉 Tudo atendido! Nenhum aluno pendente na fila.':'Nenhum aluno com faltas injustificadas ou consecutivas nesse filtro.')+'</div>';
+    renderUltimosContatos();
+    return;
+  }
+
+  var ROLES = [['bil','Bilhete'],['bus','Ligação'],['sae','SAE'],['ret','Retorno SAE'],['dev','Devolutiva']];
+  $('listaFoco').innerHTML = visiveis.map(function(x){
+    var al=x.al, g=x.g, c=x.c;
+    var atend = !!(S.atendidos && S.atendidos[x.key]);
+    var cls = atend ? 'feito' : (c.max>=3 || g.i>=10 ? 'alta' : 'media');
+    var nums = '<span class="fnum inj">⚠ '+g.i+' injust.</span>';
+    if(c.max>=2) nums += '<span class="fnum seq">🔴 '+c.max+'× seguidas'+(c.mes?' ('+(MESES_PT[parseInt(c.mes,10)-1]||c.mes)+')':'')+'</span>';
+    nums += '<span class="fnum">'+g.f+' faltas no ano</span>';
+    if(temLaudo(al)) nums += '<span class="fnum laudo">📋 laudado</span>';
+    var feito = ROLES.map(function(p){ var on = g[p[0]]>0; return '<span class="ftag'+(on?' ok':'')+'">'+(on?'✓ ':'')+p[1]+'</span>'; }).join('');
+    var ult = g.ultimo
+      ? '<div class="fc-ult">Último registro: <b>'+esc(g.ultimo.tipo)+'</b> ('+esc(BIM_LBL[g.ultimo.bim]||g.ultimo.bim)+') — '+esc(g.ultimo.txt.length>120?g.ultimo.txt.slice(0,120)+'…':g.ultimo.txt)+'</div>'
+      : '<div class="fc-ult" style="color:var(--alert)">Nenhum contato registrado ainda.</div>';
+    return '<div class="fcard '+cls+'">'+
+      '<div class="fc-main">'+
+        '<div class="fc-nome"><span class="nmlink" data-ficha="'+esc(al.aba+'|'+al.r)+'">'+esc(nomeDe(al))+'</span></div>'+
+        '<div class="fc-sub">Turma '+esc(turmaDe(al))+' · '+esc(ANO_LBL[al.aba]||al.aba)+'</div>'+
+        '<div class="fc-nums">'+nums+'</div>'+
+        '<div class="fc-feito">'+feito+'</div>'+
+        ult+
+      '</div>'+
+      '<label class="fc-chk" title="Marcar como atendido e tirar da fila"><input type="checkbox" data-atend="'+esc(al.aba+'|'+al.r)+'"'+(atend?' checked':'')+'><span>'+(atend?'feito':'atender')+'</span></label>'+
+    '</div>';
+  }).join('');
+
+  renderUltimosContatos();
+}
+function setAtendido(al, on){
+  if(!al) return;
+  var key = atendKey(al);
+  S.atendidos = S.atendidos || {};
+  if(on){
+    var autor = (S.perfil && S.perfil.nome) ? S.perfil.nome : (S.user ? nomeEditor(S.user.email) : 'Equipe');
+    var reg = { aluno:nomeDe(al), turma:turmaDe(al), por:autor, em:Date.now() };
+    S.atendidos[key] = reg;
+    db.ref('atendidos_foco/'+key).set(reg).catch(function(err){ toast('Erro ao salvar: '+(err.message||err),5000); });
+  } else {
+    delete S.atendidos[key];
+    db.ref('atendidos_foco/'+key).remove().catch(function(err){ toast('Erro: '+(err.message||err),5000); });
+  }
 }
 
 function renderDev(){
@@ -3866,6 +4099,7 @@ function irTab(t){
     S.qHist = '';
   }
   [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===t); });
+  $('pFoco').classList.toggle('hidden',t!=='foco');
   $('pDev').classList.toggle('hidden',t!=='dev');
   $('pFal').classList.toggle('hidden',t!=='fal');
   $('pAte').classList.toggle('hidden',t!=='ate');
@@ -3886,7 +4120,8 @@ function render(){
   if(S.fichaKey) renderFicha();
   if(fId && !ae.classList.contains('chip')){ var n=document.querySelector('[data-id="'+CSS.escape(fId)+'"]:not(.chip)'); if(n && n!==ae){ n.focus(); try{ n.setSelectionRange(selS,selE); }catch(_){} } }
   $('ficha').scrollTop=fy;
-  if(S.tab==='dev') renderDev();
+  if(S.tab==='foco') renderFoco();
+  else if(S.tab==='dev') renderDev();
   else if(S.tab==='fal') renderFal();
   else if(S.tab==='ate') renderAte();
   else if(S.tab==='alu') renderAlu();
@@ -4244,6 +4479,8 @@ document.addEventListener('click',function(e){
     salvarEdicaoItemHist(sigSv, valNovo);
     return;
   }
+  var fa=e.target.closest('[data-focoano]');
+  if(fa){ S.focoAno = fa.getAttribute('data-focoano'); renderFoco(); return; }
   var fcb=e.target.closest('[data-fcbim]');
   if(fcb){ S.fcBim = fcb.getAttribute('data-fcbim'); renderConsec(); return; }
   var fcm=e.target.closest('[data-fcmes]');
@@ -4555,13 +4792,24 @@ $('qAlu').oninput=function(){ S.qAlu=this.value; render(); };
 /* Marcar/desmarcar LAUDO (na aba Alunos e no perfil) */
 document.addEventListener('change', function(e){
   var lc = e.target.closest('[data-laudo]');
-  if(!lc) return;
-  var al = S.alKey && S.alKey[lc.getAttribute('data-laudo')];
-  if(!al) return;
-  setLaudo(al, lc.checked);
-  if(S.fichaKey && !$('ficha').classList.contains('hidden')) renderFicha();
-  if(S.tab==='alu') renderAlu();
+  if(lc){
+    var al = S.alKey && S.alKey[lc.getAttribute('data-laudo')];
+    if(!al) return;
+    setLaudo(al, lc.checked);
+    if(S.fichaKey && !$('ficha').classList.contains('hidden')) renderFicha();
+    if(S.tab==='alu') renderAlu();
+    return;
+  }
+  var ac = e.target.closest('[data-atend]');
+  if(ac){
+    var al2 = S.alKey && S.alKey[ac.getAttribute('data-atend')];
+    if(!al2) return;
+    setAtendido(al2, ac.checked);
+    renderFoco();
+    return;
+  }
 });
+if($('focoVerAtend')) $('focoVerAtend').onchange=function(){ S.focoVerAtend=this.checked; renderFoco(); };
 $('qSit').oninput=function(){ S.qSit=this.value; render(); };
 $('saeAno').onchange=function(){ S.saeAno=this.value; render(); };
 $('saeBim').onchange=function(){ S.saeBim=this.value; render(); };
