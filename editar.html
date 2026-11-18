@@ -446,9 +446,15 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
         </div>
 
         <div class="foco-top">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="font-size:12.5px;font-weight:700;color:var(--navy)">Ano:</span>
-            <span class="seg" id="focoAnoBtns"></span>
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:12.5px;font-weight:700;color:var(--navy)">Ano:</span>
+              <span class="seg" id="focoAnoBtns"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:12.5px;font-weight:700;color:var(--navy)">Bimestre:</span>
+              <span class="seg" id="focoBimBtns"></span>
+            </div>
           </div>
           <label class="foco-switch"><input type="checkbox" id="focoVerAtend"> Mostrar já atendidos</label>
         </div>
@@ -1244,7 +1250,7 @@ var S = {
   declaracoes:{}, dclTurma:'', fltDclTurma:'', fltDclBim:bimestreAtual(), qDcl:'',
   faltasConsec:{}, fcMes:'', fcBim:'', fcMin:2, fcTurma:'',
   laudos:{},
-  atendidos:{}, focoAno:'', focoVerAtend:false,
+  atendidos:{}, focoAno:'', focoBim:'', focoVerAtend:false,
   valPdf:null, valPdfFiltro:'mudou', valPdfTurma:'', valPdfBusca:'',
   aluAba:'', aluTurma:'', qAlu:'', fichaModoCad:false,
   qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
@@ -2206,21 +2212,22 @@ function atendKey(al){
   return cod || ('k' + fbKey(al.aba + '|' + al.r));
 }
 /* Faltas consecutivas do aluno (maior sequência registrada via Diário) */
-function consecDe(al){
+function consecDe(al, bimFiltro){
   var cod = String(codDe(al)||'').replace(/\D/g,'');
   var best = {max:0, mes:'', bim:''};
   if(!cod || !S.faltasConsec) return best;
   Object.keys(S.faltasConsec).forEach(function(k){
     var r = S.faltasConsec[k]; if(!r) return;
     if(String(r.codigo||'').replace(/\D/g,'') !== cod) return;
+    if(bimFiltro && r.bim !== bimFiltro) return;
     if(num(r.consec) > best.max){ best = {max:num(r.consec), mes:r.mes||'', bim:r.bim||''}; }
   });
   return best;
 }
 /* Agrega o ano inteiro do aluno: faltas, injust., o que já foi feito e o último registro */
-function focoAgg(al){
+function focoAgg(al, bimFiltro){
   var f=0,i=0,bil=0,sae=0,ret=0,bus=0,dev=0; var ultimo=null;
-  ['1B','2B','3B','4B'].forEach(function(bi){
+  (bimFiltro ? [bimFiltro] : ['1B','2B','3B','4B']).forEach(function(bi){
     var o=al.b[bi]; if(!o) return;
     var vv=function(k){ var id=fieldId(al,bi,k); return id?valor(id):(o[k]!=null?o[k]:''); };
     var ff=num(vv('FAL')), aa=num(vv('ATE'));
@@ -2262,6 +2269,7 @@ function renderUltimosContatos(){
   if(!$('ultContatos')) return;
   var regs = todosRegistrosHist().filter(function(r){ return ehCampoContato(r.campo) && temAcao(r.novo); });
   if(S.focoAno) regs = regs.filter(function(r){ var k=r.aba; return !k || k===S.focoAno; });
+  if(S.focoBim) regs = regs.filter(function(r){ return !r.bim || r.bim===S.focoBim; });
   regs = regs.slice(0, 18);
   if(!regs.length){ $('ultContatos').innerHTML = '<p style="font-size:12px;color:var(--muted);padding:6px 2px">Nenhum contato registrado ainda. Registros de bilhete, ligação, SAE e devolutiva aparecem aqui conforme forem feitos.</p>'; return; }
   $('ultContatos').innerHTML = regs.map(function(r){
@@ -2281,9 +2289,14 @@ function renderFoco(){
   $('focoAnoBtns').innerHTML = '<button type="button" data-focoano="" class="'+(S.focoAno===''?'on':'')+'">Todos</button>' +
     abas.map(function(a){ return '<button type="button" data-focoano="'+esc(a)+'" class="'+(S.focoAno===a?'on':'')+'">'+esc(ANO_LBL[a]||a)+'</button>'; }).join('');
 
+  /* Botões de bimestre */
+  $('focoBimBtns').innerHTML = '<button type="button" data-focobim="" class="'+(S.focoBim===''?'on':'')+'">Ano todo</button>' +
+    ['1B','2B','3B','4B'].map(function(b){ return '<button type="button" data-focobim="'+b+'" class="'+(S.focoBim===b?'on':'')+'">'+b.charAt(0)+'º</button>'; }).join('');
+
+  var bimF = S.focoBim || '';
   var base = todosAlunos(S.focoAno||null).filter(function(al){ return sitDe(al)==='A'; });
   var linhas = base.map(function(al){
-    var g = focoAgg(al); var c = consecDe(al);
+    var g = focoAgg(al, bimF); var c = consecDe(al, bimF);
     var score = c.max*6 + g.i + (g.fezAlgo?0:8) + (g.i>=10?5:0);
     return {al:al, g:g, c:c, score:score, key:atendKey(al)};
   }).filter(function(x){
@@ -4481,6 +4494,8 @@ document.addEventListener('click',function(e){
   }
   var fa=e.target.closest('[data-focoano]');
   if(fa){ S.focoAno = fa.getAttribute('data-focoano'); renderFoco(); return; }
+  var fbm=e.target.closest('[data-focobim]');
+  if(fbm){ S.focoBim = fbm.getAttribute('data-focobim'); renderFoco(); return; }
   var fcb=e.target.closest('[data-fcbim]');
   if(fcb){ S.fcBim = fcb.getAttribute('data-fcbim'); renderConsec(); return; }
   var fcm=e.target.closest('[data-fcmes]');
