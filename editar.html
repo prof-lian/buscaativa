@@ -1169,6 +1169,7 @@ var S = {
   faTurma:'', faBim:'4B', qFa:'', atTurma:'', atBim:'4B', fltAtTurma:'', fltAtBim:bimestreAtual(), atAnos:{1:true,2:true,3:true,4:true,5:true,6:false,7:false,8:false,9:false}, qAt:'', atestados:{}, atestadosPlanilha:{},
   declaracoes:{}, dclTurma:'', fltDclTurma:'', fltDclBim:bimestreAtual(), qDcl:'',
   faltasConsec:{}, fcMes:'', fcBim:'', fcMin:2, fcTurma:'',
+  laudos:{},
   valPdf:null, valPdfFiltro:'mudou', valPdfTurma:'', valPdfBusca:'',
   aluAba:'', aluTurma:'', qAlu:'', fichaModoCad:false,
   qSit:'', saeAno:'', saeBim:'', qSae:'', fSae:'pend',
@@ -1719,6 +1720,11 @@ function ouvirPlanilha(){
   db.ref('faltas_consecutivas').on('value',function(s){
     S.faltasConsec = s.val() || {};
     if(S.tab==='fal') renderConsec();
+  },function(){});
+  db.ref('laudos').on('value',function(s){
+    S.laudos = s.val() || {};
+    if(S.tab==='alu') renderAlu();
+    if(S.fichaKey && !$('ficha').classList.contains('hidden')) renderFicha();
   },function(){});
   /* Perfis de editores para exibir sempre o nome em vez do e-mail */
   db.ref('perfis').on('value',function(s){
@@ -3286,8 +3292,8 @@ function renderAlu(){
   }
   lista.sort(function(a,b){ return cmpTurma(turmaDe(a),turmaDe(b)) || low(nomeDe(a)).localeCompare(low(nomeDe(b))); });
   $('cntAlu').textContent = lista.length + ' aluno(s)';
-  var head='<thead><tr><th>Código</th><th>Nome do Aluno</th><th style="text-align:center">Turma</th><th>Matrícula</th><th>Situação</th><th class="num">Faltas Tot.</th><th style="text-align:right">Ações</th></tr></thead>';
-  if(!lista.length){ $('tabAlu').innerHTML=head+'<tbody><tr><td colspan="7" class="vazio">Nenhum aluno encontrado.</td></tr></tbody>'; return; }
+  var head='<thead><tr><th>Código</th><th>Nome do Aluno</th><th style="text-align:center">Turma</th><th>Matrícula</th><th>Situação</th><th class="num">Faltas Tot.</th><th style="text-align:center">Laudo</th><th style="text-align:right">Ações</th></tr></thead>';
+  if(!lista.length){ $('tabAlu').innerHTML=head+'<tbody><tr><td colspan="8" class="vazio">Nenhum aluno encontrado.</td></tr></tbody>'; return; }
   $('tabAlu').innerHTML=head+'<tbody>'+lista.slice(0,350).map(function(al){
     var st=sitDe(al), stBadge = st==='T'?'<span class="tag hi">Transferido</span>':(st==='D'?'<span class="tag d">Domiciliar</span>':'<span class="tag ok">Ativo</span>');
     var v=vals(al);
@@ -3298,6 +3304,7 @@ function renderAlu(){
       '<td class="mono" style="font-size:12px;color:var(--muted)">'+esc(matDe(al)||'—')+'</td>'+
       '<td>'+stBadge+'</td>'+
       '<td class="num">'+v.f+'</td>'+
+      '<td style="text-align:center"><label title="Marcar como aluno laudado" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer"><input type="checkbox" class="chkLaudo" data-laudo="'+esc(al.aba+'|'+al.r)+'"'+(temLaudo(al)?' checked':'')+(temPerm('dados_aluno')?'':' disabled')+' style="width:17px;height:17px;cursor:pointer;accent-color:#5B3FA6"></label></td>'+
       '<td style="text-align:right"><button type="button" class="chip" data-ficha-cad="'+esc(al.aba+'|'+al.r)+'">✏️ Editar Cadastro / Turma</button></td>'+
     '</tr>';
   }).join('')+'</tbody>';
@@ -3537,6 +3544,37 @@ function renderHistPager(totalPg){
 }
 
 /* ===== Ficha Completa do Aluno (1º ao 4º Bimestre + Dados Cadastrais e Turma) ===== */
+/* ===== LAUDO do aluno (marca se é aluno laudado) ===== */
+function laudoKey(al){
+  var cod = String(codDe(al)||'').replace(/[.#$\[\]\/\s]/g,'').trim();
+  return cod || ('k' + fbKey(al.aba + '|' + al.r));
+}
+function temLaudo(al){
+  if(!al || !S.laudos) return false;
+  var v = S.laudos[laudoKey(al)];
+  return v === true || (v && v.laudo === true);
+}
+function setLaudo(al, on){
+  if(!al) return;
+  if(!temPerm('dados_aluno')){ toast('Você não tem permissão para alterar dados do aluno.'); renderAlu(); return; }
+  var key = laudoKey(al);
+  S.laudos = S.laudos || {};
+  if(on){
+    var autor = (S.perfil && S.perfil.nome) ? S.perfil.nome : (S.user ? nomeEditor(S.user.email) : 'Equipe');
+    var reg = { laudo:true, aluno:nomeDe(al), turma:turmaDe(al), por:autor, em:Date.now() };
+    S.laudos[key] = reg;
+    db.ref('laudos/'+key).set(reg).catch(function(err){ toast('Erro ao salvar laudo: '+(err.message||err),5000); });
+  } else {
+    delete S.laudos[key];
+    db.ref('laudos/'+key).remove().catch(function(err){ toast('Erro ao remover laudo: '+(err.message||err),5000); });
+  }
+}
+function badgeLaudo(al){
+  return temLaudo(al)
+    ? '<span class="tag" style="background:#EDE7FB;color:#5B3FA6;border-color:#C9B8F0;font-weight:700">📋 Aluno laudado</span>'
+    : '<span class="tag" style="background:#F2F4F7;color:var(--muted)">Sem laudo</span>';
+}
+
 function abrirFicha(k, modoCad){
   if(!S.alKey || !S.alKey[k]) return;
   S.fichaKey=k;
@@ -3567,6 +3605,14 @@ function renderFicha(){
 
   var h=[];
   h.push('<div class="mtags"><span class="tag">Total de faltas: <b>'+tf+'</b></span><span class="tag hi">Injustificadas: '+ti+'</span><span class="tag ok">Atestados: '+ta+'</span></div>');
+
+  /* LAUDO — sempre visível no perfil do aluno */
+  h.push('<div class="msit" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+    '<b>Laudo:</b>'+badgeLaudo(al)+
+    '<label style="display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:var(--navy)">'+
+      '<input type="checkbox" class="chkLaudo" data-laudo="'+esc(al.aba+'|'+al.r)+'"'+(temLaudo(al)?' checked':'')+(temPerm('dados_aluno')?'':' disabled')+' style="width:17px;height:17px;cursor:pointer;accent-color:#5B3FA6"> Marcar como aluno laudado'+
+    '</label>'+
+  '</div>');
 
   /* Bloco de Dados Cadastrais, Troca de Turma e Situação */
   var sid=sitId(al);
@@ -4505,6 +4551,17 @@ $('q').oninput=function(){ S.q=this.value; render(); };
 $('aluAno').onchange=function(){ S.aluAba=this.value; S.aluTurma=''; montarFiltrosAlu(); render(); };
 $('aluTurma').onchange=function(){ S.aluTurma=this.value; render(); };
 $('qAlu').oninput=function(){ S.qAlu=this.value; render(); };
+
+/* Marcar/desmarcar LAUDO (na aba Alunos e no perfil) */
+document.addEventListener('change', function(e){
+  var lc = e.target.closest('[data-laudo]');
+  if(!lc) return;
+  var al = S.alKey && S.alKey[lc.getAttribute('data-laudo')];
+  if(!al) return;
+  setLaudo(al, lc.checked);
+  if(S.fichaKey && !$('ficha').classList.contains('hidden')) renderFicha();
+  if(S.tab==='alu') renderAlu();
+});
 $('qSit').oninput=function(){ S.qSit=this.value; render(); };
 $('saeAno').onchange=function(){ S.saeAno=this.value; render(); };
 $('saeBim').onchange=function(){ S.saeBim=this.value; render(); };
