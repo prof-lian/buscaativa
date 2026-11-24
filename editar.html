@@ -292,6 +292,19 @@ textarea.auto{overflow:hidden}
 .doc-meta{font-size:10.5px;color:var(--muted);margin-top:3px}
 .doc-del{position:absolute;top:5px;right:5px;width:22px;height:22px;border:0;border-radius:50%;background:rgba(176,42,55,.9);color:#fff;font-size:12px;line-height:1;cursor:pointer;display:none}
 .doc-item:hover .doc-del{display:block}
+/* Armazenamento */
+.arm-card{background:#fff;border:1px solid var(--line2);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.arm-card.dest{border-color:var(--navy3);background:#F6FAFF}
+.arm-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-weight:700;color:var(--navy);font-size:14.5px;margin-bottom:10px}
+.arm-top b{font-size:14px}
+.arm-bar{height:12px;border-radius:7px;background:#E9EEF4;overflow:hidden}
+.arm-bar-in{height:100%;border-radius:7px;transition:width .4s}
+.arm-sub{font-size:12px;color:var(--muted);margin-top:8px}
+.arm-tab{width:100%;border-collapse:collapse;margin-top:4px;font-size:13px}
+.arm-tab td{padding:6px 2px;border-bottom:1px solid var(--line);color:var(--navy)}
+.arm-tab tr:last-child td{border-bottom:0}
+.arm-nota{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:4px}
+.link-btn{border:0;background:none;color:var(--navy3);text-decoration:underline;cursor:pointer;font:inherit;font-size:12px;padding:0}
 .collapse-box{border:1px solid var(--line2);border-radius:11px;overflow:hidden;background:#fff}
 .collapse-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;background:#F2F7FC;border:0;cursor:pointer;font:700 14.5px "IBM Plex Sans",sans-serif;color:var(--navy);transition:background .15s}
 .collapse-head:hover{background:#E9F1FA}
@@ -435,6 +448,9 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
         </button>
         <button class="tab" data-tab="hist" type="button">
           <span class="t-left"><span class="ico">🕒</span><span>Histórico de Edições</span></span>
+        </button>
+        <button class="tab" data-tab="armaz" type="button">
+          <span class="t-left"><span class="ico">💾</span><span>Armazenamento</span></span>
         </button>
         <button class="tab" data-tab="perf" type="button">
           <span class="t-left"><span class="ico">👤</span><span>Meu Perfil e Foto</span></span>
@@ -914,6 +930,18 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
         </div>
         <div id="listaHist"></div>
         <div id="histPager" class="pager"></div>
+      </section>
+
+      <!-- 5b. ARMAZENAMENTO -->
+      <section id="pArmaz" class="panel-box hidden">
+        <div class="sec-head">
+          <div>
+            <h2>💾 Armazenamento</h2>
+            <p>Acompanhe quanto do espaço gratuito do Firebase (1 GB) já foi usado — pelos documentos dos alunos e por todos os dados do sistema.</p>
+          </div>
+          <button type="button" class="btn out-dark" id="armazAtualizar">↻ Atualizar</button>
+        </div>
+        <div id="armazCorpo"></div>
       </section>
 
       <!-- 6. MEU PERFIL -->
@@ -1729,6 +1757,7 @@ function podeVerTab(tabId){
   if(tabId === 'edt') return !!S.admin;
   if(S.admin) return true;
   if(tabId === 'foco') return temPerm('busca_ativa') || temPerm('devolutiva_familia') || temPerm('faltas');
+  if(tabId === 'armaz') return true;
   if(tabId === 'dev') return temPerm('busca_ativa') || temPerm('devolutiva_familia');
   if(tabId === 'fal') return temPerm('faltas');
   if(tabId === 'ate') return temPerm('atestados');
@@ -1740,7 +1769,7 @@ function podeVerTab(tabId){
 }
 
 function primeiraTabPermitida(){
-  var ordem = ['foco','dev','fal','ate','sae','sit','alu','hist','perf'];
+  var ordem = ['foco','dev','fal','ate','sae','sit','alu','hist','armaz','perf'];
   for(var i = 0; i < ordem.length; i++){
     if(podeVerTab(ordem[i])) return ordem[i];
   }
@@ -4048,10 +4077,12 @@ function enviarDocs(key, al, files){
         var tam = Math.round((dataURL.length - (dataURL.indexOf(',')+1)) * 0.75); /* bytes aprox do base64 */
         if(tam > 7*1024*1024){ toast('Arquivo grande demais após processar: '+file.name, 5000); return; }
         var id = 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-        var reg = { nome:file.name, tipo:tipo, mime:(ehImg?'image/jpeg':'application/pdf'), tam:tam, data:dataURL, por:autor, em:Date.now() };
+        var dbBytes = dataURL.length; /* footprint real no banco (base64) */
+        var reg = { nome:file.name, tipo:tipo, mime:(ehImg?'image/jpeg':'application/pdf'), tam:tam, tamDb:dbBytes, data:dataURL, por:autor, em:Date.now() };
         return db.ref('documentos/'+key+'/'+id).set(reg).then(function(){
           S.docsCache = S.docsCache || {}; S.docsCache[key] = S.docsCache[key] || {}; S.docsCache[key][id] = reg;
           okCount++;
+          ajustarUsoDocs(dbBytes, 1);
           if(S.fichaDocKey===key) renderDocsLista(key);
         });
       });
@@ -4076,8 +4107,86 @@ function verDocumento(key, id){
   $('docViewNome').textContent = d.nome || 'Documento';
   $('docView').classList.remove('hidden');
 }
+/* Contador de uso dos documentos (soma/subtrai a cada upload/exclusao) */
+function ajustarUsoDocs(deltaBytes, deltaCount){
+  db.ref('uso/docBytes').transaction(function(v){ return Math.max(0, (v||0) + deltaBytes); });
+  db.ref('uso/docCount').transaction(function(v){ return Math.max(0, (v||0) + (deltaCount||0)); });
+}
+/* ===== Aba ARMAZENAMENTO ===== */
+var FB_LIMITE = 1024*1024*1024; /* 1 GB do plano gratuito */
+var NODES_SIST = ['busca_ativa','atestados_medicos','declaracoes_bolsa_familia','faltas_consecutivas','laudos','atendidos_foco','historico_edicoes','edicoes_pendentes','edicoes_resultado','editores','editores_extra','admins','uso'];
+var NODE_LBL = {busca_ativa:'Dados de frequência (planilha)', atestados_medicos:'Atestados', declaracoes_bolsa_familia:'Declarações (Bolsa Família)', faltas_consecutivas:'Faltas consecutivas', laudos:'Laudos (marcação)', atendidos_foco:'Atendidos (Foco do Dia)', historico_edicoes:'Histórico de edições', edicoes_pendentes:'Edições pendentes', edicoes_resultado:'Resultado de edições', editores:'Editores', editores_extra:'Editores (extra)', admins:'Admins', uso:'Contadores de uso'};
+
+function fmtBytesG(b){ b=num(b); if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; if(b<1073741824) return (b/1048576).toFixed(1)+' MB'; return (b/1073741824).toFixed(2)+' GB'; }
+function barra(frac){ var pct=Math.min(100, Math.max(0, frac*100)); var cor = pct>85?'var(--alert)':(pct>60?'var(--gold)':'var(--green)'); return '<div class="arm-bar"><div class="arm-bar-in" style="width:'+pct.toFixed(1)+'%;background:'+cor+'"></div></div>'; }
+
+function renderArmaz(){
+  if(!$('pArmaz')) return;
+  $('armazCorpo').innerHTML = '<div class="docs-load">Calculando uso… (pode levar alguns segundos)</div>';
+
+  db.ref('uso').once('value').then(function(su){
+    var uso = su.val() || {};
+    var docBytes = num(uso.docBytes), docCount = num(uso.docCount);
+
+    /* Mede os nós do sistema medindo o JSON (sem baixar os blobs de documentos) */
+    var proms = NODES_SIST.map(function(n){
+      return db.ref(n).once('value').then(function(s){
+        var v = s.val(); return { node:n, bytes: v==null?0:JSON.stringify(v).length };
+      }).catch(function(){ return { node:n, bytes:0 }; });
+    });
+
+    Promise.all(proms).then(function(res){
+      var sistBytes = res.reduce(function(a,x){ return a+x.bytes; }, 0);
+      var totalBytes = sistBytes + docBytes; /* documentos vêm do contador, não do download */
+      var fracTot = totalBytes / FB_LIMITE;
+      var fracDoc = docBytes / FB_LIMITE;
+
+      var detalhe = res.filter(function(x){ return x.bytes>0; }).sort(function(a,b){ return b.bytes-a.bytes; });
+
+      var html = '';
+      /* Card total */
+      html += '<div class="arm-card dest">'+
+        '<div class="arm-top"><span>💾 Uso total estimado do Firebase</span><b>'+fmtBytesG(totalBytes)+' / 1 GB</b></div>'+
+        barra(fracTot)+
+        '<div class="arm-sub">'+(fracTot*100).toFixed(1)+'% do limite gratuito · restam ~'+fmtBytesG(Math.max(0,FB_LIMITE-totalBytes))+'</div>'+
+      '</div>';
+      /* Card documentos */
+      html += '<div class="arm-card">'+
+        '<div class="arm-top"><span>📎 Documentos dos alunos</span><b>'+fmtBytesG(docBytes)+'</b></div>'+
+        barra(fracDoc)+
+        '<div class="arm-sub">'+docCount+' arquivo(s) · '+(fracDoc*100).toFixed(1)+'% do limite'+
+          ' &nbsp;·&nbsp; <button type="button" class="link-btn" id="armazRecalc">recalcular</button></div>'+
+      '</div>';
+      /* Breakdown sistema */
+      html += '<div class="arm-card"><div class="arm-top"><span>📊 Detalhe dos dados do sistema</span><b>'+fmtBytesG(sistBytes)+'</b></div><table class="arm-tab"><tbody>';
+      detalhe.forEach(function(x){
+        html += '<tr><td>'+esc(NODE_LBL[x.node]||x.node)+'</td><td style="text-align:right;white-space:nowrap">'+fmtBytesG(x.bytes)+'</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      /* Nota */
+      html += '<p class="arm-nota">Estimativa calculada a partir dos dados (os documentos são contados por um medidor próprio, sem baixar os arquivos). O número oficial fica no Firebase → Realtime Database → aba <b>Uso</b>. Pequenas diferenças são normais (o Firebase conta também índices internos).</p>';
+
+      $('armazCorpo').innerHTML = html;
+      if($('armazRecalc')) $('armazRecalc').onclick = recalcularUsoDocs;
+    });
+  }).catch(function(err){
+    $('armazCorpo').innerHTML = '<div class="docs-load" style="color:var(--alert)">Erro ao calcular: '+esc(err.message||err)+'</div>';
+  });
+}
+/* Recalcula o uso real dos documentos (baixa o nó inteiro uma vez e refaz o contador) */
+function recalcularUsoDocs(){
+  if(!confirm('Recalcular o uso dos documentos? Isso baixa todos os documentos uma vez para medir — pode demorar e consumir cota de download.')) return;
+  $('armazCorpo').insertAdjacentHTML('afterbegin','<div class="docs-load" id="armazRecMsg">Recalculando… baixando documentos para medir.</div>');
+  db.ref('documentos').once('value').then(function(s){
+    var m = s.val() || {}; var bytes=0, count=0;
+    Object.keys(m).forEach(function(k){ var al=m[k]||{}; Object.keys(al).forEach(function(id){ var d=al[id]||{}; bytes += (d.tamDb || (d.data?d.data.length:0)); count++; }); });
+    return db.ref('uso').update({ docBytes:bytes, docCount:count });
+  }).then(function(){ toast('✓ Uso dos documentos recalculado.'); renderArmaz(); })
+    .catch(function(err){ toast('Erro ao recalcular: '+(err.message||err),5000); });
+}
 function autoAltura(raiz){ [].forEach.call(raiz.querySelectorAll('textarea.auto'),function(t){ t.style.height='auto'; t.style.height=Math.max(84,t.scrollHeight+2)+'px'; }); }
 $('fFechar').onclick=fecharFicha;
+if($('armazAtualizar')) $('armazAtualizar').onclick=function(){ renderArmaz(); };
 if($('docViewFechar')) $('docViewFechar').onclick=function(){ $('docView').classList.add('hidden'); $('docViewBody').innerHTML=''; };
 if($('docView')) $('docView').addEventListener('click',function(e){ if(e.target===$('docView')){ this.classList.add('hidden'); $('docViewBody').innerHTML=''; } });
 $('fCorpo').addEventListener('click',function(e){
@@ -4090,8 +4199,10 @@ $('fCorpo').addEventListener('click',function(e){
     var id=del.getAttribute('data-doc-del'); var key=S.fichaDocKey;
     var d=S.docsCache && S.docsCache[key] && S.docsCache[key][id];
     if(!confirm('Excluir o documento "'+((d&&d.nome)||'')+'"? Esta ação não pode ser desfeita.')) return;
+    var bytesRem = (d && (d.tamDb || (d.data?d.data.length:0))) || 0;
     db.ref('documentos/'+key+'/'+id).remove().then(function(){
       if(S.docsCache && S.docsCache[key]) delete S.docsCache[key][id];
+      ajustarUsoDocs(-bytesRem, -1);
       renderDocsLista(key); toast('Documento excluído.');
     }).catch(function(err){ toast('Erro ao excluir: '+(err.message||err),5000); });
   }
@@ -4287,6 +4398,7 @@ function irTab(t){
   }
   [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===t); });
   $('pFoco').classList.toggle('hidden',t!=='foco');
+  $('pArmaz').classList.toggle('hidden',t!=='armaz');
   $('pDev').classList.toggle('hidden',t!=='dev');
   $('pFal').classList.toggle('hidden',t!=='fal');
   $('pAte').classList.toggle('hidden',t!=='ate');
@@ -4308,6 +4420,7 @@ function render(){
   if(fId && !ae.classList.contains('chip')){ var n=document.querySelector('[data-id="'+CSS.escape(fId)+'"]:not(.chip)'); if(n && n!==ae){ n.focus(); try{ n.setSelectionRange(selS,selE); }catch(_){} } }
   $('ficha').scrollTop=fy;
   if(S.tab==='foco') renderFoco();
+  else if(S.tab==='armaz') renderArmaz();
   else if(S.tab==='dev') renderDev();
   else if(S.tab==='fal') renderFal();
   else if(S.tab==='ate') renderAte();
