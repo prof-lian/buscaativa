@@ -276,6 +276,22 @@ textarea.auto{overflow:hidden}
 .uc-data{font-size:10.5px;color:var(--muted);white-space:nowrap}
 .uc-tipo{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:#EEF3F9;color:var(--navy3);margin:3px 0}
 .uc-txt{color:var(--muted);line-height:1.4}
+/* Documentos do aluno */
+.docs-box{margin-top:18px;border:1px solid var(--line2);border-radius:12px;padding:16px;background:#FAFBFD}
+.docs-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-weight:700;color:var(--navy);font-size:15px}
+.docs-add{cursor:pointer;font-size:12.5px;padding:7px 13px}
+.docs-hint{font-size:11.5px;color:var(--muted);margin:6px 0 12px}
+.docs-load,.docs-vazio{font-size:12.5px;color:var(--muted);padding:10px 2px}
+.docs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.doc-item{position:relative;background:#fff;border:1px solid var(--line2);border-radius:10px;padding:8px;cursor:pointer;transition:all .15s}
+.doc-item:hover{border-color:var(--navy3);box-shadow:0 3px 10px rgba(16,42,76,.09)}
+.doc-thumb{height:92px;border-radius:7px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#EEF2F7;margin-bottom:7px}
+.doc-thumb img{width:100%;height:100%;object-fit:cover}
+.doc-pdf{font:800 15px 'IBM Plex Sans',sans-serif;color:#B02A37;letter-spacing:1px}
+.doc-nome{font-size:11.5px;font-weight:600;color:var(--navy);line-height:1.3;word-break:break-word;max-height:30px;overflow:hidden}
+.doc-meta{font-size:10.5px;color:var(--muted);margin-top:3px}
+.doc-del{position:absolute;top:5px;right:5px;width:22px;height:22px;border:0;border-radius:50%;background:rgba(176,42,55,.9);color:#fff;font-size:12px;line-height:1;cursor:pointer;display:none}
+.doc-item:hover .doc-del{display:block}
 .collapse-box{border:1px solid var(--line2);border-radius:11px;overflow:hidden;background:#fff}
 .collapse-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;background:#F2F7FC;border:0;cursor:pointer;font:700 14.5px "IBM Plex Sans",sans-serif;color:var(--navy);transition:background .15s}
 .collapse-head:hover{background:#E9F1FA}
@@ -1015,6 +1031,17 @@ input:disabled,textarea:disabled,select:disabled,button:disabled{opacity:.58;cur
       </div>
     </div>
     <div class="mbody" id="fCorpo"></div>
+  </div>
+</div>
+
+<!-- Visualizador de documento (imagem/PDF) -->
+<div class="modal hidden" id="docView" role="dialog" aria-modal="true" style="z-index:60">
+  <div class="mcard" style="max-width:900px">
+    <div class="mhead">
+      <h3 id="docViewNome" style="font-size:16px">Documento</h3>
+      <button type="button" id="docViewFechar">✕ Fechar</button>
+    </div>
+    <div class="mbody" id="docViewBody" style="padding:14px"></div>
   </div>
 </div>
 
@@ -3916,15 +3943,162 @@ function renderFicha(){
       '<div class="fields">'+numsEdit+curtos+longos+'</div></div>');
   });
 
+  /* Documentos do aluno (imagens/PDFs) — carregados sob demanda */
+  var podeDoc = temPerm('dados_aluno') || temPerm('faltas') || temPerm('busca_ativa');
+  h.push('<div class="docs-box" id="fDocsBox">'+
+    '<div class="docs-head">'+
+      '<span>📎 Documentos do aluno</span>'+
+      (podeDoc ? '<label class="btn navy docs-add">+ Anexar (imagem ou PDF)<input type="file" id="fDocInput" accept="image/*,application/pdf" multiple hidden></label>' : '')+
+    '</div>'+
+    '<div class="docs-hint">Imagens são compactadas automaticamente. PDF até 4 MB. Clique num documento para visualizar.</div>'+
+    '<div id="fDocsLista"><div class="docs-load">Carregando documentos…</div></div>'+
+  '</div>');
+
   $('fCorpo').innerHTML=h.join('');
   autoAltura($('fCorpo'));
+
+  /* Lazy load dos documentos deste aluno */
+  var docKey = laudoKey(al);
+  S.fichaDocKey = docKey;
+  if($('fDocInput')) $('fDocInput').onchange = function(){ enviarDocs(docKey, al, this.files); this.value=''; };
+  carregarDocs(docKey);
 }
 
+/* ===== Documentos do aluno (armazenados no proprio banco, com compressao de imagem) ===== */
+var DOC_MAX_PDF = 4 * 1024 * 1024;   /* 4 MB por PDF */
+var DOC_IMG_MAXLADO = 1600;          /* maior lado da imagem apos compressao */
+var DOC_IMG_QUAL = 0.72;             /* qualidade JPEG */
+
+function carregarDocs(key){
+  if(!$('fDocsLista')) return;
+  db.ref('documentos/'+key).once('value').then(function(s){
+    if(S.fichaDocKey !== key) return; /* trocou de aluno nesse meio tempo */
+    var m = s.val() || {};
+    S.docsCache = S.docsCache || {}; S.docsCache[key] = m;
+    renderDocsLista(key);
+  }).catch(function(err){
+    if($('fDocsLista')) $('fDocsLista').innerHTML = '<div class="docs-load" style="color:var(--alert)">Erro ao carregar documentos: '+esc(err.message||err)+'</div>';
+  });
+}
+function renderDocsLista(key){
+  if(!$('fDocsLista')) return;
+  var m = (S.docsCache && S.docsCache[key]) || {};
+  var ids = Object.keys(m).sort(function(a,b){ return (m[b].em||0)-(m[a].em||0); });
+  var podeDoc = temPerm('dados_aluno') || temPerm('faltas') || temPerm('busca_ativa');
+  if(!ids.length){ $('fDocsLista').innerHTML = '<div class="docs-vazio">Nenhum documento anexado ainda.</div>'; return; }
+  $('fDocsLista').innerHTML = '<div class="docs-grid">' + ids.map(function(id){
+    var d = m[id];
+    var thumb = (d.tipo==='image')
+      ? '<img src="'+d.data+'" alt="'+esc(d.nome||'')+'" loading="lazy">'
+      : '<div class="doc-pdf">PDF</div>';
+    return '<div class="doc-item" data-doc-ver="'+esc(id)+'" title="'+esc(d.nome||'')+'">'+
+      '<div class="doc-thumb">'+thumb+'</div>'+
+      '<div class="doc-nome">'+esc(d.nome||'documento')+'</div>'+
+      '<div class="doc-meta">'+esc(fmtTam(d.tam))+(d.em?' · '+new Date(d.em).toLocaleDateString('pt-BR'):'')+'</div>'+
+      (podeDoc?'<button type="button" class="doc-del" data-doc-del="'+esc(id)+'" title="Excluir">✕</button>':'')+
+    '</div>';
+  }).join('') + '</div>';
+}
+function fmtTam(b){ b=num(b); if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(0)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
+
+function comprimirImagem(file){
+  return new Promise(function(resolve,reject){
+    var fr = new FileReader();
+    fr.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        var w=img.width, h=img.height;
+        var esc1 = Math.min(1, DOC_IMG_MAXLADO/Math.max(w,h));
+        w=Math.round(w*esc1); h=Math.round(h*esc1);
+        var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(cv.toDataURL('image/jpeg', DOC_IMG_QUAL));
+      };
+      img.onerror=function(){ reject(new Error('Imagem inválida')); };
+      img.src = fr.result;
+    };
+    fr.onerror=function(){ reject(new Error('Falha ao ler o arquivo')); };
+    fr.readAsDataURL(file);
+  });
+}
+function lerDataURL(file){
+  return new Promise(function(resolve,reject){
+    var fr=new FileReader();
+    fr.onload=function(){ resolve(fr.result); };
+    fr.onerror=function(){ reject(new Error('Falha ao ler o arquivo')); };
+    fr.readAsDataURL(file);
+  });
+}
+function enviarDocs(key, al, files){
+  if(!files || !files.length) return;
+  if(!(temPerm('dados_aluno')||temPerm('faltas')||temPerm('busca_ativa'))){ toast('Sem permissão para anexar documentos.'); return; }
+  var autor = (S.perfil && S.perfil.nome) ? S.perfil.nome : (S.user ? nomeEditor(S.user.email) : 'Equipe');
+  var lista = [].slice.call(files);
+  toast('Enviando '+lista.length+' arquivo(s)…', 4000);
+  var seq = Promise.resolve(); var okCount=0;
+  lista.forEach(function(file){
+    seq = seq.then(function(){
+      var ehImg = /^image\//.test(file.type);
+      var ehPdf = file.type==='application/pdf' || /\.pdf$/i.test(file.name);
+      if(!ehImg && !ehPdf){ toast('Ignorado (tipo não suportado): '+file.name, 4000); return; }
+      if(ehPdf && file.size > DOC_MAX_PDF){ toast('PDF muito grande (máx 4 MB): '+file.name, 5000); return; }
+      var prep = ehImg ? comprimirImagem(file) : lerDataURL(file);
+      return prep.then(function(dataURL){
+        var tipo = ehImg ? 'image' : 'pdf';
+        var tam = Math.round((dataURL.length - (dataURL.indexOf(',')+1)) * 0.75); /* bytes aprox do base64 */
+        if(tam > 7*1024*1024){ toast('Arquivo grande demais após processar: '+file.name, 5000); return; }
+        var id = 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+        var reg = { nome:file.name, tipo:tipo, mime:(ehImg?'image/jpeg':'application/pdf'), tam:tam, data:dataURL, por:autor, em:Date.now() };
+        return db.ref('documentos/'+key+'/'+id).set(reg).then(function(){
+          S.docsCache = S.docsCache || {}; S.docsCache[key] = S.docsCache[key] || {}; S.docsCache[key][id] = reg;
+          okCount++;
+          if(S.fichaDocKey===key) renderDocsLista(key);
+        });
+      });
+    }).catch(function(err){ toast('Erro em '+file.name+': '+(err.message||err), 5000); });
+  });
+  seq.then(function(){ if(okCount) toast('✓ '+okCount+' documento(s) anexado(s)!'); });
+}
+function verDocumento(key, id){
+  var d = S.docsCache && S.docsCache[key] && S.docsCache[key][id];
+  if(!d) return;
+  if(d.tipo==='image'){
+    $('docViewBody').innerHTML = '<img src="'+d.data+'" alt="'+esc(d.nome||'')+'" style="max-width:100%;max-height:78vh;display:block;margin:0 auto;border-radius:8px">';
+  } else {
+    try{
+      var bin = atob(d.data.split(',')[1]); var len=bin.length; var buf=new Uint8Array(len);
+      for(var i=0;i<len;i++) buf[i]=bin.charCodeAt(i);
+      var blob = new Blob([buf], {type:'application/pdf'}); var url = URL.createObjectURL(blob);
+      $('docViewBody').innerHTML = '<iframe src="'+url+'" style="width:100%;height:78vh;border:0;border-radius:8px"></iframe>'+
+        '<div style="text-align:center;margin-top:8px"><a href="'+url+'" target="_blank" rel="noopener" class="btn out-dark">Abrir em nova aba / Baixar</a></div>';
+    }catch(e){ $('docViewBody').innerHTML = '<p style="padding:20px;text-align:center">Não foi possível exibir o PDF.</p>'; }
+  }
+  $('docViewNome').textContent = d.nome || 'Documento';
+  $('docView').classList.remove('hidden');
+}
 function autoAltura(raiz){ [].forEach.call(raiz.querySelectorAll('textarea.auto'),function(t){ t.style.height='auto'; t.style.height=Math.max(84,t.scrollHeight+2)+'px'; }); }
 $('fFechar').onclick=fecharFicha;
+if($('docViewFechar')) $('docViewFechar').onclick=function(){ $('docView').classList.add('hidden'); $('docViewBody').innerHTML=''; };
+if($('docView')) $('docView').addEventListener('click',function(e){ if(e.target===$('docView')){ this.classList.add('hidden'); $('docViewBody').innerHTML=''; } });
+$('fCorpo').addEventListener('click',function(e){
+  var ver=e.target.closest('[data-doc-ver]');
+  if(ver && !e.target.closest('[data-doc-del]')){ verDocumento(S.fichaDocKey, ver.getAttribute('data-doc-ver')); return; }
+  var del=e.target.closest('[data-doc-del]');
+  if(del){
+    e.stopPropagation();
+    if(!(temPerm('dados_aluno')||temPerm('faltas')||temPerm('busca_ativa'))){ toast('Sem permissão.'); return; }
+    var id=del.getAttribute('data-doc-del'); var key=S.fichaDocKey;
+    var d=S.docsCache && S.docsCache[key] && S.docsCache[key][id];
+    if(!confirm('Excluir o documento "'+((d&&d.nome)||'')+'"? Esta ação não pode ser desfeita.')) return;
+    db.ref('documentos/'+key+'/'+id).remove().then(function(){
+      if(S.docsCache && S.docsCache[key]) delete S.docsCache[key][id];
+      renderDocsLista(key); toast('Documento excluído.');
+    }).catch(function(err){ toast('Erro ao excluir: '+(err.message||err),5000); });
+  }
+});
 $('fToggleCad').onclick=function(){ S.fichaModoCad = !S.fichaModoCad; renderFicha(); };
 $('ficha').addEventListener('click',function(e){ if(e.target===$('ficha')) fecharFicha(); });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.fichaKey) fecharFicha(); });
+document.addEventListener('keydown',function(e){ if(e.key!=='Escape') return; if($('docView') && !$('docView').classList.contains('hidden')){ $('docView').classList.add('hidden'); $('docViewBody').innerHTML=''; return; } if(S.fichaKey) fecharFicha(); });
 document.addEventListener('input',function(e){ if(e.target.classList && e.target.classList.contains('auto')){ e.target.style.height='auto'; e.target.style.height=Math.max(84,e.target.scrollHeight+2)+'px'; } });
 
 /* ===== Aba Editores e Permissões de Usuários (só administradores) ===== */
